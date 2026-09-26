@@ -134,7 +134,7 @@ input[type=range]{width:100%;accent-color:var(--ink);height:28px;touch-action:pa
         </div>
       </div>
       <div class="box" id="pointbox">
-        <div class="label" id="pointlabel">Point in the space</div>
+        <div class="seg" style="justify-content:space-between"><div class="label" id="pointlabel">Point in the space</div><button type="button" id="random">Random</button></div>
         <div class="rows" id="point"></div>
         <div class="hint" id="pointhint">Four numbers draw everything. The letters live on the plane z = 1, in rows: capitals at y = 1.5, lower case at y = 3, digits and punctuation at y = 4.5, signs at y = 6.</div>
       </div>
@@ -686,7 +686,7 @@ const Compact=(G=>{
     ['Form',[['mirror',0,1,'mirrored twin from the same root'],['rise',-180,180,'direction of the arms (0 = divider)'],
              ['aspect',0.25,6,'wider or taller than natural: scrolls are added or climb (never a stretch)']]],
   ];
-  const DEFAULTS={curl:0.5,scroll:-0.6,wave:0.6,bend:0,lean:0.2,loops:0,weight:0.4,contrast:0.8,detail:0.4,fractal:0,side:0.3,variation:0,mirror:1,rise:0,aspect:1,angle:0.9,length:0.45,straight:0,fan:0,at:0.15,answer:0,answerAngle:1.2,t0a:0,t0p:0.3,t0w:0.12,t1a:0,t1p:0.5,t1w:0.12,t2a:0,t2p:0.7,t2w:0.12,l0u:0.4,l0a:1,l0s:0,l0b:0,l0c:0.55,l1u:0.6,l1a:-1,l1s:0,l1b:0,l1c:-0.55,eyeLen:1,flourish:0,loopy:0,tail:0.8,loopSize:0.06,echo:0};
+  const DEFAULTS={curl:0.5,scroll:-0.6,wave:0.6,bend:0,lean:0.2,loops:0,weight:0.4,contrast:0.8,detail:0.4,fractal:0,side:0.3,variation:0,mirror:1,rise:0,aspect:1,angle:0.9,length:0.45,straight:0,fan:0,at:0.15,answer:0,answerAngle:1.2,t0a:0,t0p:0.3,t0w:0.12,t1a:0,t1p:0.5,t1w:0.12,t2a:0,t2p:0.7,t2w:0.12,l0u:0.4,l0a:1,l0s:0,l0b:0,l0c:0.55,l1u:0.6,l1a:-1,l1s:0,l1b:0,l1c:-0.55,eyeLen:1,flourish:0,loopy:0,tail:0.8,loopSize:0.06,echo:0,plain:0};
   function expand(C,phase=0){
     C=Object.assign({},DEFAULTS,C);
     const deg=C.rise*Math.PI/180, fr=clip(C.fractal), d=clip(C.detail);
@@ -703,14 +703,14 @@ const Compact=(G=>{
       width:C.aspect??1, height:1, aspect:0,
       turns:[0,1,2].flatMap(j=>[C['t'+j+'a'],C['t'+j+'p'],C['t'+j+'w']]),
       limbs:[0,1].map(j=>['u','a','s','b','c'].map(k=>C['l'+j+k])),
-    },clip(C.flourish||0),C.curl,clip(C.loopy||0),C.tail??0.8,C.loopSize??0.06);
+    },clip(C.flourish||0),C.curl,clip(C.loopy||0),C.tail??0.8,C.loopSize??0.06,clip(C.plain||0));
   }
   /* flourish (fl): the end curl grows longer and winds further, and limb curls wind up.
      loops (lp): every sharp turn grows a full extra loop turning the same way, from zero size (no jump).
      The start curl keeps its size, and the body keeps its shape, size and direction: the stroke is lengthened by Λ
      for the longer tail and the loops' arc, and positions along it are remapped (turns stay the same absolute width). */
-  function flourish(K,fl,curl,lp,tail,lsz){
-    if(!(fl>0)&&!(lp>0)) return K;
+  function flourish(K,fl,curl,lp,tail,lsz,pl=0){
+    if(!(fl>0)&&!(lp>0)&&!(pl>0)) return K;
     K.pRef=[K.A,K.f,K.phi,K.n0,K.n1,K.c0,K.c1,K.beta,K.skew,K.flat,K.cornu,K.loops,K.loopTurn,K.loopDecay,K.loopAlt,K.loopWidth,...K.turns];
     const loops=[];let arc=0;
     for(let j=0;j<3;j++){const a=K.turns[3*j],wt=lp*ss_(1.5,2.3,Math.abs(a))*ss_(0.11,0.06,K.turns[3*j+2]);   // sharp corners, not bowls
@@ -719,14 +719,14 @@ const Compact=(G=>{
     // absolute lengths (trunk = 1): start curl T0 and tail T grow; the body B (plus the loops' arc) is kept
     const c0=K.c0,c1=K.c1,B=1-c0-c1, T=lerp(c1,Math.max(c1,tail),fl), T0=K.n0?lerp(c0,Math.max(c0,0.3*tail),fl):c0;
     const Lam=T0+B+arc+T, st=(B+arc)/B/Lam, c0n=T0/Lam;
-    const map=u=>u<=c0?u*c0n/c0:c0n+(u-c0)*st, ac=Math.abs(curl), a0=Math.abs(K.n0), n0n=Math.sign(K.n0)*lerp(a0,Math.max(a0,1.2),fl);
+    const map=u=>u<=c0?u*c0n/c0:c0n+(u-c0)*st, ac=Math.abs(curl), a0=Math.abs(K.n0), n0n=Math.sign(K.n0)*lerp(a0,Math.max(a0,1.2),fl)*(1-pl);   // plain (detail below 0) unwinds the curls
     K.bodyRef=[c0,c0n]; K.spinAdj=-2*Math.PI*(n0n-K.n0); K.n0=n0n;
-    K.n1=2.2*Math.sign(curl||1)*lerp(ac,Math.max(ac,0.95),fl); K.c0=c0n; K.c1=T/Lam;
+    K.n1=2.2*Math.sign(curl||1)*lerp(ac,Math.max(ac,0.95),fl)*(1-pl); K.c0=c0n; K.c1=T/Lam;
     K.phi+=2*Math.PI*K.f*(c0-c0n/st); K.f/=st;
     K.turns=K.turns.concat(loops).map((v,i)=>i%3===0?v:i%3===1?map(v):v/Lam);
     K.fat/=Lam; K.scale/=Lam; K.lenMul=Lam;
     K.limbs=K.limbs.map(L=>{const Tl=0.7*tail, le=Math.min(0.62,Math.max(0.3,Tl/(Tl+0.7*Math.max(1e-3,L[2]))));
-      return [map(L[0]),L[1],L[2]/Lam,L[3],Math.sign(L[4]||1)*lerp(Math.abs(L[4]),Math.max(Math.abs(L[4]),1.6),fl),lerp(0.3,le,fl)];});
+      return [map(L[0]),L[1],L[2]/Lam,L[3],Math.sign(L[4]||1)*lerp(Math.abs(L[4]),Math.max(Math.abs(L[4]),1.6),fl)*(1-pl),lerp(0.3,le,fl)];});
     return K;
   }
   const EX=[['curl',0.35,0.8],['scroll',-1,1],['wave',-1.3,1.3],['bend',-0.7,0.7],['lean',-2,2],['loops',0,1,0.55],
@@ -741,7 +741,7 @@ const Compact=(G=>{
     C.mirror=+clip((C.mirror-0.1)*4).toFixed(3);
     for(const k of ['t0a','t1a']){const v=C[k];C[k]=+(Math.sign(v)*Math.max(0,Math.abs(v)-1.2)*1.6).toFixed(3);}   // turns come and go smoothly
     return C;}
-  const NOT_EXPLORED=['aspect','eyeLen','flourish','loopy','tail','loopSize','echo'];
+  const NOT_EXPLORED=['aspect','eyeLen','flourish','loopy','tail','loopSize','echo','plain'];
   return{SPEC,DEFAULTS,expand,explore,NOT_EXPLORED};
 });
 //Compact;
@@ -769,7 +769,7 @@ const Field=(Cm,GLYPHS)=>{
       for(const k of KEYS){let v=0;LET.forEach((l,i)=>{if(w[i])v+=w[i]*GLYPHS[l.ch].C[k];});C[k]=(1-L)*base[k]+L*v/S;}
       LET.forEach((l,i)=>{if(w[i]){const G_=GLYPHS[l.ch],f=w[i]/S;lay.s+=f*G_.s;lay.rx+=f*G_.rx;lay.ry+=f*G_.ry;lay.h+=f*(G_.h||1);}});}
     else Object.assign(C,base);
-    const d=Math.min(1,Math.max(0,detail));
+    const d=Math.min(1,Math.max(0,detail)); C.plain=Math.min(1,Math.max(0,-detail));   // below 0: plainer strokes
     // detail first makes the strokes themselves swirl (longer, wound-up end curls), then sprouts grow;
     // on letters the sprouts come in later so the letter's own curls lead
     C.flourish=ss(0,0.8,d); C.loopy=0; C.detail=(1-L)*d+L*0.65*d*ss(0.25,1,d); C.length=(1-L)*C.length+L*0.3; C.fractal=ss(0.55,1,d)*(1-0.7*L); C.variation=Math.max(C.variation,0.5*ss(0.3,1,d));
@@ -802,7 +802,7 @@ const HELP={x:'',y:'',z:'',detail:'sprouts, generations, then varied miniatures'
 const first=Object.values(PRESETS)[0];
 const ORN={x:first[0],y:first[1],z:first[2],detail:first[3],aspect:first[4]};
 let kind='ornament', sel='all', current=Object.keys(PRESETS)[0];
-let mode=reduce?'still':'sweep', sweepKey='x+y+z', sweepBase=null, pal='ink', t0=performance.now(), dirty=true;
+let mode='still', sweepKey='x+y+z', pal='ink', dirty=true;
 const ornItems=(grow,res)=>G.build(Cm.expand(F.at(ORN.x,ORN.y,ORN.z,ORN.detail,ORN.aspect).C),grow,res?{res}:undefined);
 
 /* ---- words: every character is a point in the same space, drawn by the same engine ---- */
@@ -812,7 +812,7 @@ const home=c=>{const p=F.POS[c];return{x:p[0],y:p[1],z:p[2],detail:0};};
 function setText(t,keep){const chars=[...t].filter(c=>c===' '||GLYPHS[c]);
   M.letters=chars.map((c,i)=>keep&&M.letters[i]&&M.letters[i].ch===c?M.letters[i]:(c===' '?{ch:' ',space:true}:{ch:c,P:home(c)}));M.text=chars.join('');}
 setText('Kurbits');
-const pointOf=Lt=>({x:Lt.P.x+M.D.x,y:Lt.P.y+M.D.y,z:Lt.P.z+M.D.z,detail:Math.min(1,Math.max(0,Lt.P.detail+M.D.detail))});
+const pointOf=Lt=>({x:Lt.P.x+M.D.x,y:Lt.P.y+M.D.y,z:Lt.P.z+M.D.z,detail:Math.min(1,Math.max(-1,Lt.P.detail+M.D.detail))});
 const lcache=new Map();
 function letterItems(Lt,res){const p=pointOf(Lt),key=[p.x,p.y,p.z,p.detail,res||0].map(v=>(+v).toFixed(5)).join(',');let r=lcache.get(key);
   if(!r){const f=F.at(p.x,p.y,p.z,p.detail,1);r={items:G.build(Cm.expand(f.C),1,res?{res}:undefined),lay:f.layout};if(lcache.size>400)lcache.clear();lcache.set(key,r);}return r;}
@@ -834,8 +834,12 @@ function slider(parent,id,label,lo,hi,help,get,set){
   const hid='s-'+id.replace(/[^a-zA-Z0-9]/g,'_');
   row.innerHTML=`<label for="${hid}">${label}</label><input type="range" id="${hid}" min="${lo}" max="${hi}" step="${step}"><output></output>`+(help?`<small>${help}</small>`:'');
   parent.appendChild(row);const inp=row.querySelector('input'),out=row.querySelector('output');
-  const r={lo,hi,get,set,label,inp,out,sync(){inp.value=get();out.textContent=fmt(get(),lo,hi);}};REG.set(id,r);r.sync();
-  inp.addEventListener('input',()=>{restoreSweep();set(parseFloat(inp.value));current=null;markPreset();if(mode==='sweep')sweepBase=baseOf(sweepKey);r.sync();dirty=true;showJSON();});
+  const r={lo,hi,get,set,label,inp,out,key:id.split('.').pop(),held:false,
+    sync(){if(!this.held)inp.value=get();out.textContent=fmt(get(),lo,hi);}};REG.set(id,r);r.sync();
+  const hold=on=>{r.held=on;if(!on)rephase=true;};
+  inp.addEventListener('pointerdown',()=>hold(true));inp.addEventListener('touchstart',()=>hold(true),{passive:true});
+  for(const ev of['pointerup','pointercancel','touchend','touchcancel','change','blur'])inp.addEventListener(ev,()=>hold(false));
+  inp.addEventListener('input',()=>{set(parseFloat(inp.value));current=null;markPreset();rephase=true;r.sync();dirty=true;showJSON();});
 }
 function syncAll(){for(const r of REG.values())r.sync();showJSON();}
 
@@ -847,27 +851,33 @@ function pointPanel(){
     for(const k of['x','y','z','detail','aspect'])slider(box,k,k,...RANGE[k],HELP[k],()=>ORN[k],v=>{ORN[k]=v;});
   }else if(sel==='all'){
     $('pointlabel').textContent='Offsets for every letter';
-    for(const k of['x','y','z','detail']){const w=RANGE[k][1]-RANGE[k][0],h=k==='detail'?w:w/2;slider(box,'d.'+k,k,-h,h,k==='detail'?'the letters sit at 0, so the far right is full detail':'',()=>M.D[k],v=>{M.D[k]=v;});}
+    for(const k of['x','y','z','detail']){const w=RANGE[k][1]-RANGE[k][0],h=k==='detail'?w:w/2;slider(box,'d.'+k,k,-h,h,k==='detail'?'letters sit at 0: right adds flourish, left unwinds the curls':'',()=>M.D[k],v=>{M.D[k]=v;});}
   }else{
     const Lt=M.letters[sel];$('pointlabel').textContent=`The point that draws ${Lt.ch}`;
     for(const k of['x','y','z','detail'])slider(box,'l.'+k,k,...RANGE[k],'',()=>Lt.P[k],v=>{Lt.P[k]=v;});
   }
   const rb=document.createElement('button');rb.type='button';rb.hidden=kind==='ornament';
   rb.textContent=sel==='all'?'Reset offsets':'Reset letter';
-  rb.addEventListener('click',()=>{restoreSweep();if(sel==='all')M.D=D0();else M.letters[sel].P=home(M.letters[sel].ch);syncAll();dirty=true;if(mode==='sweep')sweepBase=baseOf(sweepKey);});
+  rb.addEventListener('click',()=>{if(sel==='all')M.D=D0();else M.letters[sel].P=home(M.letters[sel].ch);rephase=true;syncAll();dirty=true;});
   box.appendChild(rb);
   $('pointhint').hidden=kind!=='ornament';
   sweepOptions();showJSON();
 }
+function randomise(){const R=(a,b)=>a+(b-a)*Math.random();
+  if(kind==='ornament'){ORN.x=R(0,20);ORN.y=R(0,20);ORN.z=R(2,20);ORN.detail=R(0.1,0.9);}
+  else if(sel==='all'){M.D={x:R(-0.35,0.35),y:R(-0.35,0.35),z:R(-0.35,0.35),detail:R(0,1)};}   // still the same word, differently ornamented
+  else{const P=M.letters[sel].P,h=home(M.letters[sel].ch);P.x=h.x+R(-0.35,0.35);P.y=h.y+R(-0.35,0.35);P.z=h.z+R(-0.35,0.35);P.detail=R(0,1);}
+  current=null;markPreset();rephase=true;syncAll();dirty=true;view=null;}
+$('random').addEventListener('click',randomise);
 function letterButtons(){const box=$('letters');box.innerHTML='';
   const mk=(label,val)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.setAttribute('aria-pressed',String(sel===val));
-    b.addEventListener('click',()=>{restoreSweep();sel=val;letterButtons();pointPanel();if(mode==='sweep')sweepBase=baseOf(sweepKey);dirty=true;});box.appendChild(b);};
+    b.addEventListener('click',()=>{sel=val;letterButtons();pointPanel();rephase=true;dirty=true;});box.appendChild(b);};
   mk('All','all');M.letters.forEach((Lt,i)=>{if(!Lt.space)mk(Lt.ch,i);});
   $('edithint').textContent=sel==='all'?'Offsets move every letter through the space at once; at zero each letter sits on its own point.':'The exact point that draws this letter; the others are shown grey.';}
-$('text').addEventListener('input',e=>{restoreSweep();setText((e.target.value||'').replace(/[^\x20-\x7E]/g,'')||'a',true);
+$('text').addEventListener('input',e=>{rephase=true;setText((e.target.value||'').replace(/[^\x20-\x7E]/g,'')||'a',true);
   if(sel!=='all'&&(!M.letters[sel]||M.letters[sel].space))sel='all';letterButtons();pointPanel();dirty=true;});
-function setKind(k){restoreSweep();kind=k;setPressed('kinds','kind',k);$('wordbox').hidden=k!=='word';
-  if(k==='word')letterButtons();pointPanel();if(mode==='sweep')sweepBase=baseOf(sweepKey);view=null;dirty=true;}
+function setKind(k){kind=k;setPressed('kinds','kind',k);$('wordbox').hidden=k!=='word';
+  if(k==='word')letterButtons();pointPanel();rephase=true;view=null;dirty=true;}
 $('kinds').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setKind(b.dataset.kind);});
 
 /* ---- motion: still, or a smooth back-and-forth sweep (no wrap-around jumps) ---- */
@@ -877,20 +887,23 @@ function sweepOptions(){const keep=sweepKey;sel_.innerHTML='';
   const opts=[['x+y+z','x + y + z'],['x','x'],['y','y'],['z','z'],['detail','detail']];if(kind==='ornament')opts.push(['aspect','aspect']);
   for(const[v,l] of opts){const o=document.createElement('option');o.value=v;o.textContent=l;sel_.appendChild(o);}
   sweepKey=opts.some(o=>o[0]===keep)?keep:opts[0][0];sel_.value=sweepKey;}
-sel_.addEventListener('change',()=>{restoreSweep();sweepKey=sel_.value;setMode('sweep');});
+sel_.addEventListener('change',()=>{sweepKey=sel_.value;rephase=true;setMode('sweep');});
 function setPressed(id,attr,val){document.querySelectorAll(`#${id} button`).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset[attr]===val)));}
 const keysOf=k=>k==='x+y+z'?['x','y','z']:[k];
-function baseOf(k){const{o}=target();return Object.fromEntries(keysOf(k).map(q=>[q,o[q]]));}
-function restoreSweep(){if(sweepBase===null)return;const{o}=target();Object.assign(o,sweepBase);sweepBase=null;syncAll();}
-function setMode(m){if(m!=='sweep')restoreSweep();else sweepBase=baseOf(sweepKey);mode=m;t0=performance.now();setPressed('modes','mode',m);sel_.hidden=m!=='sweep';dirty=true;}
+function setMode(m){mode=m;rephase=true;last=null;setPressed('modes','mode',m);sel_.hidden=m!=='sweep';dirty=true;}   // Still keeps whatever the sweep reached
 $('modes').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setMode(b.dataset.mode);});
-// each swept number follows lo + (hi − lo)·(½ − ½cos(a₀ + ωt)), starting exactly where it was
+// each swept number has a phase φ and sits at lo + (hi − lo)·(½ − ½cos φ): a smooth back-and-forth with no wrap-around.
+// Any change from outside (a drag, a preset, Random) moves φ to the new value, keeping the direction of travel.
 function sweepRange(k){const{pre}=target();const r=REG.get(pre+k)||REG.get(k);return r?[r.lo,r.hi]:RANGE[k];}
 const SPEED={x:0.35,y:0.35,z:0.35,detail:0.07,aspect:0.25};
-function sweepStep(t){const{o}=target(),ks=keysOf(sweepKey);
-  ks.forEach((k,i)=>{const[lo,hi]=sweepRange(k),b=sweepBase[k],rate=ks.length>1?[1,GOLD,GOLD*GOLD][i]:1;
-    const span=Math.max(1e-6,hi-lo),w=2*SPEED[k]*(kind==='word'&&k!=='detail'?0.5:1)/span*rate,a0=Math.acos(Math.max(-1,Math.min(1,1-2*(b-lo)/span)));
-    o[k]=lo+span*(0.5-0.5*Math.cos(a0+w*t));});}
+let PH={}, rephase=true, last=null;
+function phaseOf(k,v,prev){const[lo,hi]=sweepRange(k),a=Math.acos(Math.max(-1,Math.min(1,1-2*(v-lo)/Math.max(1e-6,hi-lo))));
+  return prev!==undefined&&Math.sin(prev)<0?2*Math.PI-a:a;}
+function sweepStep(dt){const{o,pre}=target(),ks=keysOf(sweepKey);
+  if(rephase){const P={};for(const k of ks)P[k]=phaseOf(k,o[k],PH[k]);PH=P;rephase=false;}
+  ks.forEach((k,i)=>{const r=REG.get(pre+k)||REG.get(k);if(r&&r.held)return;          // a drag takes precedence
+    const[lo,hi]=sweepRange(k),span=Math.max(1e-6,hi-lo),rate=ks.length>1?[1,GOLD,GOLD*GOLD][i]:1;
+    PH[k]+=2*SPEED[k]*(kind==='word'&&k!=='detail'?0.5:1)/span*rate*dt; o[k]=lo+span*(0.5-0.5*Math.cos(PH[k]));});}
 $('pals').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;pal=b.dataset.pal;setPressed('pals','pal',pal);applyPal();dirty=true;drawThumbs();});
 function showJSON(){const r3=v=>+(+v).toFixed(3),pick=(o,ks)=>Object.fromEntries(ks.map(k=>[k,r3(o[k])]));let o;
   if(kind==='word'){if(sel==='all')o={text:M.text,offsets:pick(M.D,['x','y','z','detail'])};
@@ -917,7 +930,7 @@ function padB(b,f){const w=b.x1-b.x0,h=b.y1-b.y0,m=f*Math.max(w,h);return{x0:b.x
 const main=$('main'),mctx=main.getContext('2d'),narrow=matchMedia('(max-width:860px)'),cbox=document.querySelector('.canvas-box');
 let view=null,boxAspect=1,shownAspect=1;
 function frame(now){
-  if(mode==='sweep'&&sweepBase!==null){sweepStep(Math.max(0,now-t0)/1000);syncAll();dirty=true;}
+  if(mode==='sweep'){const dt=last===null?0:Math.min(0.1,Math.max(0,now-last)/1000);last=now;sweepStep(dt);syncAll();dirty=true;}
   if(!dirty){requestAnimationFrame(frame);return;}
   const items=build(1),target_=padB(G.bbox(items),0.03);
   if(!narrow.matches){const a=Math.min(2.6,Math.max(1,(target_.x1-target_.x0)/Math.max(1e-6,target_.y1-target_.y0)));boxAspect+=(a-boxAspect)*(mode==='sweep'?0.08:1);
@@ -946,9 +959,9 @@ const gal=$('gallery'),thumbs=[];
 Object.entries(PRESETS).forEach(([name,p],i)=>{
   const b=document.createElement('button');b.type='button';b.className='thumb';b.id='pre-'+i;b.setAttribute('aria-pressed','false');
   b.innerHTML=`<canvas aria-hidden="true"></canvas><span>${name}</span>`;
-  b.addEventListener('click',()=>{restoreSweep();[ORN.x,ORN.y,ORN.z,ORN.detail,ORN.aspect]=p;current=name;
-    if(kind!=='ornament')setKind('ornament');if(mode==='sweep')sweepBase=baseOf(sweepKey);
-    syncAll();markPreset();dirty=true;t0=performance.now();view=null;main.scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'});});
+  b.addEventListener('click',()=>{[ORN.x,ORN.y,ORN.z,ORN.detail,ORN.aspect]=p;current=name;
+    if(kind!=='ornament')setKind('ornament');rephase=true;
+    syncAll();markPreset();dirty=true;view=null;main.scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'});});
   gal.appendChild(b);thumbs.push([b,p,name]);
 });
 function markPreset(){thumbs.forEach(([b,,n])=>b.setAttribute('aria-pressed',String(n===current)));}
