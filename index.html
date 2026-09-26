@@ -847,7 +847,7 @@ function pointPanel(){
     for(const k of['x','y','z','detail','aspect'])slider(box,k,k,...RANGE[k],HELP[k],()=>ORN[k],v=>{ORN[k]=v;});
   }else if(sel==='all'){
     $('pointlabel').textContent='Offsets for every letter';
-    for(const k of['x','y','z','detail']){const w=RANGE[k][1]-RANGE[k][0];slider(box,'d.'+k,k,-w/2,w/2,'',()=>M.D[k],v=>{M.D[k]=v;});}
+    for(const k of['x','y','z','detail']){const w=RANGE[k][1]-RANGE[k][0],h=k==='detail'?w:w/2;slider(box,'d.'+k,k,-h,h,k==='detail'?'the letters sit at 0, so the far right is full detail':'',()=>M.D[k],v=>{M.D[k]=v;});}
   }else{
     const Lt=M.letters[sel];$('pointlabel').textContent=`The point that draws ${Lt.ch}`;
     for(const k of['x','y','z','detail'])slider(box,'l.'+k,k,...RANGE[k],'',()=>Lt.P[k],v=>{Lt.P[k]=v;});
