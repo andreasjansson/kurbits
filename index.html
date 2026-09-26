@@ -457,10 +457,10 @@ function twinOf(K){
   return T;
 }
 function motif(sc,K,M,ox,oy,s,g){
-  s*=(K._len||1);
+  s*=(K._len||1)*(K.lenMul||1);                       // lenMul: a longer tail curl on the same body
   const p=[K.A,K.f,K.phi,K.n0,K.n1,K.c0,K.c1,K.beta,K.skew,K.flat,K.cornu,K.loops,K.loopTurn,K.loopDecay,K.loopAlt,K.loopWidth,
     ...(K.turns||[])];
-  const spin0=levelSpin(K,p);
+  const spin0=levelSpin(K,K.pRef||p);                 // oriented by the stroke before its tail grew
   if(K.weight<1) K=Object.assign(Object.create(K),{_trunk:s});
   const NC=Math.ceil(Math.max(1,K.copies));
   for(let k=0;k<NC;k++){
@@ -479,8 +479,9 @@ function motif(sc,K,M,ox,oy,s,g){
       if(j===0&&r&&K.limbs) K.limbs.forEach((L,li)=>{
         if(!(L[2]>0.005)) return; const gl=clip((g-0.7*L[0])/0.3); if(gl<=0) return;          // fully grown when the trunk is
         const Q_=along(r,Math.min(1,L[0]/Math.max(g,1e-6))), KL=Object.assign(Object.create(K),{weight:Math.min(K.weight,0.1),thinning:Math.max(K.thinning,0.95),_trunk:len});
-        const lp=[0,0.6,0,0,L[4],0.3,0.3,0.68,0,0,0,0,0,0,0,0,L[3],0.5,0.3];
-        branch(sc,KL,M,lp,Q_.X,Q_.Y,Q_.Hd+L[1],L[2]*len,1,gl,10-j*0.01-0.3-0.1*li,0);
+        const le=L[5]||0.3, lr=(1-le)/0.7;          // a longer end curl on the same limb body
+        const lp=[0,0.6,0,0,L[4],0.3,le,0.68,0,0,0,0,0,0,0,0,L[3],0.5*lr,0.3*lr];
+        branch(sc,KL,M,lp,Q_.X,Q_.Y,Q_.Hd+L[1],L[2]*len/lr,1,gl,10-j*0.01-0.3-0.1*li,0);
       });
       // chain: the next scroll grows out of this one. Width/height add further links (K._ext) that
       // continue outward (horizontally) or upward, each full-sized: the motif gains scrolls instead of stretching.
@@ -678,11 +679,11 @@ const Compact=(G=>{
     ['Form',[['mirror',0,1,'mirrored twin from the same root'],['rise',-180,180,'direction of the arms (0 = divider)'],
              ['aspect',0.25,6,'wider or taller than natural: scrolls are added or climb (never a stretch)']]],
   ];
-  const DEFAULTS={curl:0.5,scroll:-0.6,wave:0.6,bend:0,lean:0.2,loops:0,weight:0.4,contrast:0.8,detail:0.4,fractal:0,side:0.3,variation:0,mirror:1,rise:0,aspect:1,angle:0.9,length:0.45,straight:0,fan:0,at:0.15,answer:0,answerAngle:1.2,t0a:0,t0p:0.3,t0w:0.12,t1a:0,t1p:0.5,t1w:0.12,t2a:0,t2p:0.7,t2w:0.12,l0u:0.4,l0a:1,l0s:0,l0b:0,l0c:0.55,l1u:0.6,l1a:-1,l1s:0,l1b:0,l1c:-0.55,eyeLen:1};
+  const DEFAULTS={curl:0.5,scroll:-0.6,wave:0.6,bend:0,lean:0.2,loops:0,weight:0.4,contrast:0.8,detail:0.4,fractal:0,side:0.3,variation:0,mirror:1,rise:0,aspect:1,angle:0.9,length:0.45,straight:0,fan:0,at:0.15,answer:0,answerAngle:1.2,t0a:0,t0p:0.3,t0w:0.12,t1a:0,t1p:0.5,t1w:0.12,t2a:0,t2p:0.7,t2w:0.12,l0u:0.4,l0a:1,l0s:0,l0b:0,l0c:0.55,l1u:0.6,l1a:-1,l1s:0,l1b:0,l1c:-0.55,eyeLen:1,flourish:0};
   function expand(C,phase=0){
     C=Object.assign({},DEFAULTS,C);
     const deg=C.rise*Math.PI/180, fr=clip(C.fractal), d=clip(C.detail);
-    return {
+    return flourish({
       A:C.wave, f:0.6, phi:C.lean, n0:1.5*C.scroll, c0:0.35*(C.eyeLen??1), n1:2.2*C.curl, c1:(0.35+0.25*Math.abs(C.curl))*(C.eyeLen??1), beta:0.6+0.25*Math.abs(C.curl),
       cornu:C.bend, skew:0, flat:0,
       loops:3.2*C.loops, loopTurn:1, loopWidth:0.045, loopAlt:0.5, loopDecay:0.8,
@@ -695,7 +696,18 @@ const Compact=(G=>{
       width:C.aspect??1, height:1, aspect:0,
       turns:[0,1,2].flatMap(j=>[C['t'+j+'a'],C['t'+j+'p'],C['t'+j+'w']]),
       limbs:[0,1].map(j=>['u','a','s','b','c'].map(k=>C['l'+j+k])),
-    };
+    },clip(C.flourish||0),C.curl);
+  }
+  /* flourish: the end curl grows longer and winds further, and limb curls wind up, while the start curl and the body
+     keep their exact size, shape and direction (positions along the stroke are rescaled by r, the stroke lengthened by 1/r) */
+  function flourish(K,fl,curl){
+    if(!(fl>0)) return K;
+    K.pRef=[K.A,K.f,K.phi,K.n0,K.n1,K.c0,K.c1,K.beta,K.skew,K.flat,K.cornu,K.loops,K.loopTurn,K.loopDecay,K.loopAlt,K.loopWidth,...K.turns];
+    const c1t=lerp(K.c1,Math.max(K.c1,0.45),fl), r=(1-c1t)/(1-K.c1), ac=Math.abs(curl);
+    K.n1=2.2*Math.sign(curl||1)*lerp(ac,Math.max(ac,0.8),fl); K.c0*=r; K.c1=c1t; K.f/=r;
+    K.turns=K.turns.map((v,i)=>i%3===0?v:v*r); K.fat*=r; K.lenMul=1/r; K.scale*=r;   // sprouts sized by the body, not by the longer tail
+    K.limbs=K.limbs.map(L=>[L[0]*r,L[1],L[2]*r,L[3],Math.sign(L[4]||1)*lerp(Math.abs(L[4]),Math.max(Math.abs(L[4]),1.2),fl),lerp(0.3,0.5,fl)]);
+    return K;
   }
   const EX=[['curl',0.35,0.8],['scroll',-1,1],['wave',-1.3,1.3],['bend',-0.7,0.7],['lean',-2,2],['loops',0,1,0.55],
     ['side',-1,1],['variation',0,0.9,0.3],
@@ -709,7 +721,7 @@ const Compact=(G=>{
     C.mirror=+clip((C.mirror-0.1)*4).toFixed(3);
     for(const k of ['t0a','t1a']){const v=C[k];C[k]=+(Math.sign(v)*Math.max(0,Math.abs(v)-1.2)*1.6).toFixed(3);}   // turns come and go smoothly
     return C;}
-  const NOT_EXPLORED=['aspect','eyeLen'];
+  const NOT_EXPLORED=['aspect','eyeLen','flourish'];
   return{SPEC,DEFAULTS,expand,explore,NOT_EXPLORED};
 });
 //Compact;
@@ -738,7 +750,9 @@ const Field=(Cm,GLYPHS)=>{
       LET.forEach((l,i)=>{if(w[i]){const G_=GLYPHS[l.ch],f=w[i]/S;lay.s+=f*G_.s;lay.rx+=f*G_.rx;lay.ry+=f*G_.ry;}});}
     else Object.assign(C,base);
     const d=Math.min(1,Math.max(0,detail));
-    C.detail=d; C.fractal=ss(0.55,1,d); C.variation=Math.max(C.variation,0.5*ss(0.3,1,d));
+    // detail first makes the strokes themselves swirl (longer, wound-up end curls), then sprouts grow;
+    // on letters the sprouts come in later so the letter's own curls lead
+    C.flourish=ss(0,0.7,d); C.detail=(1-L)*d+L*0.65*d*ss(0.25,1,d); C.length=(1-L)*C.length+L*0.3; C.fractal=ss(0.55,1,d); C.variation=Math.max(C.variation,0.5*ss(0.3,1,d));
     C.aspect=aspect; C.mirror=Math.min(1,Math.max(0,C.mirror));
     return {C,layout:{s:L*lay.s+(1-L)*1.2,rx:L*lay.rx,ry:L*lay.ry},L};
   }
