@@ -85,6 +85,11 @@ input[type=range]{width:100%;accent-color:var(--ink);height:28px;touch-action:pa
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 #wordmark{display:block;height:clamp(40px,7vw,58px);aspect-ratio:3.9/1;max-width:100%}
 </style>
+<style>
+.textin{width:100%;font:500 18px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink);background:var(--ground);border:1px solid var(--line);border-radius:3px;padding:10px 12px;min-height:44px}
+.textin:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hint{color:var(--muted);font-size:12.5px;line-height:1.35}
+</style>
 
 <div class="wrap">
   <header>
@@ -93,8 +98,17 @@ input[type=range]{width:100%;accent-color:var(--ink);height:28px;touch-action:pa
   </header>
 
   <div class="stage">
-    <div class="canvas-box"><canvas id="main" aria-label="Generated kurbits swirl"></canvas></div>
+    <div class="canvas-box"><canvas id="main" aria-label="Generated ornament"></canvas></div>
     <div class="side">
+      <div class="box">
+        <div class="seg" id="kinds">
+          <button type="button" id="k-orn" data-kind="ornament">Ornament</button>
+          <button type="button" id="k-word" data-kind="word">Word</button>
+        </div>
+        <div id="wordbox" hidden><label class="label" for="text">Text</label>
+          <input class="textin" id="text" maxlength="24" value="Kurbits" autocomplete="off" spellcheck="false">
+          <div class="hint">A–Z. Curl, weight, contrast and the growth controls style the letters.</div></div>
+      </div>
       <div class="box">
         <div class="label">Motion</div>
         <div class="seg" id="modes">
@@ -108,13 +122,13 @@ input[type=range]{width:100%;accent-color:var(--ink);height:28px;touch-action:pa
         <div class="seg" id="pals">
           <button type="button" id="p-ink" data-pal="ink">Ink</button>
           <button type="button" id="p-red" data-pal="red">Red</button>
-          <button type="button" id="p-panel" data-pal="panel">Navy</button>
+          <button type="button" id="p-navy" data-pal="navy">Navy</button>
         </div>
       </div>
       <div class="box">
         <div class="seg" style="justify-content:space-between"><div class="label">Explore</div><button type="button" id="follow" aria-pressed="true">Following</button></div>
         <div class="rows" id="explore"></div>
-        <small style="color:var(--muted);font-size:12.5px">Every parameter below is a smooth function of x, y and z. Move any parameter yourself to take over from Explore.</small>
+        <div class="hint">Every control below is a smooth function of x, y and z. Move a control yourself to take over.</div>
       </div>
       <div class="box" id="controls"></div>
       <div class="box">
@@ -131,22 +145,17 @@ input[type=range]{width:100%;accent-color:var(--ink);height:28px;touch-action:pa
 
   <section style="display:grid;gap:16px">
     <h2>How it is built</h2>
-    <div class="formula">θ(u) = A·sin q + A³·(flat·sin 3q − skew·cos 3q)
-     + π·cornu·((2u − 1)² − 1)
-     + Σᵢ sᵢ·2π·T·rⁱ·½(1 + tanh((u − uᵢ)/σ))
-     + 2π·n₀·H(u/c₀) + 2π·n₁·(1 − H((1 − u)/c₁))
-q = 2πfu + φ
+    <div class="formula">θ(u) = A·sin(2πfu + φ) + π·bend·((2u − 1)² − 1)
+     + Σᵢ loopᵢ(u) + 2π·n₀·H(u/c₀) + 2π·n₁·(1 − H((1 − u)/c₁))
 H(v) = ((v+ε)^(1−β) − ε^(1−β)) / ((1+ε)^(1−β) − ε^(1−β))
 x(u) = ∫cos θ du,  y(u) = ∫sin θ du,  u = 0…1
 
 width ∝ hair + (1 − hair)·max(0, cos(heading + π/2 − slant))^1.6</div>
     <div class="two">
-      <div><h3>One curve</h3><p>Every mark is the curve θ(u): a wave with Kinoshita's third harmonic, an Euler-spiral term, smooth curvature pulses that make pen loops, and a log-aesthetic spiral eye at either end. A pointed pen swells only on down-strokes, as in 18th-century round hand; a broad nib is also available. Its width follows a pressure profile and optional sinusoidal scallops; parallel copies of the curve give the echo and the stripes.</p></div>
-      <div><h3>One rule</h3><p>Along each curve grow smaller copies of the same curve, curling away, optionally in mirrored pairs. Low thinning turns them into hairline fringes, straight swelling sprouts become leaflets, and ping-pong, swirl and nest change each generation.</p></div>
-      <div><h3>Proportion without stretching</h3><p>Width, height and aspect never scale the drawing. They add scrolls: each arm continues into further full-size scrolls, outward for width and upward for height, alternating sides like a running scroll. The count is continuous, and the generator solves for it so the ornament fills the requested box, from 1:1 to about 12:1.</p></div>
-      <div><h3>One root</h3><p>Stems, an answering counter-curve, chains and a mirrored twin all grow from the same root, so the result is always one connected shape. Symmetry lets the twin drift continuously away from an exact mirror. Width, height and rotation act on the growth, so curves are re-grown rather than distorted.</p></div>
-      <div><h3>Self-similar, never identical</h3><p>Sprouts, chained scrolls and every fractal generation are the same curve again, varied by Q(t) = sin t + 0.7 sin(φt + 1.1) + 0.5 sin((1+√2)t + 2.3). Its frequencies are incommensurate, so the variation is deterministic but never repeats. Drift morphs each generation; varPhase slides the variation along.</p></div>
-      <div><h3>Counts that slide</h3><p>Sprouts, stems, rows, copies, repeats and nest levels accept fractions: 3.4 sprouts means three, with a fourth growing in. That is why every parameter animates without jumps.</p></div>
+      <div><h3>One curve</h3><p>Every mark, letters included, is the curve θ(u): a swing, an Euler bend, optional pen loops and a spiral eye at either end. A pointed pen swells on down-strokes and thins to a hairline on up-strokes.</p></div>
+      <div><h3>One rule</h3><p>Smaller copies of the curve sprout along it, curling away. Fractal makes each sprout a varied miniature of its parent; smaller generations are sparser, so detail fades out instead of turning to fuzz.</p></div>
+      <div><h3>Letters</h3><p>Each capital is one to four strokes of the same curve, fitted by least squares to a skeleton of the letter. Its ends take spiral eyes, and the growth controls can sprout flourishes from them.</p></div>
+      <div><h3>No randomness</h3><p>The same numbers always draw the same ornament. Counts accept fractions and grow the next element in, so every control sweeps smoothly.</p></div>
     </div>
   </section>
 </div>
@@ -616,210 +625,228 @@ function explore(x,y,z){
   for(const k in K) K[k]=+(+K[k]).toFixed(4);
   return K;
 }
-return{DEFAULTS,build,bbox,theta,grow1,Scene,explore};
+return{DEFAULTS,build,bbox,theta,grow1,Scene,explore,branch,refine};
 })();
-if(typeof module!=='undefined')module.exports=KurbitsSwirl;
 
-</script>
-<script>
-/* KURBITS lettering: every stroke is the same curve θ(u), least-squares fitted to a skeleton of each capital */
-const Lettering=(G,L)=>{
-  function word(text,o={}){
-    o=Object.assign({weight:0.075,shade:0.9,hair:0.22,slant:0.25,track:0.12,grow:1},o);
-    const sc=new G.Scene(); let x=0; const n=text.length;
-    [...text].forEach((ch,i)=>{const g=L[ch]; if(!g){x+=0.5;return;}
-      const gi=Math.max(0,Math.min(1,o.grow*(n+2)/1.5-i*(1/1.5)));        // letters write themselves left to right
-      g.strokes.forEach((s,j)=>{const gs=Math.max(0,Math.min(1,gi*g.strokes.length-j));
-        G.grow1(sc,s.p,x+s.x,s.y,[1,0,0,1],s.h,s.size,o.weight/s.size,0.4,'col',10+j,gs,0,false,{shade:o.shade,hair:o.hair,slant:o.slant});});
-      x+=g.adv+o.track;});
+
+/* Compact parameter space: 15 numbers, each mapped onto the full engine. */
+const Compact=(G=>{
+  const clip=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)), lerp=(a,b,t)=>a+(b-a)*t;
+  const SPEC=[
+    ['Stroke',[['curl',0,1,'how tightly the end winds into an eye'],['scroll',-1,1,'start: C-scroll · comma · S-scroll'],
+               ['wave',-1.5,1.5,'swing of the stroke'],['bend',-1,1,'Euler bend: curvature grows along the stroke'],
+               ['lean',-3.14,3.14,'where along the stroke the swing falls'],['loops',0,1,'pen loops along the stroke']]],
+    ['Pen',[['weight',0,1,'line weight'],['contrast',0,1,'monoline · thick down-strokes, hairline up-strokes']]],
+    ['Growth',[['detail',0,1,'sprouts and generations'],['fractal',0,1,'sprouts become varied miniatures of their parent'],
+               ['side',-1,1,'sprouts on one side · alternating · the other side'],['variation',0,1,'every scroll and sprout a little different']]],
+    ['Form',[['mirror',0,1,'mirrored twin from the same root'],['rise',-90,90,'angle of the arms (0 = divider)'],
+             ['extend',0,6,'extra scrolls along the arms']]],
+  ];
+  const DEFAULTS={curl:0.5,scroll:-0.6,wave:0.6,bend:0,lean:0.2,loops:0,weight:0.4,contrast:0.8,detail:0.4,fractal:0,side:0.3,variation:0,mirror:1,rise:0,extend:0};
+  function expand(C,phase=0){
+    C=Object.assign({},DEFAULTS,C);
+    const deg=C.rise*Math.PI/180, fr=clip(C.fractal), d=clip(C.detail);
+    return {
+      A:C.wave, f:0.6, phi:C.lean, n0:1.5*C.scroll, c0:0.35, n1:0.7+1.5*C.curl, c1:0.35+0.25*C.curl, beta:0.6+0.25*C.curl,
+      cornu:C.bend, skew:0, flat:0,
+      loops:3.2*C.loops, loopTurn:1, loopWidth:0.045, loopAlt:0.5, loopDecay:0.8,
+      fat:0.018+0.055*C.weight, shade:C.contrast, hair:0.35-0.25*C.contrast, slant:0.25, pressure:0.5, echo:0,
+      sprouts:4*d, depth:0.4+2.4*d, scale:0.42+0.12*fr, angle:0.9, childCurl:1.1, side:C.side, elegance:0.6,
+      selfSim:fr, drift:0.6*fr, falloff:1-0.25*fr, cutoff:0.03+0.02*fr, thinning:0.85+0.15*fr,
+      variation:C.variation, varAngle:1.5, varTwist:0.7, varPhase:phase,
+      mirror:C.mirror, level:1, tilt:deg, spin:deg, _ext:C.extend, _extDir:0, chain:0,
+      width:1, height:1, aspect:0,
+    };
+  }
+  const EX=[['curl',0,1],['scroll',-1,1],['wave',-1.3,1.3],['bend',-0.7,0.7],['lean',-2,2],['loops',0,1,0.55],
+    ['weight',0.2,0.65],['contrast',0.5,1],['detail',0.1,0.8],['fractal',0,1,0.45],['side',-1,1],['variation',0,0.9,0.3],
+    ['mirror',0,1,0.25],['rise',-40,75],['extend',0,5,0.45]];
+  const GOLD=2.399963229728653;
+  function explore(x,y,z){const C={};
+    EX.forEach(([k,lo,hi,th],i)=>{let s=0.5+0.5*Math.sin(0.55*Math.cos(i*GOLD)*x+0.55*Math.sin(i*GOLD*1.31+0.4)*y+0.45*Math.cos(i*1.77+1.1)*z+i*1.618);
+      if(th) s=Math.max(0,(s-th)/(1-th)); C[k]=+(lo+(hi-lo)*s).toFixed(3);});
+    C.mirror=+clip((C.mirror-0.1)*4).toFixed(3); return C;}
+  return{SPEC,DEFAULTS,expand,explore};
+});
+
+
+/* Lettering: each capital is 1–4 strokes of the same curve θ(u), least-squares fitted to a skeleton.
+   Styled by the compact parameters: curl (terminal eyes), weight, contrast; detail/fractal/side/variation
+   sprout flourishes from the letter strokes through the same recursive rule. */
+const Lettering=(G,L,Cm)=>{
+  // position and heading of the curve at u (local frame: starts at 0 with heading θ(0))
+  function at(p,u){const n=64,du=u/n;let x=0,y=0,t0=G.theta(0,p);
+    for(let i=0;i<n;i++){const a=G.theta(i*du,p),b=G.theta((i+1)*du,p);x+=(Math.cos(a)+Math.cos(b))/2*du;y+=(Math.sin(a)+Math.sin(b))/2*du;}
+    return[x,y,G.theta(u,p)];}
+  // a different start eye rotates everything after it: keep the letter body where it was fitted
+  function reanchor(s,p){if(!s.e0) return[s.x,s.y,s.h];
+    const u=s.p[5], [x0,y0,t0]=at(s.p,u), [x1,y1,t1]=at(p,u);
+    const r0=s.h-G.theta(0,s.p), W=[s.x+s.size*(x0*Math.cos(r0)-y0*Math.sin(r0)), s.y+s.size*(x0*Math.sin(r0)+y0*Math.cos(r0))];
+    const r1=r0+(t0+r0)-(t1+r0);  // body heading unchanged
+    return[W[0]-s.size*(x1*Math.cos(r1)-y1*Math.sin(r1)), W[1]-s.size*(x1*Math.sin(r1)+y1*Math.cos(r1)), r1+G.theta(0,p)];}
+  function word(text,C={},grow=1,phase=0){
+    const K0=Cm.expand(Object.assign({},C,{mirror:0,extend:0,loops:0}),phase);
+    const K=G.refine(Object.assign({},G.DEFAULTS,K0));
+    const wAbs=0.02+0.1*(C.weight??0.4), eye=(0.68+0.7*(C.curl??0.5))/0.9;
+    const sc=new G.Scene(); let x=0; const chars=[...text.toUpperCase()], n=chars.length||1;
+    const det=Math.min(1,Math.max(0,C.detail??0));
+    chars.forEach((ch,i)=>{
+      const g=L[ch]; if(!g){x+=0.42;return;}
+      const gsc=new G.Scene();
+      const gi=Math.max(0,Math.min(1,grow*(n+2)/1.5-i/1.5));
+      g.strokes.forEach((s,j)=>{
+        const gs=Math.max(0,Math.min(1,gi*g.strokes.length-j)); if(gs<=0) return;
+        const p=s.p.slice(); p[3]*=eye; p[4]*=eye;
+        // only terminal strokes (with an eye) sprout, and only a little: letters must stay legible
+        const Ks=Object.assign(Object.create(K),{fat:wAbs/s.size,depth:(s.e0||s.e1)?K.depth*det:0,sprouts:(s.e0||s.e1)?1.5*det:0,
+          scale:0.34,span:0.55,reach:0.4,_trunk:s.size});
+        const [ax,ay,ah]=reanchor(s,p);
+        G.branch(gsc,Ks,[1,0,0,1],p,ax,ay,ah,s.size,0,gs,10+j,0);
+      });
+      // measured spacing: place the glyph by its real drawn extent (eyes included)
+      const full=gi<1?null:gsc.items, bb=G.bbox(full||gsc.items), x0=isFinite(bb.x0)?Math.min(bb.x0,0):0, x1=isFinite(bb.x1)?Math.max(bb.x1,g.adv*0.8):g.adv;
+      for(const it of gsc.items){const q=it.pts;for(let k=0;k<q.length;k+=2)q[k]+=x-x0; sc.items.push(it);}
+      x+=(x1-x0)+0.09;
+    });
     return sc.items;
   }
   return{word};
 };
 
 
-const LETTERS={"K":{"adv":0.78,"strokes":[{"p":[0.0,0.9119,-0.68545,-0.9,0.0,0.16,0.01,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.01831,"y":1.00584,"h":-2.19911,"size":1.15722},{"p":[-0.27917,0.15,5.89869,-0.9,0.0,0.16,0.01,0.72,-0.00017,-0.00033,-0.00153,0,0,0,0,0],"x":0.68632,"y":1.03855,"h":-2.91462,"size":0.92487},{"p":[0.37536,0.15,-0.52586,0.0,0.9,0.01,0.16,0.72,0.00036,-0.00093,-0.00168,0,0,0,0,0],"x":0.2545,"y":0.60788,"h":-0.96762,"size":0.95862}]},"U":{"adv":0.8,"strokes":[{"p":[-1.79629,0.89845,0.91452,-0.9,0.0,0.16,0.01,0.72,-0.01235,-0.05926,1.39537,0,0,0,0,0],"x":-0.07622,"y":1.04516,"h":0.98396,"size":2.66308},{"p":[2.86583,0.15,0.92261,0.0,0.7,0.01,0.16,0.72,-0.01911,0.00354,0.01044,0,0,0,0,0],"x":0.66267,"y":0.70866,"h":4.41028,"size":0.90445}]},"R":{"adv":0.8,"strokes":[{"p":[0.0,0.9119,-0.68545,-0.9,0.0,0.16,0.01,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.01831,"y":1.00584,"h":-2.19911,"size":1.15722},{"p":[-1.86342,0.44083,5.18422,0.0,0.0,0.01,0.01,0.72,0.01821,0.00437,-0.0559,0,0,0,0,0],"x":0.09594,"y":0.995,"h":0.32347,"size":1.31967},{"p":[0.20302,0.15,-0.55835,0.0,0.9,0.01,0.16,0.72,5e-05,-9e-05,-0.00112,0,0,0,0,0],"x":0.29418,"y":0.5265,"h":-0.84485,"size":0.87048}]},"B":{"adv":0.76,"strokes":[{"p":[0.0,0.9119,-0.68545,-0.9,0.0,0.16,0.01,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.01831,"y":1.00584,"h":-2.19911,"size":1.15722},{"p":[2.07404,0.3499,2.02714,0.0,0.0,0.01,0.01,0.72,-0.0023,0.01159,0.01028,0,0,0,0,0],"x":0.09966,"y":0.99008,"h":0.34865,"size":1.25208},{"p":[-2.46693,0.70107,-3.12589,0.0,-0.6,0.01,0.16,0.72,0.00681,-0.00159,1.5,0,0,0,0,0],"x":0.11426,"y":0.52729,"h":0.62445,"size":1.78121}]},"I":{"adv":0.34,"strokes":[{"p":[0.0,0.35,0.0,-0.9,0.9,0.16,0.16,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.07022,"y":1.01156,"h":-2.19911,"size":1.41343}]},"T":{"adv":0.86,"strokes":[{"p":[0.60866,0.30351,2.19581,0.9,-0.9,0.16,0.16,0.72,-0.00011,0.00013,-5e-05,0,0,0,0,0],"x":-0.04068,"y":0.98794,"h":1.13903,"size":1.17634},{"p":[-0.05528,0.15,2.43455,0.0,0.9,0.01,0.16,0.72,0.0,-0.0,-0.00058,0,0,0,0,0],"x":0.41011,"y":0.9916,"h":-1.5814,"size":1.15737}]},"S":{"adv":0.72,"strokes":[{"p":[1.68598,1.0391,-1.68147,0.9,0.9,0.16,0.16,0.72,0.00749,-0.07315,-0.86232,0,0,0,0,0],"x":0.58251,"y":0.80944,"h":-0.25413,"size":3.20495}]}};
+const LETTERS={"A":{"adv":0.8,"strokes":[{"p":[-0.0,2.04315,0.11535,0.9,0.0,0.16,0.01,0.72,-0.0,0.0,0.0,0,0,0,0,0],"x":-0.05138,"y":0.0248,"h":1.84034,"size":1.23591,"e0":1,"e1":0},{"p":[0.0,0.35,0.0,0.0,0.9,0.01,0.16,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.39565,"y":0.9916,"h":-1.21203,"size":1.23591,"e0":0,"e1":1},{"p":[0.59324,0.15111,2.66687,0.0,0.0,0.01,0.01,0.72,-0.0,0.0,0.0,0,0,0,0,0],"x":0.17561,"y":0.35879,"h":0.27116,"size":0.45451,"e0":0,"e1":0}]},"B":{"adv":0.76,"strokes":[{"p":[0.0,0.9119,-0.68545,-0.9,0.0,0.16,0.01,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.01831,"y":1.00584,"h":-2.19911,"size":1.15722,"e0":1,"e1":0},{"p":[2.07404,0.3499,2.02714,0.0,0.0,0.01,0.01,0.72,-0.0023,0.01159,0.01028,0,0,0,0,0],"x":0.09966,"y":0.99008,"h":0.34865,"size":1.25208,"e0":0,"e1":0},{"p":[-2.05076,0.39689,-0.96196,0.0,0.0,0.01,0.01,0.72,0.0132,0.00385,-0.03696,0,0,0,0,0],"x":0.11326,"y":0.53497,"h":0.36093,"size":1.50761,"e0":0,"e1":0}]},"C":{"adv":0.74,"strokes":[{"p":[-3.0,0.48843,1.62823,-0.9,-0.9,0.16,0.16,0.72,0.00547,-0.01859,-0.29542,0,0,0,0,0],"x":0.99892,"y":0.67723,"h":-6.48501,"size":2.95282,"e0":1,"e1":1}]},"D":{"adv":0.8,"strokes":[{"p":[0.0,0.9119,-0.68545,-0.9,0.0,0.16,0.01,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.01831,"y":1.00584,"h":-2.19911,"size":1.15722,"e0":1,"e1":0},{"p":[3.0,0.27805,2.70548,0.0,0.0,0.01,0.01,0.72,-0.00545,-0.01206,0.0672,0,0,0,0,0],"x":0.10395,"y":0.96913,"h":0.5486,"size":1.92944,"e0":0,"e1":0}]},"E":{"adv":0.68,"strokes":[{"p":[0.0,0.9119,-0.68545,-0.9,0.0,0.16,0.01,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.01831,"y":1.00584,"h":-2.19911,"size":1.15722,"e0":1,"e1":0},{"p":[0.5799,0.15,2.72467,0.0,0.9,0.01,0.16,0.72,-0.0,-0.00012,0.00021,0,0,0,0,0],"x":0.09353,"y":0.97878,"h":0.18893,"size":0.65683,"e0":0,"e1":1},{"p":[0.34364,0.15,2.66256,0.0,0.0,0.01,0.01,0.72,1e-05,-0.00054,0.0,0,0,0,0,0],"x":0.09592,"y":0.51951,"h":0.13079,"size":0.40997,"e0":0,"e1":0},{"p":[0.59008,0.16051,-0.4344,0.0,-0.9,0.01,0.16,0.72,0.0,0.0,-0.0,0,0,0,0,0],"x":0.09304,"y":0.02134,"h":-0.19325,"size":0.707,"e0":0,"e1":1}]},"F":{"adv":0.64,"strokes":[{"p":[0.0,0.35,0.0,0.0,-0.9,0.01,0.16,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.1,"y":0.9916,"h":-1.5708,"size":1.15722,"e0":0,"e1":1},{"p":[0.5799,0.15,2.72467,0.0,0.9,0.01,0.16,0.72,-0.0,-0.00012,0.00021,0,0,0,0,0],"x":0.09353,"y":0.97878,"h":0.18893,"size":0.65683,"e0":0,"e1":1},{"p":[0.34364,0.15,2.66256,0.0,0.0,0.01,0.01,0.72,1e-05,-0.00054,0.0,0,0,0,0,0],"x":0.09592,"y":0.51951,"h":0.13079,"size":0.40997,"e0":0,"e1":0}]},"G":{"adv":0.8,"strokes":[{"p":[3.0,0.45275,4.90059,-0.9,0.0,0.16,0.01,0.72,-0.00637,-0.01714,0.14052,0,0,0,0,0],"x":0.97617,"y":0.83259,"h":-5.51092,"size":2.75194,"e0":1,"e1":0},{"p":[0.38113,0.15,2.67629,0.0,0.0,0.01,0.01,0.72,-1e-05,-0.00052,-0.0,0,0,0,0,0],"x":0.45653,"y":0.43954,"h":0.14376,"size":0.34884,"e0":0,"e1":0}]},"H":{"adv":0.8,"strokes":[{"p":[-0.0,1.07608,1.83966,-0.9,-0.9,0.16,0.16,0.72,-0.0,0.0,0.0,0,0,0,0,0],"x":0.00022,"y":1.01156,"h":-2.19911,"size":1.41343,"e0":1,"e1":1},{"p":[0.0,0.9189,0.80278,0.9,0.9,0.16,0.16,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.79978,"y":1.01156,"h":-0.94248,"size":1.41343,"e0":1,"e1":1},{"p":[-0.29307,0.15,-0.4712,0.0,0.0,0.01,0.01,0.72,-0.0,-0.00073,-0.0,0,0,0,0,0],"x":0.09389,"y":0.49925,"h":0.13303,"size":0.61409,"e0":0,"e1":0}]},"I":{"adv":0.34,"strokes":[{"p":[0.0,0.35,0.0,-0.9,-0.9,0.16,0.16,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.07022,"y":1.01156,"h":-2.19911,"size":1.41343,"e0":1,"e1":1}]},"J":{"adv":0.62,"strokes":[{"p":[3.0,0.46003,0.67987,-0.9,0.9,0.16,0.16,0.72,0.00389,0.00306,-0.35467,0,0,0,0,0],"x":0.40193,"y":1.17172,"h":2.35304,"size":2.03845,"e0":1,"e1":1}]},"K":{"adv":0.78,"strokes":[{"p":[-0.0,1.07608,1.83966,-0.9,-0.9,0.16,0.16,0.72,-0.0,0.0,0.0,0,0,0,0,0],"x":0.00022,"y":1.01156,"h":-2.19911,"size":1.41343,"e0":1,"e1":1},{"p":[-0.27917,0.15,5.89869,-0.9,0.0,0.16,0.01,0.72,-0.00017,-0.00033,-0.00153,0,0,0,0,0],"x":0.68632,"y":1.03855,"h":-2.91462,"size":0.92487,"e0":1,"e1":0},{"p":[0.37536,0.15,-0.52586,0.0,-0.9,0.01,0.16,0.72,0.00036,-0.00093,-0.00168,0,0,0,0,0],"x":0.2545,"y":0.60788,"h":-0.96762,"size":0.95862,"e0":0,"e1":1}]},"L":{"adv":0.66,"strokes":[{"p":[0.11479,0.15,6.02776,-0.9,0.0,0.16,0.01,0.72,-1e-05,-1e-05,0.00114,0,0,0,0,0],"x":0.02021,"y":1.00752,"h":-2.23581,"size":1.13372,"e0":1,"e1":0},{"p":[0.5992,0.20912,-0.55738,0.0,-0.9,0.01,0.16,0.72,-0.0,1e-05,0.0,0,0,0,0,0],"x":0.09342,"y":0.04201,"h":-0.29955,"size":0.6866,"e0":0,"e1":1}]},"M":{"adv":0.96,"strokes":[{"p":[0.0,0.9119,-0.68545,0.9,0.0,0.16,0.01,0.72,-0.0,-0.0,-0.0,0,0,0,0,0],"x":-0.00277,"y":-0.00243,"h":2.15747,"size":1.15822,"e0":1,"e1":0},{"p":[0.0,0.35,0.0,0.0,0.0,0.01,0.01,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.11632,"y":0.98777,"h":-1.12842,"size":0.85816,"e0":0,"e1":0},{"p":[0.0,0.35,0.0,0.0,0.0,0.01,0.01,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.47632,"y":0.21223,"h":1.12842,"size":0.85816,"e0":0,"e1":0},{"p":[0.0,0.35,0.0,0.0,0.9,0.01,0.16,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.83952,"y":0.9916,"h":-1.52915,"size":1.15822,"e0":0,"e1":1}]},"N":{"adv":0.82,"strokes":[{"p":[-0.0,0.9119,-0.68544,0.9,0.0,0.16,0.01,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.01831,"y":-0.00584,"h":2.19911,"size":1.15722,"e0":1,"e1":0},{"p":[-0.06468,0.15,2.67039,0.0,0.0,0.01,0.01,0.72,-0.0,-1e-05,0.0,0,0,0,0,0],"x":0.09392,"y":0.98999,"h":-1.02672,"size":1.16635,"e0":0,"e1":0},{"p":[0.0,0.35,0.0,0.0,-0.9,0.01,0.16,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.72,"y":0.0084,"h":1.5708,"size":1.15722,"e0":0,"e1":1}]},"O":{"adv":0.84,"strokes":[{"p":[-2.98686,0.34627,2.25736,0.0,0.0,0.01,0.01,0.72,0.00744,0.00121,-0.0129,0,0,0,0,0],"x":0.43595,"y":1.02785,"h":-2.75444,"size":2.68403,"e0":0,"e1":0}]},"P":{"adv":0.72,"strokes":[{"p":[-0.0,1.07608,1.83966,-0.9,-0.9,0.16,0.16,0.72,-0.0,0.0,0.0,0,0,0,0,0],"x":0.00022,"y":1.01156,"h":-2.19911,"size":1.41343,"e0":1,"e1":1},{"p":[2.1466,0.35951,1.70265,0.0,0.0,0.01,0.01,0.72,-0.01407,-0.00148,0.06234,0,0,0,0,0],"x":0.09662,"y":0.99516,"h":0.24503,"size":1.43145,"e0":0,"e1":0}]},"Q":{"adv":0.86,"strokes":[{"p":[-2.98686,0.34627,2.25736,0.0,0.0,0.01,0.01,0.72,0.00744,0.00121,-0.0129,0,0,0,0,0],"x":0.43595,"y":1.02785,"h":-2.75444,"size":2.68403,"e0":0,"e1":0},{"p":[0.53861,0.15,-0.41248,0.0,-0.9,0.01,0.16,0.72,2e-05,-0.00051,-0.00029,0,0,0,0,0],"x":0.4155,"y":0.22467,"h":-0.80859,"size":0.64658,"e0":0,"e1":1}]},"R":{"adv":0.8,"strokes":[{"p":[0.0,0.9119,-0.68545,-0.9,0.0,0.16,0.01,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.01831,"y":1.00584,"h":-2.19911,"size":1.15722,"e0":1,"e1":0},{"p":[-1.86342,0.44083,5.18422,0.0,0.0,0.01,0.01,0.72,0.01821,0.00437,-0.0559,0,0,0,0,0],"x":0.09594,"y":0.995,"h":0.32347,"size":1.31967,"e0":0,"e1":0},{"p":[0.20302,0.15,-0.55835,0.0,-0.9,0.01,0.16,0.72,5e-05,-9e-05,-0.00112,0,0,0,0,0],"x":0.29418,"y":0.5265,"h":-0.84485,"size":0.87048,"e0":0,"e1":1}]},"S":{"adv":0.72,"strokes":[{"p":[1.68599,1.0391,-1.68147,-0.9,0.9,0.16,0.16,0.72,0.00749,-0.07315,-0.86231,0,0,0,0,0],"x":0.81693,"y":0.44975,"h":-1.51076,"size":3.20495,"e0":1,"e1":1}]},"T":{"adv":0.86,"strokes":[{"p":[0.60866,0.30351,2.19581,0.9,0.9,0.16,0.16,0.72,-0.00011,0.00013,-5e-05,0,0,0,0,0],"x":-0.04068,"y":0.98794,"h":1.13903,"size":1.17634,"e0":1,"e1":1},{"p":[-0.05528,0.15,2.43455,0.0,-0.9,0.01,0.16,0.72,0.0,-0.0,-0.00058,0,0,0,0,0],"x":0.41011,"y":0.9916,"h":-1.5814,"size":1.15737,"e0":0,"e1":1}]},"U":{"adv":0.8,"strokes":[{"p":[-1.79629,0.89845,0.91452,-0.9,0.0,0.16,0.01,0.72,-0.01235,-0.05926,1.39537,0,0,0,0,0],"x":-0.07622,"y":1.04516,"h":0.98396,"size":2.66308,"e0":1,"e1":0},{"p":[2.86583,0.15,0.92261,0.0,-0.9,0.01,0.16,0.72,-0.01911,0.00354,0.01044,0,0,0,0,0],"x":0.66267,"y":0.70866,"h":4.41028,"size":0.90445,"e0":0,"e1":1}]},"V":{"adv":0.8,"strokes":[{"p":[0.0,0.35,0.0,-0.9,0.0,0.16,0.01,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":-0.05138,"y":0.9752,"h":-1.84034,"size":1.23591,"e0":1,"e1":0},{"p":[0.09656,0.15,2.39612,0.0,-0.9,0.01,0.16,0.72,1e-05,-1e-05,0.00114,0,0,0,0,0],"x":0.39581,"y":0.00825,"h":1.23024,"size":1.24485,"e0":0,"e1":1}]},"W":{"adv":1.1,"strokes":[{"p":[0.10338,0.15,-0.22111,-0.9,0.0,0.16,0.01,0.72,-1e-05,-1e-05,0.00114,0,0,0,0,0],"x":-0.06892,"y":0.98748,"h":-1.98641,"size":1.19921,"e0":1,"e1":0},{"p":[0.0,0.35,0.0,0.0,0.0,0.01,0.01,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.27734,"y":0.01223,"h":1.24117,"size":0.81968,"e0":0,"e1":0},{"p":[0.0,0.35,0.0,0.0,0.0,0.01,0.01,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.53734,"y":0.78777,"h":-1.24117,"size":0.81968,"e0":0,"e1":0},{"p":[0.0,0.35,0.0,0.0,-0.9,0.01,0.16,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.79686,"y":0.0084,"h":1.30631,"size":1.19891,"e0":0,"e1":1}]},"X":{"adv":0.8,"strokes":[{"p":[0.0,1.07701,1.84269,0.9,0.9,0.16,0.16,0.72,-0.0,0.0,-0.0,0,0,0,0,0],"x":0.13743,"y":1.08223,"h":-0.32618,"size":1.73209,"e0":1,"e1":1},{"p":[0.08907,0.15,2.67014,0.9,0.9,0.16,0.16,0.72,0.0,-0.0,0.0,0,0,0,0,0],"x":0.84314,"y":0.94666,"h":-1.50433,"size":1.71547,"e0":1,"e1":1}]},"Y":{"adv":0.8,"strokes":[{"p":[0.09811,0.15,5.86869,-0.9,0.0,0.16,0.01,0.72,-0.0,-0.0,0.00044,0,0,0,0,0],"x":-0.01317,"y":0.96491,"h":-1.62574,"size":0.74287,"e0":1,"e1":0},{"p":[-2.99999,0.20489,1.38006,-0.9,-0.9,0.16,0.16,0.72,0.02108,0.0049,-0.00204,0,0,0,0,0],"x":0.74226,"y":1.10937,"h":-3.52669,"size":1.59155,"e0":1,"e1":1}]},"Z":{"adv":0.76,"strokes":[{"p":[0.59419,0.18351,2.47678,0.9,0.0,0.16,0.01,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.02362,"y":0.98745,"h":1.04081,"size":0.78235,"e0":1,"e1":0},{"p":[0.0,0.35,0.0,0.0,0.0,0.01,0.01,0.72,0.0,0.0,0.0,0,0,0,0,0],"x":0.70655,"y":0.97962,"h":-2.16855,"size":1.16046,"e0":0,"e1":0},{"p":[0.59353,0.17998,-0.48618,0.0,-0.9,0.01,0.16,0.72,0.0,0.0,-1e-05,0,0,0,0,0],"x":0.05212,"y":0.03181,"h":-0.2286,"size":0.80634,"e0":0,"e1":1}]}};
 </script>
 <script>
 (()=>{
-const G=KurbitsSwirl, PRESETS={"Swan divider":{"A":-0.2425,"f":1.1526,"phi":-0.8021,"n0":-1.7,"n1":1.4221,"c0":0.3579,"c1":0.4779,"beta":0.7976,"skew":-0.1625,"cornu":0.017,"loops":1.316,"loopTurn":0.9716,"loopDecay":0.6751,"loopAlt":0.5719,"loopWidth":0.0305,"fat":0.0334,"shade":0.5524,"hair":0.0663,"slant":0.3799,"pressure":0.7846,"depth":1.4157,"sprouts":0.4627,"childCurl":1.0995,"angle":0.8608,"side":0.3024,"scale":0.3083,"sproutS":0.9893,"swirl":0.2984,"nest":0,"mirror":1,"counter":0,"counterAngle":1.5185,"chain":0,"chainTurn":0.4049,"spin":-0.0889,"width":1,"height":1,"level":1,"tilt":0.0569,"symmetry":1,"asymPhase":4.3531,"drift":0.0749,"variation":0.4571,"varPhase":6.0529,"selfSim":0,"falloff":0.8693,"varAngle":5.4,"varTwist":0.0931,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":6.2043,"elegance":0.8,"cutoff":0.045},"Crowned divider":{"A":0.3446,"f":1.0632,"phi":-0.0054,"n0":-1.5719,"n1":1.146,"c0":0.4096,"c1":0.4966,"beta":0.848,"skew":-0.2462,"cornu":0.1989,"loops":0.1396,"loopTurn":0.9871,"loopDecay":0.6107,"loopAlt":0.2364,"loopWidth":0.0273,"fat":0.0302,"shade":0.7084,"hair":0.1005,"slant":-0.153,"pressure":0.6923,"depth":1.5482,"sprouts":0.0196,"childCurl":1.2656,"angle":0.9145,"side":0.9884,"scale":0.4353,"sproutS":0.2651,"swirl":0.3995,"nest":0,"mirror":1,"counter":0,"counterAngle":1.6208,"chain":0,"chainTurn":0.9984,"spin":-0.1075,"width":1,"height":1,"level":1,"tilt":-0.1361,"symmetry":1,"asymPhase":3.344,"drift":0.0811,"variation":1.0807,"varPhase":1.7863,"selfSim":0,"falloff":0.8899,"varAngle":3.9831,"varTwist":1.0345,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":5.168,"elegance":0.8,"cutoff":0.045},"Oval divider":{"A":0.4028,"f":0.9051,"phi":0.6541,"n0":-1.7,"n1":1.296,"c0":0.3675,"c1":0.5495,"beta":0.8212,"skew":-0.142,"cornu":0.1676,"loops":0,"loopTurn":1.0489,"loopDecay":0.6619,"loopAlt":0.4635,"loopWidth":0.0348,"fat":0.0265,"shade":0.8173,"hair":0.1296,"slant":-0.3355,"pressure":0.5593,"depth":1.2875,"sprouts":0.2856,"childCurl":1.0946,"angle":0.996,"side":0.9371,"scale":0.4675,"sproutS":0,"swirl":0.3806,"nest":0,"mirror":1,"counter":0,"counterAngle":1.2163,"chain":0,"chainTurn":0.8783,"spin":0.0739,"width":1,"height":1,"level":1,"tilt":0.0217,"symmetry":1,"asymPhase":1.681,"drift":0.2703,"variation":1.085,"varPhase":0.4959,"selfSim":0,"falloff":0.9751,"varAngle":5.4672,"varTwist":0.1146,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":5.09,"elegance":0.8,"cutoff":0.045},"Scroll band":{"A":-0.0774,"f":1.1997,"phi":-0.1637,"n0":-1.7,"n1":1.6679,"c0":0.3126,"c1":0.5336,"beta":0.8385,"skew":-0.2591,"cornu":0.1058,"loops":0.7656,"loopTurn":1.0348,"loopDecay":0.7613,"loopAlt":0.7932,"loopWidth":0.038,"fat":0.0312,"shade":0.5633,"hair":0.06,"slant":0.22,"pressure":0.7049,"depth":1.1137,"sprouts":1.0444,"childCurl":0.9656,"angle":0.9635,"side":0.7287,"scale":0.3373,"sproutS":0.9484,"swirl":0.3715,"nest":0,"mirror":1,"counter":0,"counterAngle":1.1297,"chain":0,"chainTurn":0.741,"spin":-0.2093,"width":1,"height":1,"level":1,"tilt":0.201,"symmetry":1,"asymPhase":2.6656,"drift":0.0003,"variation":0.6993,"varPhase":4.9935,"selfSim":0,"falloff":0.9634,"varAngle":6.2165,"varTwist":0.1601,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":5.1744,"elegance":0.8,"cutoff":0.045},"Running swash":{"A":-0.2167,"f":0.5258,"phi":-1.116,"n0":-1.7,"n1":1.2095,"c0":0.4249,"c1":0.4321,"beta":0.7032,"skew":-0.0505,"cornu":-0.0837,"loops":0,"loopTurn":0.9964,"loopDecay":0.6004,"loopAlt":0.0008,"loopWidth":0.0462,"fat":0.0336,"shade":0.8382,"hair":0.0666,"slant":0.0046,"pressure":0.7832,"depth":1.0272,"sprouts":0.6473,"childCurl":1.3334,"angle":0.5622,"side":0.241,"scale":0.3001,"sproutS":0.6969,"swirl":0.3513,"nest":0.9264,"mirror":1,"counter":0.2213,"counterAngle":0.8108,"chain":0,"chainTurn":-0.3953,"spin":-0.0527,"width":1,"height":1,"level":1,"tilt":-0.2891,"symmetry":1,"asymPhase":4.2193,"drift":0.7077,"variation":0.3179,"varPhase":5.8208,"selfSim":0,"falloff":0.8379,"varAngle":1.3682,"varTwist":4.5287,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":9.6209,"elegance":0.8,"cutoff":0.045},"Knotted border":{"A":-0.3015,"f":0.6951,"phi":-1.3532,"n0":-1.7,"n1":1.8148,"c0":0.3039,"c1":0.4591,"beta":0.6533,"skew":0.2578,"cornu":-0.1996,"loops":1.87,"loopTurn":0.9563,"loopDecay":0.7786,"loopAlt":0.8736,"loopWidth":0.0338,"fat":0.0337,"shade":0.7725,"hair":0.1535,"slant":0.3178,"pressure":0.792,"depth":1.2556,"sprouts":1.2967,"childCurl":0.9687,"angle":0.8016,"side":-0.7199,"scale":0.36,"sproutS":0,"swirl":0.1095,"nest":0,"mirror":1,"counter":0,"counterAngle":1.4175,"chain":0,"chainTurn":-0.381,"spin":0.4877,"width":1,"height":1,"level":1,"tilt":0.2259,"symmetry":1,"asymPhase":5.2303,"drift":0.5435,"variation":0.2766,"varPhase":4.1422,"selfSim":0.0397,"falloff":0.8476,"varAngle":6.1948,"varTwist":0.1877,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":7.9041,"elegance":0.8,"cutoff":0.045},"Rococo border":{"A":-0.1825,"f":0.5777,"phi":-1.4401,"n0":-1.7,"n1":1.1372,"c0":0.4182,"c1":0.5078,"beta":0.8498,"skew":0.2832,"cornu":-0.1205,"loops":0.5284,"loopTurn":1.0696,"loopDecay":0.6001,"loopAlt":0.0064,"loopWidth":0.0433,"fat":0.0316,"shade":0.9583,"hair":0.1734,"slant":-0.4342,"pressure":0.555,"depth":1.1718,"sprouts":0.4415,"childCurl":1.3386,"angle":0.7214,"side":0.9575,"scale":0.438,"sproutS":0,"swirl":0.3412,"nest":0.4532,"mirror":1,"counter":0.2053,"counterAngle":0.9234,"chain":0,"chainTurn":0.5285,"spin":0.5308,"width":1,"height":1,"level":1,"tilt":-0.2965,"symmetry":1,"asymPhase":1.5553,"drift":0.042,"variation":0.6324,"varPhase":0.2545,"selfSim":0,"falloff":0.9576,"varAngle":1.2879,"varTwist":4.4526,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":11.9541,"elegance":0.8,"cutoff":0.045},"Fine border":{"A":0.3868,"f":0.4473,"phi":-1.2634,"n0":-1.7,"n1":1.9497,"c0":0.2956,"c1":0.3904,"beta":0.5542,"skew":0.0095,"cornu":0.0828,"loops":0.751,"loopTurn":0.8875,"loopDecay":0.796,"loopAlt":0.9365,"loopWidth":0.0295,"fat":0.0274,"shade":0.9884,"hair":0.141,"slant":-0.3931,"pressure":0.5858,"depth":1.3872,"sprouts":1.5492,"childCurl":0.972,"angle":0.6201,"side":-0.6578,"scale":0.4768,"sproutS":0,"swirl":0.0157,"nest":0,"mirror":1,"counter":0,"counterAngle":1.7338,"chain":0,"chainTurn":0.4492,"spin":0.073,"width":1,"height":1,"level":1,"tilt":0.2476,"symmetry":1,"asymPhase":6.281,"drift":0.8673,"variation":1.0828,"varPhase":0.1329,"selfSim":0.9687,"falloff":0.701,"varAngle":6.1702,"varTwist":0.2175,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":11.2668,"elegance":0.8,"cutoff":0.045},"Arched divider":{"A":0.2179,"f":1.1684,"phi":-0.6638,"n0":-0.4797,"n1":1.1006,"c0":0.4391,"c1":0.4391,"beta":0.8431,"skew":-0.2971,"cornu":0.1867,"loops":0.7183,"loopTurn":0.9249,"loopDecay":0.6023,"loopAlt":0.0695,"loopWidth":0.0212,"fat":0.0329,"shade":0.6151,"hair":0.076,"slant":0.0662,"pressure":0.7788,"depth":1.6873,"sprouts":0.0694,"childCurl":1.4326,"angle":0.7954,"side":0.7888,"scale":0.3914,"sproutS":0.6594,"swirl":0.3663,"nest":0,"mirror":1,"counter":0.0977,"counterAngle":2.0197,"chain":0,"chainTurn":0.9261,"spin":-0.2173,"width":1,"height":1,"level":1,"tilt":-0.2547,"symmetry":1,"asymPhase":4.9476,"drift":0.0008,"variation":0.9481,"varPhase":3.4838,"selfSim":0,"falloff":0.7696,"varAngle":2.2397,"varTwist":2.6088,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":6.1888,"elegance":0.8,"cutoff":0.045},"Whisper border":{"A":0.0058,"f":0.4475,"phi":1.2717,"n0":-1.7,"n1":1.1054,"c0":0.417,"c1":0.5637,"beta":0.6874,"skew":0.2692,"cornu":-0.1125,"loops":0,"loopTurn":1.0621,"loopDecay":0.6058,"loopAlt":0.151,"loopWidth":0.0315,"fat":0.0216,"shade":0.9999,"hair":0.1775,"slant":-0.3655,"pressure":0.396,"depth":1.4433,"sprouts":0.0003,"childCurl":1.2601,"angle":1.0151,"side":0.1033,"scale":0.4282,"sproutS":0,"swirl":0.2286,"nest":0,"mirror":1,"counter":0,"counterAngle":1.3091,"chain":1.5717,"chainTurn":-0.0451,"spin":0.5348,"width":1,"height":1,"level":1,"tilt":-0.1667,"symmetry":1,"asymPhase":0.8554,"drift":0.7678,"variation":0.4715,"varPhase":1.6116,"selfSim":0.6662,"falloff":0.9847,"varAngle":4.0773,"varTwist":1.0978,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":5.9912,"elegance":0.8,"cutoff":0.045},"Pearl border":{"A":-0.154,"f":0.5369,"phi":-1.4999,"n0":-1.7,"n1":1.5649,"c0":0.3483,"c1":0.4052,"beta":0.5941,"skew":0.2993,"cornu":-0.1837,"loops":1.7288,"loopTurn":0.8989,"loopDecay":0.6892,"loopAlt":0.677,"loopWidth":0.0264,"fat":0.0318,"shade":0.8786,"hair":0.173,"slant":0.1285,"pressure":0.724,"depth":1.5258,"sprouts":0.6717,"childCurl":1.1044,"angle":0.6745,"side":-0.9669,"scale":0.4054,"sproutS":0,"swirl":0.0332,"nest":0,"mirror":1,"counter":0,"counterAngle":1.8334,"chain":0,"chainTurn":-0.3692,"spin":0.5348,"width":1,"height":1,"level":1,"tilt":0.0913,"symmetry":1,"asymPhase":6.1469,"drift":0.7599,"variation":0.464,"varPhase":2.4222,"selfSim":0.4629,"falloff":0.7234,"varAngle":5.3306,"varTwist":0.0739,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":9.7569,"elegance":0.8,"cutoff":0.045},"Lace border":{"A":0.3764,"f":1.0742,"phi":-0.9965,"n0":-1.7,"n1":1.1356,"c0":0.369,"c1":0.5255,"beta":0.7851,"skew":-0.1089,"cornu":0.162,"loops":1.6087,"loopTurn":1.0811,"loopDecay":0.6342,"loopAlt":0.1739,"loopWidth":0.0456,"fat":0.0271,"shade":0.6746,"hair":0.1402,"slant":0.0212,"pressure":0.3919,"depth":0.9934,"sprouts":0.015,"childCurl":1.1692,"angle":0.7827,"side":0.1665,"scale":0.4613,"sproutS":0.0901,"swirl":0.1602,"nest":0.3361,"mirror":1,"counter":0.0527,"counterAngle":0.8744,"chain":0,"chainTurn":0.9783,"spin":0.0302,"width":1,"height":1,"level":1,"tilt":-0.2619,"symmetry":1,"asymPhase":0.7593,"drift":0.1237,"variation":1.0973,"varPhase":2.0809,"selfSim":0.1358,"falloff":0.9703,"varAngle":2.8278,"varTwist":2.6378,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":11.7474,"elegance":0.8,"cutoff":0.045},"Headpiece":{"A":0.4145,"f":0.8349,"phi":-1.4777,"n0":-1.7,"n1":1.3718,"c0":0.3029,"c1":0.4416,"beta":0.8442,"skew":0.0949,"cornu":0.1107,"loops":1.4934,"loopTurn":0.9968,"loopDecay":0.7468,"loopAlt":0.5007,"loopWidth":0.0667,"fat":0.032,"shade":0.8329,"hair":0.1726,"slant":-0.2839,"pressure":0.6071,"depth":0.5727,"sprouts":0.2189,"childCurl":0.9598,"angle":0.6949,"side":0.795,"scale":0.4796,"sproutS":0,"swirl":0.3066,"nest":0.9379,"mirror":1,"counter":0,"counterAngle":0.8464,"chain":0,"chainTurn":0.9023,"spin":0.3248,"width":1,"height":1,"level":0.1573,"tilt":-0.077,"symmetry":1,"asymPhase":2.979,"drift":0.0006,"variation":0.9924,"varPhase":0.2564,"selfSim":0,"falloff":0.825,"varAngle":5.2368,"varTwist":0.5071,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":1.8369,"elegance":0.8,"cutoff":0.045},"Lyre":{"A":-0.4528,"f":0.5891,"phi":-0.3598,"n0":-1.7,"n1":1.1994,"c0":0.3181,"c1":0.3598,"beta":0.6461,"skew":-0.0806,"cornu":-0.1556,"loops":0,"loopTurn":0.8903,"loopDecay":0.7178,"loopAlt":0.3296,"loopWidth":0.0679,"fat":0.0306,"shade":0.7858,"hair":0.0642,"slant":0.1277,"pressure":0.7823,"depth":0.4604,"sprouts":0.0477,"childCurl":0.96,"angle":0.6063,"side":-0.1823,"scale":0.3018,"sproutS":0.8063,"swirl":0.2692,"nest":0.7807,"mirror":1,"counter":0,"counterAngle":1.1118,"chain":0,"chainTurn":-0.3458,"spin":-0.102,"width":0.9538,"height":0.9435,"level":0,"tilt":-0.134,"symmetry":1,"asymPhase":6.1141,"drift":0.8456,"variation":0.3872,"varPhase":6.1478,"selfSim":0.2941,"falloff":0.6225,"varAngle":5.2835,"varTwist":0.6278,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":0,"elegance":0.8,"cutoff":0.045},"Flourish":{"A":0.3122,"f":0.4007,"phi":-0.3719,"n0":1.6014,"n1":1.1839,"c0":0.4452,"c1":0.37,"beta":0.5584,"skew":0.2146,"cornu":-0.1507,"loops":0.9575,"loopTurn":0.8847,"loopDecay":0.6884,"loopAlt":0.0027,"loopWidth":0.03,"fat":0.0217,"shade":0.9992,"hair":0.1756,"slant":-0.3117,"pressure":0.3257,"depth":1.3235,"sprouts":0.6407,"childCurl":1.6,"angle":0.6293,"side":-0.566,"scale":0.4714,"sproutS":0,"swirl":0.0512,"nest":0.656,"mirror":0,"counter":0.5971,"counterAngle":2.2457,"chain":0.3959,"chainTurn":0.1899,"spin":1.3659,"width":1.2623,"height":1.2794,"level":0,"tilt":-0.2816,"symmetry":1,"asymPhase":3.4984,"drift":0.841,"variation":0.9219,"varPhase":0.0706,"selfSim":0.9849,"falloff":0.5854,"varAngle":0.0183,"varTwist":5.6387,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":0,"elegance":0.8,"cutoff":0.045},"Rising swash":{"A":-0.8946,"f":0.6856,"phi":-0.5969,"n0":0.9312,"n1":2.0353,"c0":0.3233,"c1":0.4122,"beta":0.5684,"skew":0.1791,"cornu":-0.458,"loops":2.579,"loopTurn":0.9459,"loopDecay":0.9659,"loopAlt":0.651,"loopWidth":0.0509,"fat":0.0234,"shade":0.7967,"hair":0.1285,"slant":0.2241,"pressure":0.3467,"depth":0.6172,"sprouts":2.5405,"childCurl":1.2748,"angle":0.7006,"side":-0.9978,"scale":0.3393,"sproutS":0.1153,"swirl":0.0001,"nest":0.9867,"mirror":0,"counter":0,"counterAngle":1.5662,"chain":0,"chainTurn":-0.3998,"spin":1.5833,"width":0.9087,"height":1.2803,"level":0,"tilt":0.1665,"symmetry":0.7361,"asymPhase":2.4835,"drift":0.8555,"variation":0.2486,"varPhase":3.9383,"selfSim":0.9291,"falloff":0.7047,"varAngle":3.0201,"varTwist":4.6153,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":0,"elegance":0.8,"cutoff":0.045},"Tall S":{"A":-0.4208,"f":0.6833,"phi":-0.5344,"n0":-1.7,"n1":2.0328,"c0":0.281,"c1":0.5847,"beta":0.7024,"skew":0.287,"cornu":-0.4941,"loops":3.2336,"loopTurn":1.1026,"loopDecay":0.9921,"loopAlt":0.598,"loopWidth":0.0699,"fat":0.033,"shade":0.7708,"hair":0.1656,"slant":0.3435,"pressure":0.737,"depth":0.4089,"sprouts":2.386,"childCurl":1.1619,"angle":1.1943,"side":-0.4216,"scale":0.3755,"sproutS":0,"swirl":0.2095,"nest":0,"mirror":0,"counter":0,"counterAngle":0.8397,"chain":0,"chainTurn":-0.3711,"spin":1.8471,"width":0.8513,"height":0.8178,"level":0,"tilt":0.0149,"symmetry":0.6619,"asymPhase":1.5452,"drift":0.363,"variation":0.3076,"varPhase":4.0854,"selfSim":0,"falloff":0.9912,"varAngle":2.0457,"varTwist":5.7995,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":0,"elegance":0.8,"cutoff":0.045},"Heart":{"A":-0.6453,"f":0.4207,"phi":-0.5854,"n0":0.5799,"n1":2.0548,"c0":0.254,"c1":0.3503,"beta":0.7678,"skew":0.2971,"cornu":-0.4559,"loops":0,"loopTurn":0.8542,"loopDecay":0.9823,"loopAlt":0.9947,"loopWidth":0.0496,"fat":0.032,"shade":0.998,"hair":0.1548,"slant":-0.3784,"pressure":0.7898,"depth":0.5649,"sprouts":1.923,"childCurl":1.0312,"angle":0.6531,"side":0.6587,"scale":0.3865,"sproutS":0,"swirl":0.3739,"nest":0.1846,"mirror":0.5412,"counter":0,"counterAngle":1.8557,"chain":0,"chainTurn":-0.055,"spin":1.0821,"width":1.3262,"height":0.9455,"level":0,"tilt":0.2923,"symmetry":0.5757,"asymPhase":6.283,"drift":0.4981,"variation":0.3376,"varPhase":2.0984,"selfSim":0,"falloff":0.5523,"varAngle":5.2856,"varTwist":1.692,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":0,"elegance":0.8,"cutoff":0.045},"Swash":{"A":-0.8217,"f":0.9452,"phi":0.4534,"n0":-0.5994,"n1":1.7001,"c0":0.3422,"c1":0.5978,"beta":0.7973,"skew":0.1649,"cornu":-0.428,"loops":2.1889,"loopTurn":1.1176,"loopDecay":0.9096,"loopAlt":0.254,"loopWidth":0.0632,"fat":0.0287,"shade":0.6231,"hair":0.1282,"slant":0.4498,"pressure":0.5529,"depth":0.5032,"sprouts":1.6191,"childCurl":1.4148,"angle":1.1554,"side":0.3113,"scale":0.3186,"sproutS":0.52,"swirl":0.3448,"nest":0.3414,"mirror":0,"counter":0.46,"counterAngle":1.2323,"chain":0,"chainTurn":-0.0345,"spin":1.2999,"width":0.9681,"height":0.8212,"level":0,"tilt":-0.205,"symmetry":1,"asymPhase":0.0819,"drift":0.0696,"variation":0.2027,"varPhase":5.9757,"selfSim":0,"falloff":0.8756,"varAngle":0.2292,"varTwist":6.1679,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":0,"elegance":0.8,"cutoff":0.045},"Cascade":{"A":-0.7642,"f":0.5881,"phi":1.2129,"n0":1.5542,"n1":2.0996,"c0":0.3579,"c1":0.4592,"beta":0.5815,"skew":0.0137,"cornu":-0.2823,"loops":0,"loopTurn":0.931,"loopDecay":0.9093,"loopAlt":0.6444,"loopWidth":0.0256,"fat":0.0216,"shade":0.7729,"hair":0.0756,"slant":0.2003,"pressure":0.4528,"depth":1.4341,"sprouts":2.4918,"childCurl":1.5044,"angle":1.0515,"side":-0.7065,"scale":0.3,"sproutS":0.7318,"swirl":0.1092,"nest":0,"mirror":0,"counter":0,"counterAngle":2.3623,"chain":1.7924,"chainTurn":-0.3042,"spin":0.2918,"width":0.8856,"height":0.8249,"level":0,"tilt":0.0577,"symmetry":1,"asymPhase":3.0078,"drift":0.8941,"variation":0.3459,"varPhase":6.1691,"selfSim":0.9155,"falloff":0.7617,"varAngle":0.663,"varTwist":6.0553,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":0,"elegance":0.8,"cutoff":0.045},"Trail":{"A":-0.5248,"f":0.5797,"phi":-1.1611,"n0":-1.7,"n1":1.5704,"c0":0.4488,"c1":0.5719,"beta":0.8487,"skew":0.2916,"cornu":-0.3348,"loops":1.4544,"loopTurn":1.1163,"loopDecay":0.6881,"loopAlt":0.1941,"loopWidth":0.0443,"fat":0.0289,"shade":0.9547,"hair":0.17,"slant":-0.4255,"pressure":0.4157,"depth":1.6219,"sprouts":1.7824,"childCurl":1.5829,"angle":1.0353,"side":0.877,"scale":0.433,"sproutS":0,"swirl":0.296,"nest":0,"mirror":0,"counter":0.4225,"counterAngle":1.4769,"chain":0,"chainTurn":0.5631,"spin":1.8966,"width":1.4995,"height":1.2828,"level":0,"tilt":-0.0809,"symmetry":1,"asymPhase":0.2302,"drift":0.0096,"variation":0.6187,"varPhase":0.234,"selfSim":0,"falloff":0.997,"varAngle":0.0449,"varTwist":6.283,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":0,"elegance":0.8,"cutoff":0.045},"Fractal S":{"A":0.6,"f":0.5,"phi":0.2,"n0":-0.8,"n1":1.6,"c0":0.35,"c1":0.45,"beta":0.72,"fat":0.045,"shade":0.85,"hair":0.1,"slant":0.2,"pressure":0.5,"sprouts":2,"depth":3.5,"scale":0.55,"shrink":0.25,"side":0,"angle":1.1,"childCurl":1.1,"spin":0.5,"elegance":0.3,"thinning":1,"cutoff":0.05,"selfSim":1,"echo":0.3,"falloff":0.8},"Fractal S, varied":{"A":0.6,"f":0.5,"phi":0.2,"n0":-0.8,"n1":1.6,"c0":0.35,"c1":0.45,"beta":0.72,"fat":0.045,"shade":0.85,"hair":0.1,"slant":0.2,"pressure":0.5,"sprouts":2,"depth":3.5,"scale":0.55,"shrink":0.25,"side":0,"angle":1.1,"childCurl":1.1,"spin":0.5,"elegance":0.3,"thinning":1,"cutoff":0.05,"selfSim":1,"echo":0.3,"drift":0.6,"variation":0.7,"varAngle":1.5,"falloff":0.8},"Fractal divider":{"A":0.6,"f":0.5,"phi":0.2,"n0":-0.8,"n1":1.6,"c0":0.35,"c1":0.45,"beta":0.72,"fat":0.045,"shade":0.85,"hair":0.1,"slant":0.2,"pressure":0.5,"sprouts":2,"depth":3,"scale":0.55,"shrink":0.25,"side":0,"angle":0.9,"childCurl":1.1,"spin":0.5,"elegance":0.3,"thinning":1,"cutoff":0.05,"selfSim":1,"echo":0.3,"mirror":1,"level":1,"loops":1,"loopWidth":0.05,"variation":0.6,"falloff":0.8},"Fractal border 6:1":{"A":0.6,"f":0.5,"phi":0.2,"n0":-0.8,"n1":1.6,"c0":0.35,"c1":0.45,"beta":0.72,"fat":0.045,"shade":0.85,"hair":0.1,"slant":0.2,"pressure":0.5,"sprouts":2,"depth":2.6,"scale":0.55,"shrink":0.25,"side":0,"angle":0.9,"childCurl":1.1,"spin":0.5,"elegance":0.3,"thinning":1,"cutoff":0.05,"selfSim":1,"echo":0.3,"mirror":1,"level":1,"variation":0.8,"aspect":6,"falloff":0.8},"Bickham oval":{"fat":0.034,"shade":0.9,"hair":0.1,"slant":0.2,"pressure":0.5,"echo":0,"elegance":0.7,"depth":1.2,"sprouts":1.4,"scale":0.4,"childCurl":1.2,"angle":0.9,"A":0.3,"n0":-1.2,"c0":0.3,"n1":1.7,"c1":0.4,"loops":1,"loopTurn":1.05,"loopWidth":0.06,"spin":0.4,"side":0.5},"C-scroll":{"fat":0.034,"shade":0.8,"hair":0.1,"slant":0.2,"pressure":0.5,"echo":0,"elegance":0.7,"depth":1.4,"sprouts":2,"scale":0.42,"childCurl":1.2,"angle":0.9,"A":0.35,"n0":-1.4,"c0":0.4,"n1":1.6,"c1":0.5,"beta":0.72,"spin":0.9,"side":1},"Kurbits scroll":{"fat":0.04,"shade":0.7,"hair":0.1,"slant":0.2,"pressure":0.5,"echo":0,"elegance":0.8,"depth":2,"sprouts":3,"scale":0.45,"childCurl":1.2,"angle":0.8,"A":0.7,"n1":1.5,"c1":0.5,"side":1,"swirl":0.3,"spin":0.4}};
-const SPEC=[
- ['Shape','proportions change the curves themselves, never a stretch',true,[
-  ['width',0.3,4,'wider: more scrolls grow outward along the arms'],['height',0.3,4,'taller: more scrolls climb upward'],
-  ['aspect',0,14,'exact width ÷ height to fit a box (0 = free)'],['level',0,1,'lay the arms horizontal (dividers)'],['tilt',-0.6,0.6,'tilt of the arms'],
-  ['mirror',0,1,'mirrored twin grows from the same root'],['symmetry',0,1,'twin drifts from an exact mirror'],['asymPhase',0,6.28,'which way it drifts'],
-  ['rotate',-3.14,3.14,'direction of growth']]],
- ['Pen','pointed-pen shading and loops',true,[
-  ['shade',0,1,'swell on down-strokes'],['hair',0.02,0.5,'hairline weight'],['slant',-1,1,'pen slant'],
-  ['fat',0.01,0.08,'swell width / length'],['loops',0,5,'pen loops along the stroke'],['loopTurn',0.5,1.5,'turns per loop'],
-  ['loopDecay',0.4,1.2,'each loop smaller'],['loopAlt',0,1,'same way · alternating'],['loopWidth',0.015,0.15,'loop size']]],
- ['Recursion','the same curve, smaller, growing from itself',false,[
-  ['elegance',0,1,'busy · restrained'],['depth',0,4.5,'generations'],['drift',0,1.5,'each generation morphs (fractal with variation)'],
-  ['variation',0,1.5,'how far each scroll and sprout moves through parameter space'],['varPhase',0,6.28,'slides along the variation (Ripple animates it)'],
-  ['varAngle',0,6.28,'direction of variation in parameter space'],['varTwist',0,6.28,'second direction of variation'],
-  ['selfSim',0,1,'sprouts become miniatures of their parent: a true fractal'],['cutoff',0,0.12,'low-pass: detail below this size fades out'],['falloff',0.3,1,'smaller generations: fewer sprouts, calmer'],['sprouts',0,16,'sprouts per curve'],
-  ['bilateral',0,1,'one-sided · mirrored pairs'],['thinning',0.2,1.4,'width from one generation to the next'],
-  ['childPressure',-1,1,'sprout width profile'],['childCurl',0,2,'sprout eye turns (0 = straight)'],
-  ['pingpong',0,1,'every other generation flips'],['swirl',0,1.5,'each generation curlier'],
-  ['nest',0,3,'the curve inside its own eye'],['nestScale',0.3,1.2,'size of the nested curve']]],
- ['Curve','the eight numbers of θ(u)',false,[
-  ['A',-2,2,'wave height'],['f',0.25,3,'waves along the curve'],['phi',-3.14,3.14,'wave phase'],
-  ['n0',-3,3,'turns in the start eye'],['n1',-3,3,'turns in the end eye'],['c0',0.05,1,'start eye length'],
-  ['c1',0.05,1,'end eye length'],['beta',0.05,0.95,'eye tightness'],
-  ['skew',-0.5,0.5,'Kinoshita skew (3rd harmonic)'],['flat',-0.4,0.4,'Kinoshita flattening'],['cornu',-1.2,1.2,'Euler spiral: curvature linear in u']]],
- ['Width','operations on the curve',false,[
-  ['pressure',-1,1,'heavy end · swelling · heavy start'],
-  ['nib',0,1,'broad-nib pen: width from direction'],['nibAngle',-1.6,1.6,'pen angle'],
-  ['lobes',0,9,'sinusoidal scallops'],['lobeDepth',0,0.9,'scallop depth'],['hollow',0,1,'solid · outline'],
-  ['stripes',0,4,'parallel curves inside'],['echo',0,1.5,'parallel curve outside'],['echoGap',0,1,'its distance']]],
- ['Sprouting','where and how sprouts leave their parent',false,[
-  ['angle',0,2,'lean off the parent'],['side',-1,1,'one side · alternate · other side'],['fan',0,1,'along the curve · one point'],
-  ['scale',0.08,0.8,'sprout size'],['shrink',0,0.8,'later sprouts smaller'],['childWave',-1,2,'sprout wave'],
-  ['sproutS',0,1,'C-shaped · S-shaped sprouts'],['span',0,0.8,'first sprout position'],['reach',0.1,0.9,'sprouting length'],
-  ['vary',0,1,'difference between siblings'],['gravity',-1,1,'upward sprouts curl more']]],
- ['Root','everything grows from one point, so the shape stays connected',false,[
-  ['stems',1,9,'curves from the root'],['sweep',0,4,'their spread'],['stemVary',0,1,'outer ones shorter'],['spin',-3.14,3.14,'start heading'],
-  ['counter',0,1.2,'answering curve from the root'],['counterAngle',-3.14,3.14,'its heading'],
-  ['chain',0,4,'curves continuing from curves'],['chainAt',0.3,0.95,'where the next starts'],['chainTurn',-1.5,1.5,'its turn'],
-  ['chainScale',0.4,1.2,'its size'],['chainFlip',0,1,'same way · alternating'],['flow',0,1,'added scrolls: aimed outward · tangent at the join']]],
-];
-const RANGE={x:[0,20],y:[0,20],z:[0,20]}; for(const[, , ,ps] of SPEC) for(const[k,lo,hi] of ps) RANGE[k]=[lo,hi];
-const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const EXP={x:4.6,y:11.0,z:3.7}; let follow=true;
-let K=Object.assign({},G.DEFAULTS,G.explore(EXP.x,EXP.y,EXP.z)), current=null;
-let mode=reduce?'still':'sweep', sweepKey='x', pal='ink', t0=performance.now(), dirty=true, sweepBase=null;
+const G=KurbitsSwirl, Cm=Compact(G), W=Lettering(G,LETTERS,Cm), PRESETS={"Classic divider":{"curl":0.5,"scroll":-0.6,"wave":0.6,"bend":0,"lean":0.2,"loops":0,"weight":0.4,"contrast":0.8,"detail":0.4,"fractal":0,"side":0.3,"variation":0,"mirror":1,"rise":0,"extend":0},"Running border":{"curl":0.082,"scroll":-0.894,"wave":-0.616,"bend":0.698,"lean":0.638,"loops":0,"weight":0.401,"contrast":0.601,"detail":0.471,"fractal":0,"side":-0.097,"variation":0.083,"mirror":1,"rise":0.566,"extend":2.921},"Pendant divider":{"curl":0.285,"scroll":0.151,"wave":-0.779,"bend":0.406,"lean":1.815,"loops":0,"weight":0.499,"contrast":0.786,"detail":0.1,"fractal":0.202,"side":0.585,"variation":0.407,"mirror":1,"rise":73.802,"extend":4.999},"Lace border":{"curl":0.961,"scroll":0.853,"wave":-1.297,"bend":0.206,"lean":0.361,"loops":0,"weight":0.436,"contrast":0.999,"detail":0.686,"fractal":0.677,"side":0.866,"variation":0.254,"mirror":1,"rise":61.367,"extend":4.907},"Fine border":{"curl":0.647,"scroll":-0.997,"wave":-0.935,"bend":-0.271,"lean":1.766,"loops":0,"weight":0.434,"contrast":0.748,"detail":0.753,"fractal":0,"side":0.641,"variation":0.51,"mirror":1,"rise":38.861,"extend":2.756},"Eye divider":{"curl":0.095,"scroll":-0.896,"wave":0.633,"bend":0.444,"lean":1.424,"loops":0,"weight":0.236,"contrast":0.584,"detail":0.515,"fractal":0,"side":-0.929,"variation":0,"mirror":0.948,"rise":17.537,"extend":0},"Small divider":{"curl":0.264,"scroll":-0.699,"wave":0.795,"bend":0.692,"lean":1.242,"loops":0,"weight":0.202,"contrast":0.5,"detail":0.104,"fractal":0.054,"side":-0.942,"variation":0,"mirror":1,"rise":74.74,"extend":2.508},"Crowned divider":{"curl":0.991,"scroll":0.639,"wave":1.038,"bend":-0.602,"lean":0.291,"loops":0.173,"weight":0.555,"contrast":0.778,"detail":0.614,"fractal":0.794,"side":-0.472,"variation":0.754,"mirror":1,"rise":64.136,"extend":0.877},"Arch divider":{"curl":0.072,"scroll":0.462,"wave":0.08,"bend":-0.46,"lean":1.785,"loops":0,"weight":0.498,"contrast":1,"detail":0.114,"fractal":0.035,"side":0.829,"variation":0.643,"mirror":1,"rise":72.718,"extend":1.85},"Swag":{"curl":0.382,"scroll":-0.389,"wave":-0.266,"bend":0.69,"lean":1.997,"loops":0,"weight":0.203,"contrast":0.752,"detail":0.73,"fractal":0,"side":-0.43,"variation":0,"mirror":1,"rise":57.045,"extend":1.578},"Heart":{"curl":0.995,"scroll":-0.23,"wave":-1.026,"bend":-0.676,"lean":1.152,"loops":0.203,"weight":0.203,"contrast":0.501,"detail":0.652,"fractal":0.692,"side":-0.715,"variation":0,"mirror":1,"rise":71.985,"extend":0},"Heart knot":{"curl":0.922,"scroll":-0.809,"wave":-1.298,"bend":-0.629,"lean":1.945,"loops":0,"weight":0.282,"contrast":0.581,"detail":0.792,"fractal":0.073,"side":-0.05,"variation":0.039,"mirror":1,"rise":69.707,"extend":0},"Swash":{"curl":0.004,"scroll":-0.385,"wave":-1.215,"bend":0.486,"lean":-0.774,"loops":0,"weight":0.258,"contrast":0.773,"detail":0.231,"fractal":0,"side":0.604,"variation":0,"mirror":0,"rise":-32.566,"extend":0},"Scroll":{"curl":0.813,"scroll":0.986,"wave":0.272,"bend":-0.688,"lean":-1.09,"loops":0.814,"weight":0.4,"contrast":0.937,"detail":0.364,"fractal":0.999,"side":0.252,"variation":0.342,"mirror":0.412,"rise":28.26,"extend":0},"Flourish":{"curl":0.844,"scroll":0.147,"wave":0.457,"bend":-0.241,"lean":-1.549,"loops":0.62,"weight":0.306,"contrast":0.765,"detail":0.792,"fractal":0.137,"side":-0.451,"variation":0.02,"mirror":0,"rise":-39.747,"extend":0},"Rococo":{"curl":0.827,"scroll":-0.702,"wave":-0.439,"bend":0.304,"lean":-1.953,"loops":0.596,"weight":0.308,"contrast":0.503,"detail":0.799,"fractal":0,"side":-0.731,"variation":0,"mirror":0,"rise":-35.608,"extend":0},"Horns":{"curl":0.607,"scroll":-0.064,"wave":1.275,"bend":0.591,"lean":1.968,"loops":0,"weight":0.278,"contrast":0.555,"detail":0.157,"fractal":0.678,"side":-0.464,"variation":0,"mirror":1,"rise":62.831,"extend":0},"Pendant":{"curl":0.007,"scroll":-0.229,"wave":-0.79,"bend":-0.694,"lean":0.742,"loops":0.188,"weight":0.337,"contrast":0.925,"detail":0.266,"fractal":0,"side":0.988,"variation":0.189,"mirror":1,"rise":68.633,"extend":0},"Cartouche":{"curl":0.912,"scroll":1,"wave":-1.14,"bend":0.62,"lean":1.06,"loops":0,"weight":0.222,"contrast":1,"detail":0.407,"fractal":0.999,"side":0.854,"variation":0,"mirror":1,"rise":8.956,"extend":0.595},"Tail":{"curl":0.997,"scroll":0.756,"wave":-0.452,"bend":0.252,"lean":-0.326,"loops":0,"weight":0.209,"contrast":0.928,"detail":0.652,"fractal":0.739,"side":0.274,"variation":0,"mirror":0,"rise":-27.786,"extend":0},"Fractal S":{"curl":0.6,"scroll":-0.8,"wave":0.6,"bend":0,"lean":0.2,"loops":0,"weight":0.45,"contrast":0.8,"detail":0.6,"fractal":1,"side":0.3,"variation":0,"mirror":0,"rise":40,"extend":0}};
+const TAU=Math.PI*2, reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const RANGE={x:[0,20],y:[0,20],z:[0,20]}; for(const[,ps] of Cm.SPEC) for(const[k,lo,hi] of ps) RANGE[k]=[lo,hi];
+const EXP={x:12.7,y:13.9,z:2.0};
+let C=Object.assign({},Cm.DEFAULTS,Cm.explore(EXP.x,EXP.y,EXP.z)), follow=true, current=null;
+let kind='ornament', text='KURBITS', mode=reduce?'still':'ripple', sweepKey='x', sweepBase=null, pal='ink', phase=0;
+let t0=performance.now(), dirty=true;
+const $=id=>document.getElementById(id);
+function build(grow=1,res){ return kind==='word'?W.word(text,C,grow,phase):G.build(Cm.expand(C,phase),grow,res?{res}:undefined); }
 
 /* ---- controls ---- */
-const box=document.getElementById('controls'), inputs={};
-for(const[title,sub,open,ps] of SPEC){
-  const d=document.createElement('details'); if(open) d.open=true;
-  d.innerHTML=`<summary>${title}<small>${sub}</small></summary>`;
-  const rows=document.createElement('div'); rows.className='rows';
-  for(const[k,lo,hi,help] of ps){
-    const row=document.createElement('div'); row.className='row';
-    const step=(hi-lo)>6?0.05:0.01;
-    row.innerHTML=`<label for="k-${k}">${k}</label><input type="range" id="k-${k}" min="${lo}" max="${hi}" step="${step}"><output id="o-${k}"></output><small>${help}</small>`;
-    rows.appendChild(row);
-    const inp=row.querySelector('input'); inputs[k]=inp;
-    inp.addEventListener('input',()=>{K[k]=parseFloat(inp.value); if(mode==='sweep'&&k===sweepKey) sweepBase=K[k]; current=null; if(follow){follow=false;const fb=document.getElementById('follow');fb.setAttribute('aria-pressed','false');fb.textContent='Follow';} markPreset(); syncOut(k); dirty=true;});
-  }
+const inputs={}, box=$('controls');
+function slider(parent,k,lo,hi,help,onInput){
+  const row=document.createElement('div');row.className='row';const step=(hi-lo)>20?1:(hi-lo)>4?0.05:0.01;
+  row.innerHTML=`<label for="k-${k}">${k}</label><input type="range" id="k-${k}" min="${lo}" max="${hi}" step="${step}"><output id="o-${k}"></output>`+(help?`<small>${help}</small>`:'');
+  parent.appendChild(row); const inp=row.querySelector('input'); inputs[k]=inp; inp.addEventListener('input',()=>onInput(parseFloat(inp.value)));
+}
+for(const[title,ps] of Cm.SPEC){
+  const d=document.createElement('details'); d.open=true; d.innerHTML=`<summary>${title}</summary>`;
+  const rows=document.createElement('div');rows.className='rows';
+  for(const[k,lo,hi,help] of ps) slider(rows,k,lo,hi,help,v=>{C[k]=v;if(mode==='sweep'&&k===sweepKey)sweepBase=v;current=null;markPreset();setFollow(false,true);syncOut(k);dirty=true;});
   d.appendChild(rows); box.appendChild(d);
 }
-const exBox=document.getElementById('explore');
-for(const k of['x','y','z']){const row=document.createElement('div');row.className='row';
-  row.innerHTML=`<label for="e-${k}">${k}</label><input type="range" id="e-${k}" min="0" max="20" step="0.01" value="${EXP[k]}"><output id="o-${k}"></output>`;
-  exBox.appendChild(row); const inp=row.querySelector('input'); inputs[k]=inp;
-  inp.addEventListener('input',()=>{EXP[k]=parseFloat(inp.value); if(mode==='sweep'&&k===sweepKey) sweepBase=EXP[k]; setFollow(true); dirty=true;});}
-const followBtn=document.getElementById('follow');
-function setFollow(on){follow=on;followBtn.setAttribute('aria-pressed',String(on));followBtn.textContent=on?'Following':'Follow';
-  if(on){K=Object.assign({},G.DEFAULTS,G.explore(EXP.x,EXP.y,EXP.z));current=null;if(typeof markPreset==='function')markPreset();syncAll();}}
-followBtn.addEventListener('click',()=>setFollow(!follow));
-const sel=document.getElementById('sweepKey');
-for(const k of Object.keys(RANGE)){const o=document.createElement('option');o.value=k;o.textContent=(k.length===1?'explore '+k:k);sel.appendChild(o);}
+for(const k of['x','y','z']) slider($('explore'),k,0,20,'',v=>{EXP[k]=v;if(mode==='sweep'&&k===sweepKey)sweepBase=v;setFollow(true);dirty=true;});
+const getV=k=>k in EXP?EXP[k]:C[k];
+function setV(k,v){if(k in EXP){EXP[k]=v;if(follow)C=Object.assign({},Cm.DEFAULTS,Cm.explore(EXP.x,EXP.y,EXP.z));}else C[k]=v;}
+function syncOut(k){const o=$('o-'+k);if(o)o.textContent=(+getV(k)).toFixed(k==='rise'?0:2);}
+function syncAll(){for(const k in inputs){inputs[k].value=getV(k);syncOut(k);}showJSON();}
+function showJSON(){const o={};for(const[,ps] of Cm.SPEC)for(const[k] of ps)o[k]=+(+C[k]).toFixed(3);if(kind==='word')o.text=text;$('json').textContent=JSON.stringify(o,null,2);}
+function setFollow(on,quiet){follow=on;const b=$('follow');b.setAttribute('aria-pressed',String(on));b.textContent=on?'Following':'Follow';
+  if(on&&!quiet){C=Object.assign({},Cm.DEFAULTS,Cm.explore(EXP.x,EXP.y,EXP.z));current=null;markPreset();syncAll();}}
+$('follow').addEventListener('click',()=>{setFollow(!follow);dirty=true;});
+const sel=$('sweepKey');
+for(const k of Object.keys(RANGE)){const o=document.createElement('option');o.value=k;o.textContent=k.length===1?'explore '+k:k;sel.appendChild(o);}
 sel.value=sweepKey;
-sel.addEventListener('change',()=>{restoreSweep();sweepKey=sel.value;sweepBase=getV(sweepKey);if(sweepKey in EXP)setFollow(true);t0=performance.now();setMode('sweep');});
-const getV=k=>k in EXP?EXP[k]:K[k], setV=(k,v)=>{if(k in EXP){EXP[k]=v;if(follow)K=Object.assign({},G.DEFAULTS,G.explore(EXP.x,EXP.y,EXP.z));}else K[k]=v;};
-function syncOut(k){const o=document.getElementById('o-'+k); if(o) o.textContent=(+getV(k)).toFixed(2);}
-function syncAll(){for(const k in inputs){inputs[k].value=getV(k);syncOut(k);} showJSON();}
-function showJSON(){const out={};for(const k in G.DEFAULTS) if(Math.abs(K[k]-G.DEFAULTS[k])>1e-9) out[k]=+(+K[k]).toFixed(3);
-  document.getElementById('json').textContent=JSON.stringify(out,null,2);}
-function toSVG(){const items=G.build(K,1,{res:2.5}),P=palette(),b=G.bbox(items),pad=0.03*Math.max(b.x1-b.x0,b.y1-b.y0);
-  const f=v=>(+v).toFixed(4), X=v=>f(v-b.x0+pad), Y=v=>f(b.y1-v+pad);
-  let out=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${f(b.x1-b.x0+2*pad)} ${f(b.y1-b.y0+2*pad)}"><rect width="100%" height="100%" fill="${P.bg}"/>`;
+sel.addEventListener('change',()=>{restoreSweep();sweepKey=sel.value;if(sweepKey in EXP)setFollow(true);setMode('sweep');});
+function setPressed(id,attr,val){document.querySelectorAll(`#${id} button`).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset[attr]===val)));}
+function restoreSweep(){if(sweepBase!==null){setV(sweepKey,sweepBase);sweepBase=null;syncAll();}}
+function setMode(m){if(m!=='sweep')restoreSweep();if(m==='sweep')sweepBase=getV(sweepKey);mode=m;t0=performance.now();setPressed('modes','mode',m);dirty=true;}
+$('modes').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setMode(b.dataset.mode);});
+$('pals').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;pal=b.dataset.pal;setPressed('pals','pal',pal);applyPal();dirty=true;drawThumbs();});
+function setKind(k){kind=k;setPressed('kinds','kind',k);$('wordbox').hidden=k!=='word';view=null;fullKey='';dirty=true;showJSON();}
+$('kinds').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setKind(b.dataset.kind);});
+$('text').addEventListener('input',e=>{text=(e.target.value||'').toUpperCase().replace(/[^A-Z ]/g,'')||' ';dirty=true;showJSON();});
+$('copy').addEventListener('click',async e=>{const b=e.currentTarget;try{await navigator.clipboard.writeText($('json').textContent);b.textContent='Copied';}catch(_){b.textContent='Select the text';}setTimeout(()=>b.textContent='Copy numbers',1600);});
+
+/* ---- colour ---- */
+function themePal(){const cs=getComputedStyle(document.documentElement),g=v=>cs.getPropertyValue(v).trim();return{bg:g('--k-bg'),col:g('--k-col'),acc:g('--k-acc')};}
+function palette(){if(pal==='red')return{bg:'#f7f2ee',col:'#c3323b',acc:'#e3a1a1'};if(pal==='navy')return{bg:'#133a52',col:'#e6f1ee',acc:'#6c93a3'};return themePal();}
+function applyPal(){const P=palette();document.querySelectorAll('.canvas-box,.thumb canvas').forEach(el=>el.style.background=P.bg);}
+
+/* ---- drawing ---- */
+function fit(cv){const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1),Wd=Math.max(1,Math.round(r.width*d)),H=Math.max(1,Math.round(r.height*d));if(cv.width!==Wd||cv.height!==H){cv.width=Wd;cv.height=H;}return[Wd,H];}
+function draw(ctx,items,P,v,Wd,H,pad=0.9){
+  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=P.bg;ctx.fillRect(0,0,Wd,H);
+  const s=Math.min(Wd*pad/(v.x1-v.x0),H*pad/(v.y1-v.y0)),tx=Wd/2-s*(v.x0+v.x1)/2,ty=H/2+s*(v.y0+v.y1)/2;
+  ctx.lineJoin='round';ctx.lineCap='round';
+  for(const it of items){const p=it.pts;ctx.beginPath();ctx.moveTo(tx+s*p[0],ty-s*p[1]);for(let i=2;i<p.length;i+=2)ctx.lineTo(tx+s*p[i],ty-s*p[i+1]);
+    if(it.t==='p'){ctx.closePath();if(it.h>0){ctx.strokeStyle=P.bg;ctx.lineWidth=it.h*s;ctx.stroke();}ctx.fillStyle=P[it.c]||P.col;ctx.fill();}
+    else{ctx.strokeStyle=P[it.c]||P.col;ctx.lineWidth=Math.max(0.5,it.w*s);ctx.stroke();}}
+}
+function padB(b,f){const w=b.x1-b.x0,h=b.y1-b.y0,m=f*Math.max(w,h);return{x0:b.x0-m,x1:b.x1+m,y0:b.y0-m,y1:b.y1+m};}
+const main=$('main'),mctx=main.getContext('2d'),narrow=matchMedia('(max-width:860px)'),cbox=document.querySelector('.canvas-box');
+let view=null,fullKey='',fullBox=null,boxAspect=1,shownAspect=1;
+function frame(now){
+  const t=Math.max(0,now-t0)/1000; let grow=1;
+  if(mode==='grow'){const ph=t%8.5;grow=ph<2.5?1:Math.min(1,(ph-2.5)/5.5);grow=grow*grow*(3-2*grow);}
+  if(mode==='sweep'){const[lo,hi]=RANGE[sweepKey],b=sweepBase??getV(sweepKey);
+    if(sweepKey in EXP){setV(sweepKey,lo+((b-lo+t*0.3)%(hi-lo)));if(follow)syncAll();}
+    else{const a0=Math.acos(Math.max(-1,Math.min(1,1-2*(b-lo)/(hi-lo))));setV(sweepKey,lo+(hi-lo)*(0.5-0.5*Math.cos(a0+t*TAU/9)));inputs[sweepKey].value=getV(sweepKey);syncOut(sweepKey);}}
+  if(mode==='ripple') phase=(t*0.45)%TAU;
+  if(mode==='still'&&!dirty){requestAnimationFrame(frame);return;}
+  const key=JSON.stringify(C)+kind+text+(mode==='ripple'?'':phase); let items=null;
+  if(key!==fullKey){const full=build(1);if(grow>=1)items=full;fullBox=padB(G.bbox(full),0.03);fullKey=key;}
+  const target=fullBox;
+  if(!narrow.matches){const a=Math.min(2.6,Math.max(1,(target.x1-target.x0)/Math.max(1e-6,target.y1-target.y0)));boxAspect+=(a-boxAspect)*(mode==='sweep'?0.08:1);
+    if(Math.abs(boxAspect-shownAspect)>0.01){shownAspect=boxAspect;cbox.style.aspectRatio=boxAspect.toFixed(3)+' / 1';}}
+  if(!view||mode!=='sweep')view=Object.assign({},target);
+  else{for(const k of['x0','x1','y0','y1'])view[k]+=(target[k]-view[k])*0.12;
+    view.x0=Math.min(view.x0,target.x0);view.y0=Math.min(view.y0,target.y0);view.x1=Math.max(view.x1,target.x1);view.y1=Math.max(view.y1,target.y1);}
+  const[Wd,H]=fit(main);draw(mctx,items||build(grow),palette(),view,Wd,H,0.92);
+  if(dirty&&mode!=='sweep')showJSON();
+  dirty=false;requestAnimationFrame(frame);
+}
+
+/* ---- SVG ---- */
+function toSVG(){const items=build(1,2.5),P=palette(),b=G.bbox(items),pd=0.03*Math.max(b.x1-b.x0,b.y1-b.y0);
+  const f=v=>(+v).toFixed(4),X=v=>f(v-b.x0+pd),Y=v=>f(b.y1-v+pd);
+  let out=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${f(b.x1-b.x0+2*pd)} ${f(b.y1-b.y0+2*pd)}"><rect width="100%" height="100%" fill="${P.bg}"/>`;
   for(const it of items){const p=it.pts;let d='M'+X(p[0])+' '+Y(p[1]);for(let i=2;i<p.length;i+=2)d+='L'+X(p[i])+' '+Y(p[i+1]);
     if(it.t==='p'){if(it.h>0)out+=`<path d="${d}Z" fill="none" stroke="${P.bg}" stroke-width="${f(it.h)}" stroke-linejoin="round"/>`;out+=`<path d="${d}Z" fill="${P[it.c]||P.col}"/>`;}
     else out+=`<path d="${d}" fill="none" stroke="${P[it.c]||P.col}" stroke-width="${f(it.w)}" stroke-linecap="round"/>`;}
   return out+'</svg>';}
-document.getElementById('svg').addEventListener('click',async e=>{const b=e.currentTarget,s=toSVG();
-  try{await navigator.clipboard.writeText(s);b.textContent='SVG copied';}catch(_){document.getElementById('json').textContent=s;b.textContent='SVG shown below';}
+$('svg').addEventListener('click',async e=>{const b=e.currentTarget,s=toSVG();
+  try{await navigator.clipboard.writeText(s);b.textContent='SVG copied';}catch(_){$('json').textContent=s;b.textContent='SVG shown below';}
   setTimeout(()=>b.textContent='Copy SVG',1800);});
-document.getElementById('copy').addEventListener('click',async e=>{const b=e.currentTarget;
-  try{await navigator.clipboard.writeText(document.getElementById('json').textContent);b.textContent='Copied';}catch(_){b.textContent='Select the text';}
-  setTimeout(()=>b.textContent='Copy numbers',1600);});
-
-function setPressed(id,attr,val){document.querySelectorAll(`#${id} button`).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset[attr]===val)));}
-function restoreSweep(){if(sweepBase!==null){setV(sweepKey,sweepBase);sweepBase=null;syncAll();}}
-let rippleBase=0;
-function setMode(m){if(m==='ripple') rippleBase=K.varPhase||0; if(m!=='sweep') restoreSweep(); if(m==='sweep'&&sweepBase===null) sweepBase=getV(sweepKey); mode=m; t0=performance.now(); setPressed('modes','mode',m); dirty=true;}
-document.getElementById('modes').addEventListener('click',e=>{const b=e.target.closest('button'); if(b) setMode(b.dataset.mode);});
-document.getElementById('pals').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b)return; pal=b.dataset.pal; setPressed('pals','pal',pal); applyPal(); dirty=true; drawThumbs();});
-
-/* ---- palettes ---- */
-function themePal(){const cs=getComputedStyle(document.documentElement),g=v=>cs.getPropertyValue(v).trim();return{bg:g('--k-bg'),col:g('--k-col'),acc:g('--k-acc')};}
-function palette(){ if(pal==='red') return{bg:'#f7f2ee',col:'#c3323b',acc:'#e3a1a1'};
-  if(pal==='panel') return{bg:'#133a52',col:'#e6f1ee',acc:'#6c93a3'}; return themePal();}
-function applyPal(){const P=palette(); document.querySelectorAll('.canvas-box,.thumb canvas').forEach(el=>el.style.background=P.bg);}
-
-/* ---- drawing ---- */
-function fit(cv){const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1),W=Math.max(1,Math.round(r.width*d)),H=Math.max(1,Math.round(r.height*d));if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}return[W,H];}
-function draw(ctx,items,P,v,W,H,pad=0.9){
-  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=P.bg;ctx.fillRect(0,0,W,H);
-  const s=Math.min(W*pad/(v.x1-v.x0),H*pad/(v.y1-v.y0)),tx=W/2-s*(v.x0+v.x1)/2,ty=H/2+s*(v.y0+v.y1)/2;
-  ctx.lineJoin='round';ctx.lineCap='round';
-  for(const it of items){const p=it.pts;ctx.beginPath();ctx.moveTo(tx+s*p[0],ty-s*p[1]);for(let i=2;i<p.length;i+=2)ctx.lineTo(tx+s*p[i],ty-s*p[i+1]);
-    if(it.t==='p'){ctx.closePath(); if(it.h>0){ctx.strokeStyle=P.bg;ctx.lineWidth=it.h*s;ctx.stroke();} ctx.fillStyle=P[it.c]||P.col; ctx.fill();}
-    else{ctx.strokeStyle=P[it.c]||P.col;ctx.lineWidth=Math.max(0.5,it.w*s);ctx.stroke();}}
-}
-const main=document.getElementById('main'),mctx=main.getContext('2d');
-let view=null, fullKey='', fullBox=null;
-const narrow=matchMedia('(max-width:860px)'), box_=document.querySelector('.canvas-box'); let boxAspect=1, shownAspect=1;
-function pad(b,f){const w=b.x1-b.x0,h=b.y1-b.y0;return{x0:b.x0-w*f,x1:b.x1+w*f,y0:b.y0-h*f,y1:b.y1+h*f};}
-function square(b){const cx=(b.x0+b.x1)/2,cy=(b.y0+b.y1)/2,r=Math.max(b.x1-b.x0,b.y1-b.y0)/2||1;return{x0:cx-r,x1:cx+r,y0:cy-r,y1:cy+r};}
-function frame(now){
-  const t=Math.max(0,now-t0)/1000; let grow=1;
-  if(mode==='grow'){const ph=t%8.5;grow=ph<2.5?1:Math.min(1,(ph-2.5)/5.5);grow=grow*grow*(3-2*grow);}
-  if(mode==='sweep'){const[lo,hi]=RANGE[sweepKey],b=sweepBase??getV(sweepKey),ex=sweepKey in EXP;
-    if(ex){ setV(sweepKey,lo+((b-lo+t*0.3)%(hi-lo))); if(follow) syncAll(); }          // explore drifts forward
-    else { const a0=Math.acos(Math.max(-1,Math.min(1,1-2*(b-lo)/(hi-lo))));        // parameters swing
-      setV(sweepKey,lo+(hi-lo)*(0.5-0.5*Math.cos(a0+t*TAU_/9))); inputs[sweepKey].value=getV(sweepKey); syncOut(sweepKey);} }
-  if(mode==='ripple'){K.varPhase=(rippleBase+t*0.45)%(Math.PI*2); inputs.varPhase.value=K.varPhase; syncOut('varPhase');}
-  if(mode==='still'&&!dirty){requestAnimationFrame(frame);return;}
-  const key=JSON.stringify(K); let items=null;
-  if(key!==fullKey){const full=G.build(K,1); if(grow>=1) items=full; fullBox=pad(G.bbox(full),0.04); fullKey=key;}
-  const target=fullBox;
-  if(!narrow.matches){const b=target,a=Math.min(2.4,Math.max(1,(b.x1-b.x0)/Math.max(1e-6,b.y1-b.y0)));
-    boxAspect+=(a-boxAspect)*(mode==='sweep'?0.08:1); if(Math.abs(boxAspect-shownAspect)>0.01){shownAspect=boxAspect;box_.style.aspectRatio=boxAspect.toFixed(3)+' / 1';}}
-  if(!view||mode!=='sweep') view=Object.assign({},target);
-  else{for(const k of['x0','x1','y0','y1']) view[k]+=(target[k]-view[k])*0.12;   // zoom out at once, back in gently
-    view.x0=Math.min(view.x0,target.x0);view.y0=Math.min(view.y0,target.y0);view.x1=Math.max(view.x1,target.x1);view.y1=Math.max(view.y1,target.y1);}
-  const[W,H]=fit(main); draw(mctx,items||G.build(K,grow),palette(),view,W,H,0.92);
-  if(dirty||mode==='sweep') showJSON();
-  dirty=false; requestAnimationFrame(frame);
-}
-const TAU_=Math.PI*2;
 
 /* ---- presets ---- */
-const gal=document.getElementById('gallery'), thumbs=[];
+const gal=$('gallery'),thumbs=[];
 Object.entries(PRESETS).forEach(([name,p],i)=>{
   const b=document.createElement('button');b.type='button';b.className='thumb';b.id='pre-'+i;b.setAttribute('aria-pressed','false');
   b.innerHTML=`<canvas aria-hidden="true"></canvas><span>${name}</span>`;
-  b.addEventListener('click',()=>{restoreSweep();follow=false;const fb=document.getElementById('follow');fb.setAttribute('aria-pressed','false');fb.textContent='Follow';if(sweepKey in EXP){sweepKey='swirl';sel.value='swirl';}K=Object.assign({},G.DEFAULTS,p);current=name;sweepBase=mode==='sweep'?getV(sweepKey):null;syncAll();markPreset();dirty=true;t0=performance.now();view=null;
-    document.getElementById('main').scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'});});
-  gal.appendChild(b); thumbs.push([b,p,name]);
+  b.addEventListener('click',()=>{restoreSweep();setFollow(false,true);if(sweepKey in EXP){sweepKey='curl';sel.value='curl';}
+    C=Object.assign({},Cm.DEFAULTS,p);current=name;setKind('ornament');syncAll();markPreset();dirty=true;t0=performance.now();view=null;
+    main.scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'});});
+  gal.appendChild(b);thumbs.push([b,p,name]);
 });
 function markPreset(){thumbs.forEach(([b,,n])=>b.setAttribute('aria-pressed',String(n===current)));}
-function drawThumbs(){const P=palette();for(const[b,p] of thumbs){const cv=b.querySelector('canvas');const it=G.build(Object.assign({},G.DEFAULTS,p),1),bb=G.bbox(it);
-  b.classList.toggle('wide',(bb.x1-bb.x0)/Math.max(1e-6,bb.y1-bb.y0)>2.2);const[W,H]=fit(cv);draw(cv.getContext('2d'),it,P,bb,W,H,0.86);}}
+function drawThumbs(){const P=palette();for(const[b,p] of thumbs){const cv=b.querySelector('canvas');const it=G.build(Cm.expand(Object.assign({},Cm.DEFAULTS,p)),1),bb=G.bbox(it);
+  b.classList.toggle('wide',(bb.x1-bb.x0)/Math.max(1e-6,bb.y1-bb.y0)>2.2);const[Wd,H]=fit(cv);draw(cv.getContext('2d'),it,P,bb,Wd,H,0.86);}}
 
-setPressed('modes','mode',mode); setPressed('pals','pal',pal);
-syncAll(); markPreset(); applyPal();
-requestAnimationFrame(()=>{drawThumbs();requestAnimationFrame(frame);});
-// the heading: KURBITS drawn with the same curve, writing itself on load
-const WM=document.getElementById('wordmark'), WL=Lettering(G,LETTERS), wt0=performance.now();
-let wmDone=false;
-function wordmark(now){const g=reduce?1:Math.min(1,Math.max(0,(now-wt0)/2200));const ease=g*g*(3-2*g);
-  const all=WL.word('KURBITS',{weight:0.1,hair:0.15}), full=G.bbox(all), items=g<1?WL.word('KURBITS',{weight:0.1,hair:0.15,grow:ease}):all;
-  const[W,H]=fit(WM); const P=themePal(); const ctx=WM.getContext('2d');
-  draw(ctx,items,{bg:getComputedStyle(document.body).backgroundColor,col:getComputedStyle(document.body).color,acc:P.acc},full,W,H,0.98);
-  if(g<1) requestAnimationFrame(wordmark); else wmDone=true;}
-requestAnimationFrame(wordmark);
-new ResizeObserver(()=>{if(wmDone)wordmark(performance.now());}).observe(WM);
-new ResizeObserver(()=>{dirty=true;}).observe(document.body);
-let rt; addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(drawThumbs,200);});
+/* ---- the heading: KURBITS drawn with the same curve ---- */
+const WM=$('wordmark'),wt0=performance.now();let wmDone=false;
+const WMC={weight:0.85,contrast:0.9,curl:0.6,detail:0};
+function wordmark(now){const g=reduce?1:Math.min(1,Math.max(0,(now-wt0)/2200)),e=g*g*(3-2*g);
+  const all=W.word('KURBITS',WMC),items=g<1?W.word('KURBITS',WMC,e):all;
+  const[Wd,H]=fit(WM),cs=getComputedStyle(document.body);
+  draw(WM.getContext('2d'),items,{bg:cs.backgroundColor,col:cs.color,acc:cs.color},G.bbox(all),Wd,H,0.98);
+  if(g<1)requestAnimationFrame(wordmark);else wmDone=true;}
+
+setPressed('modes','mode',mode);setPressed('pals','pal',pal);setKind('ornament');syncAll();markPreset();applyPal();
+requestAnimationFrame(()=>{drawThumbs();requestAnimationFrame(frame);requestAnimationFrame(wordmark);});
+new ResizeObserver(()=>{dirty=true;if(wmDone)wordmark(performance.now());}).observe(document.body);
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(drawThumbs,200);});
 const retheme=()=>{applyPal();dirty=true;drawThumbs();if(wmDone)wordmark(performance.now());};
 new MutationObserver(retheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',retheme);
 })();
+
 </script>
 
 </body>
