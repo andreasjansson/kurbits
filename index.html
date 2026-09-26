@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="A purely mathematical ornament generator in the tradition of 18th-century pen flourishes, printers' dividers and Swedish kurbits scrolls.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 24c0-9 8-16 16-16 5 0 8 3 8 7s-3 6-6 6-5-2-5-4 2-3 3-2' fill='none' stroke='%23171716' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<title>Kurbits Machine</title>
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;-webkit-text-size-adjust:100%}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#e9e6dd; --surface:#f3f1ea; --ink:#171716; --muted:#5d5b55; --line:#cfcbc0; --chip:#e2dfd5; --accent:#171716;
+  --k-bg:#f3f1ea; --k-col:#171716; --k-acc:#8d8c87;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){color-scheme:dark;
+    --ground:#101010; --surface:#191918; --ink:#ece9e1; --muted:#a19e96; --line:#34332f; --chip:#232321; --accent:#ece9e1;
+    --k-bg:#191918; --k-col:#ece9e1; --k-acc:#77756f;}
+}
+:root[data-theme="dark"]{color-scheme:dark;
+  --ground:#101010; --surface:#191918; --ink:#ece9e1; --muted:#a19e96; --line:#34332f; --chip:#232321; --accent:#ece9e1;
+  --k-bg:#191918; --k-col:#ece9e1; --k-acc:#77756f;}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.55 var(--body);padding-inline:clamp(16px,4vw,44px);padding-block:26px 64px}
+.wrap{max-width:1240px;margin-inline:auto;display:grid;gap:44px}
+header{display:grid;gap:10px;max-width:72ch}
+.eyebrow{font:600 13px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+h1{font:700 clamp(44px,7vw,80px)/.92 var(--display);text-transform:uppercase;margin:0;text-wrap:balance}
+h2{font:700 28px/1 var(--display);letter-spacing:.04em;text-transform:uppercase;margin:0}
+p{margin:0;max-width:68ch}
+.stage{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(300px,.85fr);gap:24px;align-items:start}
+@media (max-width:860px){.stage{grid-template-columns:1fr}}
+.thumb.wide{grid-column:span 2}
+.thumb.wide canvas{aspect-ratio:2.6/1}
+.canvas-box{position:relative;aspect-ratio:1/1;background:var(--k-bg);border-radius:4px;box-shadow:inset 0 0 0 1px var(--line);overflow:hidden}
+.canvas-box canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.side{display:grid;gap:14px}
+.box{background:var(--surface);border-radius:4px;box-shadow:inset 0 0 0 1px var(--line);padding:14px 16px;display:grid;gap:12px}
+.label{font:700 14px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.seg{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+button,select{min-height:36px;font:600 14px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:3px;padding:8px 11px;cursor:pointer}
+select{text-transform:none;letter-spacing:.02em;font-family:var(--mono);font-weight:500;font-size:13px}
+button[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+details{border-top:1px solid var(--line);padding-top:10px}
+details:first-of-type{border-top:0;padding-top:0}
+summary{font:700 16px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;list-style-position:outside;margin-bottom:6px}
+summary small{font:400 12.5px/1 var(--body);letter-spacing:0;text-transform:none;color:var(--muted);margin-left:8px}
+.rows{display:grid;gap:7px;margin-top:8px}
+.row{display:grid;grid-template-columns:88px 1fr 48px;gap:10px;align-items:center}
+.row label{font:500 12.5px/1.15 var(--mono)}
+.row output{font:500 12.5px/1 var(--mono);font-variant-numeric:tabular-nums;text-align:right;color:var(--muted)}
+.row small{grid-column:2/4;margin-top:-5px;font-size:12px;color:var(--muted);line-height:1.3}
+input[type=range]{width:100%;accent-color:var(--ink);height:28px;touch-action:pan-y}
+.json{font:400 12px/1.5 var(--mono);background:var(--ground);border-radius:3px;padding:10px 12px;max-height:180px;overflow:auto;white-space:pre;box-shadow:inset 0 0 0 1px var(--line)}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:12px}
+.thumb{display:grid;gap:6px;background:none;border:0;padding:0;text-transform:none;letter-spacing:0;text-align:left}
+.thumb canvas{width:100%;aspect-ratio:1/1;background:var(--k-bg);border-radius:3px;box-shadow:inset 0 0 0 1px var(--line);display:block}
+.thumb span{font:600 14px/1 var(--display);letter-spacing:.1em;text-transform:uppercase}
+.thumb[aria-pressed="true"] canvas{box-shadow:inset 0 0 0 2px var(--ink)}
+.thumb[aria-pressed="true"]{background:none;color:var(--ink)}
+.formula{font:400 13px/1.7 var(--mono);background:var(--surface);border-radius:4px;padding:14px 16px;overflow-x:auto;white-space:pre;box-shadow:inset 0 0 0 1px var(--line)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px}
+.two h3{font:700 18px/1.1 var(--display);letter-spacing:.08em;text-transform:uppercase;margin:0 0 6px}
+.two p{color:var(--muted);font-size:14.5px}
+@media (max-width:860px){.stage{display:block}.stage>.side{margin-top:14px}
+  /* phone: the preview stays pinned while you scroll the controls */
+  .canvas-box{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;aspect-ratio:auto!important;height:34svh;min-height:180px;max-height:340px;
+    box-shadow:inset 0 0 0 1px var(--line),0 10px 18px -12px rgba(0,0,0,.45)}
+  h1{font-size:clamp(38px,11vw,56px)}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Generative ornament</div>
+    <h1>Kurbits Machine</h1>
+    <p>A purely mathematical ornament generator in the tradition of 18th-century pen flourishes, printers' dividers and Swedish kurbits scrolls. One curve, one recursive rule and symmetry: no drawn elements and no randomness. Every number sweeps smoothly.</p></p>
+  </header>
+
+  <div class="stage">
+    <div class="canvas-box"><canvas id="main" aria-label="Generated kurbits swirl"></canvas></div>
+    <div class="side">
+      <div class="box">
+        <div class="label">Motion</div>
+        <div class="seg" id="modes">
+          <button type="button" id="m-still" data-mode="still">Still</button>
+          <button type="button" id="m-grow" data-mode="grow">Grow</button>
+          <button type="button" id="m-sweep" data-mode="sweep">Sweep</button>
+          <button type="button" id="m-ripple" data-mode="ripple">Ripple</button>
+          <select id="sweepKey" aria-label="Parameter to sweep"></select>
+        </div>
+        <div class="label">Colour</div>
+        <div class="seg" id="pals">
+          <button type="button" id="p-ink" data-pal="ink">Ink</button>
+          <button type="button" id="p-red" data-pal="red">Red</button>
+          <button type="button" id="p-panel" data-pal="panel">Navy</button>
+        </div>
+      </div>
+      <div class="box">
+        <div class="seg" style="justify-content:space-between"><div class="label">Explore</div><button type="button" id="follow" aria-pressed="true">Following</button></div>
+        <div class="rows" id="explore"></div>
+        <small style="color:var(--muted);font-size:12.5px">Every parameter below is a smooth function of x, y and z. Move any parameter yourself to take over from Explore.</small>
+      </div>
+      <div class="box" id="controls"></div>
+      <div class="box">
+        <div class="seg" style="justify-content:space-between"><div class="label">These numbers</div><div class="seg"><button type="button" id="copy">Copy numbers</button><button type="button" id="svg">Copy SVG</button></div></div>
+        <div class="json" id="json"></div>
+      </div>
+    </div>
+  </div>
+
+  <section style="display:grid;gap:16px">
+    <h2>Presets</h2>
+    <div class="gallery" id="gallery"></div>
+  </section>
+
+  <section style="display:grid;gap:16px">
+    <h2>How it is built</h2>
+    <div class="formula">θ(u) = A·sin q + A³·(flat·sin 3q − skew·cos 3q)
+     + π·cornu·((2u − 1)² − 1)
+     + Σᵢ sᵢ·2π·T·rⁱ·½(1 + tanh((u − uᵢ)/σ))
+     + 2π·n₀·H(u/c₀) + 2π·n₁·(1 − H((1 − u)/c₁))
+q = 2πfu + φ
+H(v) = ((v+ε)^(1−β) − ε^(1−β)) / ((1+ε)^(1−β) − ε^(1−β))
+x(u) = ∫cos θ du,  y(u) = ∫sin θ du,  u = 0…1
+
+width ∝ hair + (1 − hair)·max(0, cos(heading + π/2 − slant))^1.6</div>
+    <div class="two">
+      <div><h3>One curve</h3><p>Every mark is the curve θ(u): a wave with Kinoshita's third harmonic, an Euler-spiral term, smooth curvature pulses that make pen loops, and a log-aesthetic spiral eye at either end. A pointed pen swells only on down-strokes, as in 18th-century round hand; a broad nib is also available. Its width follows a pressure profile and optional sinusoidal scallops; parallel copies of the curve give the echo and the stripes.</p></div>
+      <div><h3>One rule</h3><p>Along each curve grow smaller copies of the same curve, curling away, optionally in mirrored pairs. Low thinning turns them into hairline fringes, straight swelling sprouts become leaflets, and ping-pong, swirl and nest change each generation.</p></div>
+      <div><h3>Proportion without stretching</h3><p>Width, height and aspect never scale the drawing. They add scrolls: each arm continues into further full-size scrolls, outward for width and upward for height, alternating sides like a running scroll. The count is continuous, and the generator solves for it so the ornament fills the requested box, from 1:1 to about 12:1.</p></div>
+      <div><h3>One root</h3><p>Stems, an answering counter-curve, chains and a mirrored twin all grow from the same root, so the result is always one connected shape. Symmetry lets the twin drift continuously away from an exact mirror. Width, height and rotation act on the growth, so curves are re-grown rather than distorted.</p></div>
+      <div><h3>Self-similar, never identical</h3><p>Sprouts, chained scrolls and every fractal generation are the same curve again, varied by Q(t) = sin t + 0.7 sin(φt + 1.1) + 0.5 sin((1+√2)t + 2.3). Its frequencies are incommensurate, so the variation is deterministic but never repeats. Drift morphs each generation; varPhase slides the variation along.</p></div>
+      <div><h3>Counts that slide</h3><p>Sprouts, stems, rows, copies, repeats and nest levels accept fractions: 3.4 sprouts means three, with a fourth growing in. That is why every parameter animates without jumps.</p></div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* Kurbits swirl generator — purely mathematical, deterministic, every parameter continuous.
+
+   1  ONE curve, described by its direction θ(u) along its length, u = 0..1
+        θ(u) = A·sin q + A³·(flat·sin 3q − skew·cos 3q) + π·cornu·((2u−1)²−1)
+             + 2π·n0·H(u/c0) + 2π·n1·(1−H((1−u)/c1)),   q = 2πfu+φ
+        H(v) = ((v+ε)^(1−β) − ε^(1−β)) / ((1+ε)^(1−β) − ε^(1−β)),  ε = 0.01
+   2  Operations on the curve: a width function (pressure, sinusoidal scallops),
+      parallel offset curves (echo, stripes), outline (hollow).
+   3  ONE recursive rule: along each curve grow smaller copies of the same curve
+      (optionally in mirrored pairs), curling away, down to `depth`; ping-pong,
+      swirl and nest modify each generation.
+   4  Symmetry operations: mirror, rotation (copies), translation with glide (repeat),
+      dilation (rows), continuation (chain), and a linear map (width, height, rotate)
+      applied to the growth so curves are re-grown, not distorted.
+   No hand-drawn elements and no randomness. Fractional counts grow the last element in. */
+const KurbitsSwirl=(()=>{
+const TAU=Math.PI*2, EPS=0.01, GOLD=2.399963229728653;
+const clip=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)), lerp=(a,b,t)=>a+(b-a)*t;
+
+const DEFAULTS={
+  // 1  the curve
+  A:0.6, f:0.5, phi:0.0, n0:0.0, n1:1.2, c0:0.3, c1:0.5, beta:0.68,
+  skew:0, flat:0,    // Kinoshita third harmonic: + A³·(flat·sin 3q − skew·cos 3q)
+  cornu:0,           // Euler-spiral term: curvature linear along the curve
+  nib:0, nibAngle:0.6,   // broad-nib pen: width follows |sin(heading − pen angle)|
+  loops:0, loopTurn:1, loopDecay:0.85, loopAlt:0, loopWidth:0.04,  // pen loops: curvature pulses
+  shade:0, hair:0.12, slant:0.0,   // pointed pen: swells on down-strokes, hairline elsewhere
+  // 2  operations on the curve
+  fat:0.045,         // width / length
+  pressure:0.75,     // width profile: -1 heavy end · 0 swelling · 1 heavy start
+  lobes:0, lobeDepth:0.55,   // sinusoidal scallops on the outer edge
+  hollow:0,          // 0 solid · 1 outline
+  stripes:0,         // parallel curves inside the stroke
+  echo:0.6, echoGap:0.35,    // parallel curve outside the curl
+  // 3  the recursive rule
+  depth:1.4,         // generations
+  sprouts:2,         // sprouts per curve
+  bilateral:0,       // 0 one-sided · 1 every sprout has a mirrored partner (fronds)
+  thinning:0.85,     // width ratio from one generation to the next (low = hairline fringes)
+  weight:1.0,        // internal: set from selfSim (1 = width proportional to size, 0.4 for full fractals)
+  childPressure:0.75,// width profile of sprouts (0 = swelling leaf-like sprouts)
+  childCurl:1.0,     // sprout eye turns relative to the parent (0 = straight sprouts)
+  childWave:0.6, sproutS:0.0,
+  span:0.15, reach:0.6, angle:0.9, side:0.0, fan:0.0, scale:0.4, shrink:0.35,
+  pingpong:0.0, swirl:0.0, nest:0, nestScale:0.8, vary:0.25, gravity:0.0,
+  drift:0.0,         // each generation morphs: phase, curl and C/S-ness drift (fractal with variation)
+  variation:0.0,     // how far each scroll and sprout moves through parameter space
+  varPhase:0.0,      // slides along the variation (animate it to make the ornament ripple)
+  varAngle:0.0, varTwist:0.0,   // the direction in parameter space that the variation moves along
+  selfSim:0.0,       // 1 = every sprout is a miniature of its parent (a true fractal)
+  cutoff:0.03,       // low-pass: detail smaller than this (fraction of the trunk) fades out
+  falloff:1.0,       // each smaller generation keeps this fraction of sprouts and variation
+  // 4  symmetry and arrangement
+  stems:1, sweep:1.6, stemVary:0.3, spin:1.2, radius:0.0, copies:1,
+  counter:0.0, counterAngle:1.2,
+  chain:0, chainAt:0.8, chainTurn:0.6, chainScale:0.8, chainFlip:1.0,
+  flow:0.0,          // added links: 0 = aimed straight along the growth · 1 = keep the tangent at the join
+  repeat:1, repeatGap:1.0, repeatFlip:0.0,   // gap in units of the motif's own width
+  mirror:0, rows:1, rowGap:0.55, rowTaper:0.8,
+  width:1.0, height:1.0, rotate:0.0,
+  level:0, tilt:0,          // lay each arm's chord horizontal (dividers)
+  aspect:0,                 // target width/height; vertical growth adapts to reach it (0 = off)
+  symmetry:1, asymPhase:0,  // 1 exact mirror · lower: the twin drifts into a different stroke
+  elegance:0.6,      // 0 exactly as specified · 1 strict detail budget and ink density
+};
+
+/* ---------------- the stroke ---------------- */
+const COARSE={f:1};                                   // lower resolution while measuring
+function Hf(v,b){const e=1-b;return (Math.pow(v+EPS,e)-Math.pow(EPS,e))/(Math.pow(1+EPS,e)-Math.pow(EPS,e));}
+/* loops: N smooth curvature pulses between u=0.12 and 0.88; pulse i turns 2π·T·r^i,
+   sign alternates by `alt`; fractional N grows the last loop in. p[11..15] = N, T, r, alt, width */
+function loopSum(u,p){
+  const N=p[11]||0; if(N<=0) return 0;
+  const T=p[12]||1, r=p[13]||1, alt=p[14]||0, sg=p[15]||0.04, NN=Math.ceil(N); let t=0;
+  for(let i=0;i<NN;i++){const wi=clip(N-i), ui=0.12+0.76*(i+0.5)/Math.max(1,N), s=lerp(1,i%2?-1:1,alt);
+    t+=s*TAU*T*Math.pow(r,i)*wi*(0.5+0.5*Math.tanh((u-ui)/sg));}
+  return t;
+}
+function theta(u,p){
+  const q=TAU*p[1]*u+p[2], A=p[0], sk=p[8]||0, fl=p[9]||0, cu=p[10]||0;
+  return A*Math.sin(q)+A*A*A*(fl*Math.sin(3*q)-sk*Math.cos(3*q))      // Kinoshita meander
+    +cu*Math.PI*((2*u-1)*(2*u-1)-1)                                     // Euler spiral: curvature linear in u
+    +loopSum(u,p)                                                       // pen loops: curvature pulses
+    +TAU*p[3]*Hf(clip(u/p[5]),p[7])+TAU*p[4]*(1-Hf(clip((1-u)/p[6]),p[7]));}
+function eyeThin(u,p){const a=lerp(1,Math.sqrt(Hf(clip(u/p[5]),p[7])),clip(Math.abs(p[3])/0.4)),c=lerp(1,Math.sqrt(Hf(clip((1-u)/p[6]),p[7])),clip(Math.abs(p[4])/0.4));return a*c;}
+function brushW(v,u,p,pr){
+  v=clip(v);
+  const swell=Math.pow(Math.sin(Math.PI*Math.pow(v,0.8)),0.55),
+        comma=Math.pow(1-0.8*v,1.2)*Math.pow(Math.min(1,v/0.12),0.5),
+        tear=Math.pow(v,0.9)*Math.pow(Math.max(0,1-v),0.35)*1.9;
+  const b=pr>=0?lerp(swell,comma,pr):lerp(swell,tear,-pr);
+  return (b*0.9+0.1)*(0.45+0.55*eyeThin(u,p));
+}
+function local(p,n,upto){
+  const u=new Float64Array(n),th=new Float64Array(n),x=new Float64Array(n),y=new Float64Array(n),du=upto/(n-1);
+  for(let i=0;i<n;i++){u[i]=i*du;th[i]=theta(u[i],p);}
+  for(let i=1;i<n;i++){x[i]=x[i-1]+(Math.cos(th[i])+Math.cos(th[i-1]))/2*du;y[i]=y[i-1]+(Math.sin(th[i])+Math.sin(th[i-1]))/2*du;}
+  return{u,th,x,y};
+}
+const chordCache=new Map();
+function fullChord(p){const k=p.map(v=>v.toFixed(4)).join(',');let c=chordCache.get(k);if(!c){const L=local(p,96,1);c=[L.x[95],L.y[95]];if(chordCache.size>6000)chordCache.clear();chordCache.set(k,c);}return c;}
+
+function Scene(){this.items=[];}
+Scene.prototype.poly=function(pts,c,z,h){this.items.push({t:'p',pts,c,z,h:h||0});};
+Scene.prototype.disk=function(cx,cy,r,c,z){if(!(r>0))return;const pts=[],m=Math.max(10,Math.min(36,Math.round(r*300)));for(let i=0;i<m;i++){const a=TAU*i/m;pts.push(cx+r*Math.cos(a),cy+r*Math.sin(a));}this.items.push({t:'p',pts,c,z,h:0});};
+Scene.prototype.line=function(pts,w,c,z){this.items.push({t:'l',pts,c,z,w});};
+
+/* grow one stroke. M maps the design frame to the page; hD and size are in the design frame.
+   o (optional): {lobes, lobeDepth, lobeSide, hollow} */
+function grow1(sc,p,x0,y0,M,hD,size,W,pr,c,z,g,halo,thin,o){
+  if(g<=0.01||size<=1e-4) return null;
+  const det=M[0]*M[3]-M[1]*M[2], flip=det<0, gs=Math.sqrt(Math.abs(det));
+  if(gs<1e-4) return null;
+  const lobes=o?Math.max(0,o.lobes||0):0;
+  const n=Math.max(8,Math.floor(Math.max(16,Math.min(320,Math.floor((170+lobes*14)*Math.sqrt(size*gs)*g+14)))*COARSE.f));
+  const L=local(p,n,g), th0=L.th[0];
+  const [xf,yf]=fullChord(p), r0=hD-th0;
+  const cdx=size*(xf*Math.cos(r0)-yf*Math.sin(r0)), cdy=size*(xf*Math.sin(r0)+yf*Math.cos(r0));
+  const cwx=M[0]*cdx+M[1]*cdy, cwy=M[2]*cdx+M[3]*cdy;
+  const fl=flip?-1:1, lc=Math.hypot(xf,yf);
+  const hx=M[0]*Math.cos(hD)+M[1]*Math.sin(hD),hy=M[2]*Math.cos(hD)+M[3]*Math.sin(hD);
+  const rotH=Math.atan2(hy,hx)-fl*th0, SH=size*gs, bw=clip((lc-0.03)/0.08);
+  const rotC=lc>1e-6?Math.atan2(cwy,cwx)-Math.atan2(fl*yf,xf):rotH, SC=lc>1e-6?Math.hypot(cwx,cwy)/lc:SH;
+  const rot=Math.atan2(lerp(Math.sin(rotH),Math.sin(rotC),bw),lerp(Math.cos(rotH),Math.cos(rotC),bw)), S=lerp(SH,SC,bw);
+  const cr=Math.cos(rot),sr=Math.sin(rot);
+  const X=new Float64Array(n),Y=new Float64Array(n),H=new Float64Array(n),Hd=new Float64Array(n),w=new Float64Array(n),wl=new Float64Array(n),wr=new Float64Array(n);
+  const ls=o?o.lobeSide||0:0, ld=o?o.lobeDepth||0:0;
+  const sq=o&&o.sq?o.sq:0, ex=Math.exp(sq), du=g/(n-1);
+  for(let i=0;i<n;i++){
+    H[i]=fl*L.th[i]+rot; Hd[i]=L.th[i]+r0;
+    if(sq){ // squeezed direction field: tan θ' = e^(−2x)·tan θ, winding preserved, then re-integrated
+      const h=Math.atan2(Math.sin(H[i])/ex,Math.cos(H[i])*ex); H[i]=h+Math.round((H[i]-h)/TAU)*TAU;   // same branch as θ, so winding is kept
+      if(i===0){X[0]=x0;Y[0]=y0;} else {X[i]=X[i-1]+S*du*(Math.cos(H[i])+Math.cos(H[i-1]))/2; Y[i]=Y[i-1]+S*du*(Math.sin(H[i])+Math.sin(H[i-1]))/2;}
+    } else {const lx=L.x[i],ly=fl*L.y[i]; X[i]=x0+S*(lx*cr-ly*sr); Y[i]=y0+S*(lx*sr+ly*cr);}
+    w[i]=W*size*gs*(thin?(0.25+0.75*eyeThin(L.u[i],p)):brushW(L.u[i]/g,L.u[i],p,pr)*(o&&o.nib?lerp(1,0.12+1.25*Math.abs(Math.sin(H[i]-o.nibAngle)),o.nib):1)
+      *(o&&o.shade?lerp(1,o.hair+(1-o.hair)*1.35*Math.pow(Math.max(0,Math.cos(H[i]+Math.PI/2-o.slant)),1.6),o.shade):1));
+    let a=w[i]/2,b=w[i]/2;
+    if(lobes>0){const v=L.u[i]/g, sc_=1-ld*clip((lobes-1.5)/2)*Math.pow(1-Math.abs(Math.sin(Math.PI*lobes*v)),2)*clip(v/0.08)*clip((1-v)/0.08);
+      const bump=(0.5+0.5*ld)*clip((lobes-1.5)/2);                                     // scallops also swell outward a little
+      if(ls>=0) a*= sc_*(1+bump*0.6); if(ls<=0) b*= sc_*(1+bump*0.6);}
+    wl[i]=a; wr[i]=b;
+  }
+  const pts=[];for(let i=0;i<n;i++)pts.push(X[i]-Math.sin(H[i])*wl[i],Y[i]+Math.cos(H[i])*wl[i]);
+  for(let i=n-1;i>=0;i--)pts.push(X[i]+Math.sin(H[i])*wr[i],Y[i]-Math.cos(H[i])*wr[i]);
+  sc.poly(pts,c,z,halo*size*gs);
+  if(thin){sc.disk(X[0],Y[0],w[0]/2,c,z);sc.disk(X[n-1],Y[n-1],w[n-1]/2,c,z);}
+  const hol=o?o.hollow||0:0;
+  if(hol>0.02&&!thin){const Lp=[],Rp=[];
+    for(let i=0;i<n;i++){const v=L.u[i]/g;if(v<0.03||v>0.97)continue;
+      const k=Math.min(wl[i],wr[i])*hol*0.82*Math.pow(Math.sin(Math.PI*clip((v-0.03)/0.94)),0.3);
+      Lp.push(X[i]-Math.sin(H[i])*k,Y[i]+Math.cos(H[i])*k);Rp.push(X[i]+Math.sin(H[i])*k,Y[i]-Math.cos(H[i])*k);}
+    if(Lp.length>6){const q=Lp.slice();for(let i=Rp.length-2;i>=0;i-=2)q.push(Rp[i],Rp[i+1]);sc.poly(q,'bg',z+0.02,0);}}
+  return{u:L.u,X,Y,H,Hd,w,wl,wr,n,flip,gs};
+}
+
+/* quasi-periodic variation: incommensurate frequencies 1, φ, 1+√2 — deterministic, never exactly repeating */
+function Q(t){return (Math.sin(t)+0.7*Math.sin(1.6180339887*t+1.1)+0.5*Math.sin(2.4142135624*t+2.3))/2.2;}
+/* variation = movement in parameter space. Two directions D1, D2 over the shape numbers, set by
+   varAngle and varTwist, span a plane; each chained scroll and each sprout sits at a quasi-periodic
+   point (s1, s2) of that plane: value = base + range·(s1·D1 + s2·D2). */
+const VK=[['A',0.8,-2,2],['phi',1.5,-6,6],['n0',0.8,-3,3],['n1',0.6,0.3,3,1],['c1',0.2,0.08,0.9],['beta',0.12,0.3,0.93],
+  ['cornu',0.5,-1.2,1.2],['skew',0.25,-0.5,0.5],['loops',1.2,0,5],['loopTurn',0.12,0.6,1.4],['loopWidth',0.03,0.015,0.15],
+  ['pressure',0.5,-1,1],['sprouts',1.5,0,8],['angle',0.35,0.2,1.8],['side',0.8,-1,1],['scale',0.12,0.15,0.7],
+  ['childCurl',0.4,0,2],['sproutS',0.5,0,1],['swirl',0.3,0,1.5],['chainTurn',0.5,-1.5,1.5],['chainScale',0.15,0.4,1.2]];
+function dirv(a,b,k){return Math.sin(a*(1+0.37*k)+b*Math.cos(k*GOLD)+k*2.1);}
+let dirKey=null, D1=[], D2=[];
+function varied(K,t,amt){
+  if(!(amt>0)) return K;
+  const dk=K.varAngle+','+K.varTwist;
+  if(dk!==dirKey){dirKey=dk; D1=VK.map((_,i)=>dirv(K.varAngle,K.varTwist,i)); D2=VK.map((_,i)=>dirv(K.varAngle+1.9,K.varTwist+2.7,i));}
+  const s1=amt*Q(t), s2=amt*Q(0.77*t+5.3), o=Object.create(K);        // only the moved numbers are stored
+  VK.forEach(([k,rng,lo,hi,mag],i)=>{
+    const d=rng*(s1*D1[i]+s2*D2[i]);
+    if(mag){const sg=Math.sign(K[k]||1); o[k]=sg*clip(Math.abs(K[k])+d,lo,hi);} else o[k]=clip(K[k]+d,lo,hi);
+  });
+  return o;
+}
+/* ---------------- the recursive rule: sprouts are the same curve, smaller ---------------- */
+function branch(sc,K,M,p,x,y,hD,size,level,g,z,nd){
+  const det=M[0]*M[3]-M[1]*M[2], fl0=det<0?-1:1, curl0=clip(p[4]/0.3,-1,1)*fl0;
+  const lam=(level===0&&!nd)?(K._lam||1):1;                     // the trunk's extra length
+  // line weight: width ∝ size^weight relative to the trunk (weight 1 = proportional, 0 = same weight everywhere);
+  // capped so a tiny stroke never becomes a blob
+  const tr=K._trunk||1, rel=Math.max(1e-4,size/tr);
+  const thin=Math.min(Math.pow(K.thinning,level)*Math.pow(rel,K.weight-1),0.35/Math.max(1e-6,K.fat))/lam, pr=level?K.childPressure:K.pressure;
+  const r=grow1(sc,p,x,y,M,hD,size,K.fat*thin,pr,'col',z,g,K.fat*thin*0.45,false,
+    {lobes:K.lobes,lobeDepth:K.lobeDepth*Math.pow(0.7,level),lobeSide:-curl0,hollow:K.hollow,nib:K.nib,nibAngle:K.nibAngle,shade:K.shade,hair:K.hair,slant:K.slant});
+  if(!r) return null;
+  const{u,X,Y,H,Hd,w,wl,wr,n,flip,gs}=r, fl=flip?-1:1, curl=curl0, outer=-curl;
+  // parallel curves inside the stroke (stripes)
+  const ks=Math.ceil(K.stripes);
+  for(let j=0;j<ks;j++){
+    const fade=clip(K.stripes-j)*clip((K.fat*thin*size*gs-0.006)/0.012), off=((j+1)/(ks+1)-0.5)*0.74, pts=[];
+    if(fade<=0) continue;
+    for(let i=0;i<n;i++) if(u[i]>0.05*g&&u[i]<0.82*g) pts.push(X[i]-Math.sin(H[i])*w[i]*off,Y[i]+Math.cos(H[i])*w[i]*off);
+    if(pts.length>4) sc.line(pts,0.055*K.fat*thin*size*gs*fade,'bg',z+0.05);
+  }
+  // parallel curve outside the curl (echo)
+  if(K.echo>0){const ef=clip((K.fat*thin*size*gs-0.004)/0.01)*(level?lerp(1,0.25,K.elegance):1),Lp=[],Rp=[];
+    if(ef>0){for(let i=0;i<n;i++){if(u[i]<0.06*g||u[i]>0.86*g)continue;
+      const e0=outer>0?wl[i]:wr[i], d=outer*(e0+w[i]*K.echoGap)+outer*K.echo*w[i]*0.35, ew=ef*K.echo*w[i]*0.7*Math.sin(Math.PI*clip((u[i]/g-0.06)/0.8));
+      const cx=X[i]-Math.sin(H[i])*d, cy=Y[i]+Math.cos(H[i])*d;
+      Lp.push(cx-Math.sin(H[i])*ew/2,cy+Math.cos(H[i])*ew/2); Rp.push(cx+Math.sin(H[i])*ew/2,cy-Math.cos(H[i])*ew/2);}
+    if(Lp.length>6){const pts=Lp.slice();for(let i=Rp.length-2;i>=0;i-=2)pts.push(Rp[i],Rp[i+1]);sc.poly(pts,'acc',z-0.5,0);}}}
+  // sprouts (with an optional mirrored partner on the other side: bilateral)
+  const lw=clip(K.depth-level);
+  if(lw>0){
+    const lp=Math.pow(K.falloff,level), NS=K.sprouts*lam*lp, N=Math.ceil(NS), fanU=K.span+K.reach*0.5, pp=level%2===1?1-2*K.pingpong:1;
+    for(let j=0;j<N;j++){
+      const wj=clip(NS-j)*lw; if(wj<=0) continue;
+      const KK=varied(K,1.3*j+2.9*(level+1)+K.varPhase+11,K.variation*lp);
+      const uj=lerp(K.span+K.reach*(j+0.5)/Math.max(1,NS),fanU,K.fan);
+      if(uj>=g) continue;
+      const alt=j%2?-1:1, vj=Q(1.3*j+2.9*level+K.varPhase)*lp;
+      const a1=pp*(K.angle*((1-Math.abs(K.side))*alt+K.side)*(1+K.vary*0.45*vj)+K.fan*0.34*j*clip(K.side*3+1,-1,1));
+      const i=Math.min(n-1,Math.round(uj/g*(n-1)));
+      const rel0=K.scale/lam*(1-K.shrink*(uj-K.span)/Math.max(0.05,K.reach))*(1+K.vary*0.3*Q(2.1*j+1.7*level+K.varPhase+4.0))*wj*(0.25+0.75*Math.abs(pp));
+      for(const [aj,bw] of [[a1,1],[-a1,K.bilateral]]){
+        if(bw<=0) continue;
+        const edge=fl*clip(aj/0.3,-1,1)*(aj*fl>0?wl[i]:wr[i])*0.76;
+        const qx=X[i]-Math.sin(H[i])*edge, qy=Y[i]+Math.cos(H[i])*edge;
+        const up=Math.sin(H[i]+fl*aj), sgn=clip(aj/0.25,-1,1), gcurl=1+KK.gravity*up;
+        const n1c=Math.abs(p[4])*KK.childCurl*(1+KK.swirl)*sgn*gcurl*(1+KK.vary*0.25*vj);
+        const dg=KK.drift*(level+1)*lp, sS=clip(KK.sproutS+0.6*KK.drift*lp*Q(1.9*level+KK.varPhase+0.5));
+        const cp=[KK.A*KK.childWave*sgn*(1+0.5*dg*Q(level*1.1+KK.varPhase+2)),KK.f,p[2]+1.3*dg,-sS*n1c*0.8,n1c*(1+0.35*KK.drift*Q(level*2.3+KK.varPhase+1)),0.3,Math.min(0.85,KK.c1*(1+0.25*KK.swirl)),Math.min(0.92,p[7]+0.05*KK.swirl),(p[8]||0)*sgn,p[9]||0,KK.cornu*0.6*sgn,0,0,0,0,0,0];
+        // self-similarity: blend the sprout toward a miniature of its parent (mirrored to curl away)
+        if(KK.selfSim>0){const s2=sgn*Math.sign(p[4]||1), mp=p.map((v,k)=>(k===0||k===3||k===4||k===8||k===10||k===12)?(v||0)*s2:(v||0));
+          mp[2]=(p[2]||0)+1.3*dg; for(let k=0;k<cp.length;k++) cp[k]=lerp(cp[k]||0,mp[k],KK.selfSim);}
+        // low-pass: detail below the cutoff size fades away smoothly
+        const cs=size*rel0*bw, lpF=K.cutoff>0?clip((cs-K.cutoff)/K.cutoff):1;
+        // a self-similar sprout is aimed by its whole body (chord), so the miniature visibly branches off
+        let hC=Hd[i]+aj;
+        if(KK.selfSim>0){const [xf,yf]=fullChord(cp), hb=hC+theta(0,cp)-Math.atan2(yf,xf);
+          hC=Math.atan2(lerp(Math.sin(hC),Math.sin(hb),KK.selfSim),lerp(Math.cos(hC),Math.cos(hb),KK.selfSim));}
+        if(lpF>0) branch(sc,KK,M,cp,qx,qy,hC,cs*lpF*lpF*(3-2*lpF),level+1,clip((g-uj)/0.4),z-1,0);
+      }
+    }
+  }
+  // the same curve again inside its own eye (nest)
+  if(K.nest>nd&&g>0.75){
+    const wn=clip(K.nest-nd)*clip((g-0.75)/0.25)*clip((Math.abs(p[4])-0.3)/0.4)*(level&&!nd?lerp(1,0.2,K.elegance):1);
+    if(wn>0){const i=Math.min(n-1,Math.round((1-0.62*p[6])*(n-1)));
+      const inset=curl*w[i]*0.3, qx=X[i]-Math.sin(H[i])*inset, qy=Y[i]+Math.cos(H[i])*inset;
+      const pn=[0,1,0,0,p[4]*(1+0.3*K.swirl)*1.05,0.3,0.9,Math.min(0.93,p[7]+0.08)];
+      branch(sc,Object.assign(Object.create(K),{echo:0,lobes:0}),M,pn,qx,qy,Hd[i],size*p[6]*K.nestScale*wn,level+1,1,z+0.2,nd+1);}
+  }
+  return r;
+}
+
+/* ---------------- symmetry and arrangement ---------------- */
+const mul=(a,b)=>[a[0]*b[0]+a[1]*b[2],a[0]*b[1]+a[1]*b[3],a[2]*b[0]+a[3]*b[2],a[2]*b[1]+a[3]*b[3]];
+const rotM=a=>[Math.cos(a),-Math.sin(a),Math.sin(a),Math.cos(a)];
+const app=(M,x,y)=>[M[0]*x+M[1]*y,M[2]*x+M[3]*y];
+function levelSpin(K,p){
+  if(!(K.level>0)) return K.spin;
+  const [xf,yf]=fullChord(p), hs=theta(0,p)-Math.atan2(yf,xf)+K.tilt;   // start heading that lays the chord flat
+  return Math.atan2(lerp(Math.sin(K.spin),Math.sin(hs),K.level),lerp(Math.cos(K.spin),Math.cos(hs),K.level));
+}
+/* symmetry: the mirrored twin drifts continuously away from an exact mirror image.
+   Each shape number moves by (1 − symmetry)·amplitude·sin(asymPhase + i·golden angle). */
+const ASYM=[['A',0.6],['phi',1.3],['n0',0.5],['n1',0.5],['c1',0.12],['loops',0.9],['loopTurn',0.08],['cornu',0.35],['skew',0.2],
+  ['spin',0.35],['sprouts',0.9],['side',0.7],['scale',0.08],['angle',0.25],['swirl',0.2],['counter',0.3]];
+function twinOf(K){
+  const d=1-clip(K.symmetry); if(d<=0) return K;
+  const T=Object.assign({},K);
+  ASYM.forEach(([k,a],i)=>{T[k]=K[k]+d*a*Math.sin(K.asymPhase+i*GOLD);});
+  T.loops=Math.max(0,T.loops); T.sprouts=Math.max(0,T.sprouts); T.counter=Math.max(0,T.counter);
+  T.scale=Math.max(0.05,T.scale); T.c1=clip(T.c1,0.05,1);
+  T._len=1+d*0.3*Math.sin(K.asymPhase+2.1);
+  return T;
+}
+function motif(sc,K,M,ox,oy,s,g){
+  s*=(K._len||1);
+  const p=[K.A,K.f,K.phi,K.n0,K.n1,K.c0,K.c1,K.beta,K.skew,K.flat,K.cornu,K.loops,K.loopTurn,K.loopDecay,K.loopAlt,K.loopWidth];
+  const spin0=levelSpin(K,p);
+  if(K.weight<1) K=Object.assign(Object.create(K),{_trunk:s});
+  const NC=Math.ceil(Math.max(1,K.copies));
+  for(let k=0;k<NC;k++){
+    const wk=k===0?1:clip(K.copies-k); if(wk<=0) continue;
+    const ak=TAU*k/Math.max(1,K.copies);
+    const [px,py]=app(M,K.radius*Math.cos(ak)*s,K.radius*Math.sin(ak)*s);
+    const NS=Math.ceil(Math.max(1,K.stems));
+    for(let j=0;j<NS;j++){
+      const wj=j===0?1:clip(K.stems-j); if(wj<=0) continue;
+      const spread=clip(K.stems-1), off=(j/Math.max(1,K.stems-1)-0.5)*spread, out=clip(off/0.18,-1,1), q=p.slice();
+      const alt=j%2?1:-1, sgnd=out+(1-Math.abs(out))*alt*0.8;
+      q[4]=lerp(p[4],Math.abs(p[4])*sgnd,spread); q[0]=lerp(p[0],p[0]*out,spread);
+      const len=(1-K.stemVary*Math.abs(off)*1.6)*(1+K.vary*0.25*Math.sin(GOLD*(j+1)))*wj*wk*s;
+      let r=branch(sc,K,M,q,ox+px,oy+py,spin0+ak+K.sweep*off,len,0,g,10-j*0.01,0);
+      // chain: the next scroll grows out of this one. Width/height add further links (K._ext) that
+      // continue outward (horizontally) or upward, each full-sized: the motif gains scrolls instead of stretching.
+      const E=K._ext||0, CH=K.chain+E;
+      let cq=q, clen=len; const NCh=Math.ceil(CH);
+      for(let c=0;c<NCh&&r;c++){
+        const wc=clip(CH-c); if(wc<=0) break;
+        const cg=clip((g-K.chainAt)/(1-K.chainAt+1e-6)*(1+0.25*CH)-c*0.25); if(cg<=0) break;
+        const i=Math.min(r.n-1,Math.round(K.chainAt*(r.n-1)));
+        const tq=0.9*(c+1)+K.varPhase, Kc=varied(K,tq,K.variation);
+        const pc=[Kc.A,Kc.f,Kc.phi,Kc.n0,Kc.n1,Kc.c0,Kc.c1,Kc.beta,Kc.skew,Kc.flat,Kc.cornu,Kc.loops,Kc.loopTurn,Kc.loopDecay,Kc.loopAlt,Kc.loopWidth];
+        const alt=Math.pow(1-2*K.chainFlip,c+1), nq=q.map((v,k)=>(v||0)+((pc[k]||0)-(p[k]||0)));   // same stem, moved in the plane
+        nq[4]*=alt; nq[3]*=alt; nq[0]*=alt;
+        { const ex=lerp(0.6,1,clip(c+1-K.chain));                   // links keep a wave and a readable eye (smooth floors)
+          const sf=(v,m)=>Math.sign(v||1)*Math.sqrt(v*v+m*m*ex); nq[0]=sf(nq[0],0.45); nq[4]=sf(nq[4],1.15); nq[6]=Math.max(nq[6],lerp(nq[6],0.42,ex)); }
+        const cs=clip(cq[4]/0.3,-1,1), edge=-cs*(r.flip?-1:1)*r.w[i]*0.4;
+        const ext=clip(c+1-K.chain);                                  // 0 for the user's own links, 1 for added ones
+        clen*=lerp(Kc.chainScale,0.975,ext);
+        let hc=r.Hd[i]-cs*Kc.chainTurn;
+        if(ext>0){const [xf,yf]=fullChord(nq), hl=theta(0,nq)-Math.atan2(yf,xf)+(K._extDir||0);
+          const wl_=ext*(1-0.45*K.flow);                                 // flow: keep the join tangent (smooth running scroll)
+          hc=Math.atan2(lerp(Math.sin(hc),Math.sin(hl),wl_),lerp(Math.cos(hc),Math.cos(hl),wl_));}
+        r=branch(sc,Kc,M,nq,r.X[i]-Math.sin(r.H[i])*edge,r.Y[i]+Math.cos(r.H[i])*edge,hc,clen*wc,0,cg,10-0.02*(c+1),0);
+        cq=nq;
+      }
+    }
+    if(K.counter>0){const q=p.slice();q[0]=-q[0];q[3]=-q[3];q[4]=-q[4];
+      branch(sc,K,M,q,ox+px,oy+py,spin0+ak+K.counterAngle,K.counter*wk*s,0,clip(g*1.15-0.15),9,0);}
+  }
+}
+function unit(sc,K,B,ox,oy,g){                      // rows + mirror: one repeat unit
+  const twin=mul(B,[-1,0,0,1]), NR=Math.ceil(Math.max(1,K.rows));
+  let y=0,s=1;
+  for(let r=0;r<NR;r++){
+    const wr=r===0?1:clip(K.rows-r); if(wr<=0) break;
+    const gr=clip(g*NR-r*0.85), [dx,dy]=app(B,0,y);
+    motif(sc,K,B,ox+dx,oy+dy,s*wr,gr);
+    if(K.mirror>0) motif(sc,twinOf(K),twin,ox+dx,oy+dy,s*wr*clip(K.mirror),gr);
+    const wn=clip(K.rows-(r+1)); y+=K.rowGap*s*(1+K.rowTaper)/2*wn; s*=K.rowTaper;
+  }
+}
+/* elongation x bends the shape itself: x>0 → flatter waves, smaller eyes and loops, headings pulled
+   toward the horizontal, sprouts leaning out; x<0 → the reverse. Nothing is stretched. */
+const squash=(a,x)=>Math.atan2(Math.sin(a)*Math.exp(-0.55*x),Math.cos(a)*Math.exp(0.55*x));
+function couple(K,x){
+  if(!x) return K;
+  const o=Object.assign({},K);
+  o.A=K.A*Math.exp(-0.8*x); o.c0=clip(K.c0*Math.exp(-0.5*x),0.05,1); o.c1=clip(K.c1*Math.exp(-0.5*x),0.05,1);
+  o.loopWidth=K.loopWidth*Math.exp(-0.6*x); o.cornu=K.cornu*Math.exp(-0.5*x); o.skew=K.skew*Math.exp(-0.4*x);
+  o.spin=squash(K.spin,x); o.tilt=K.tilt*Math.exp(-0.6*x); o.counterAngle=squash(K.counterAngle,x);
+  o.angle=K.angle*Math.exp(0.3*x); o.sweep=K.sweep*Math.exp(0.3*x); o.scale=K.scale*Math.exp(-0.15*x);
+  return o;
+}
+function buildOnce(K0,grow){
+  const K=K0;
+  const g=clip(grow), sc=new Scene();
+  const base=mul([Math.tanh(3*K.width),0,0,Math.tanh(3*K.height)],rotM(K.rotate));   // signs only: mirroring passes smoothly through 0
+  if(K.repeat<=1){unit(sc,K,base,0,0,g);}
+  else{
+    // repeat spacing is relative to the unit's own width, so repeats always sit together
+    const probe=new Scene(); unit(probe,K,base,0,0,1); const pb=bbox(probe.items), uw=Math.max(0.05,pb.x1-pb.x0);
+    const gap=K.repeatGap*uw, NRep=Math.ceil(K.repeat), span=gap*(K.repeat-1);
+    let xPrev=-span/2;
+    for(let m=0;m<NRep;m++){
+      const wm=m===0?1:clip(K.repeat-m); if(wm<=0) continue;
+      const xm=m===0?-span/2:xPrev+gap*wm; xPrev=xm;                // a growing repeat buds out of its neighbour
+      const flipM=(m%2===1)?1-2*K.repeatFlip:1;                      // glide: every other repeat mirrored
+      const Bm=mul(base,[flipM*wm,0,0,wm]);
+      const cx=(pb.x0+pb.x1)/2;                                       // mirror each repeat about its own centre
+      const ox=xm-pb.x0+(flipM-1)*(-cx)*wm;
+      unit(sc,K,Bm,ox,0,clip(g*1.2-0.2*m/NRep));
+    }
+  }
+  sc.items.sort((a,b)=>a.z-b.z);
+  return sc.items;
+}
+function bbox(items){let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const it of items){const p=it.pts;for(let i=0;i<p.length;i+=2){if(p[i]<x0)x0=p[i];if(p[i]>x1)x1=p[i];if(p[i+1]<y0)y0=p[i+1];if(p[i+1]>y1)y1=p[i+1];}}return{x0,x1,y0,y1};}
+
+/* ---------------- elegance: a smooth detail budget and an ink-density check ---------------- */
+function refine(K){
+  K=Object.assign({},K,{weight:lerp(1,0.4,clip(K.selfSim))});   // line weight follows fractalness (not a control)
+  const e=clip(K.elegance); if(e<=0) return K;
+  const load=0.28*K.sprouts*(1+K.bilateral)*(1+K.depth)+K.nest*0.7+clip((K.lobes-1.5)/2)*K.lobeDepth*0.7
+    +(K.stems-1)/5+(K.rows-1)/3+(K.copies-1)/5+K.chain/3+(K.repeat-1)/3+K.stripes/4+K.swirl*0.5;
+  const B=lerp(40,2.4,e), f=1/Math.pow(1+Math.pow(load/B,4),0.25);
+  const o=Object.assign({},K);
+  o.nest=K.nest*f; o.stripes=K.stripes*f;
+  o.sprouts=K.sprouts*lerp(1,f,0.55); o.depth=K.depth*lerp(1,Math.sqrt(f),0.6);
+  o.scale=lerp(K.scale,Math.min(K.scale,0.42),e); o.swirl=K.swirl*lerp(1,f,0.5);
+  o.thinning=K.thinning*lerp(1,0.9,e);
+  const gs=Math.sqrt(Math.abs(K.width*K.height));
+  o.fat=Math.min(K.fat,lerp(K.fat,0.05,e))*lerp(1,1/Math.sqrt(1+0.35*(K.stems-1)+0.25*(K.copies-1)+0.15*K.chain),e)/lerp(1,Math.sqrt(Math.max(1,gs)),e);
+  o.echo=K.echo*lerp(1,1/(1+0.4*(K.stems-1)+0.3*(K.copies-1)),e);
+  return o;
+}
+function inkRatio(items){
+  let ink=0;const b=bbox(items);
+  for(const it of items){ if(it.t!=='p'||it.c!=='col') continue; const p=it.pts; let a=0;
+    for(let i=0,j=p.length-2;i<p.length;j=i,i+=2) a+=(p[j]+p[i])*(p[j+1]-p[i+1]); ink+=Math.abs(a)/2; }
+  return ink/Math.max(1e-6,(b.x1-b.x0)*(b.y1-b.y0));
+}
+const densCache=new Map(); let lastX=0;
+function build(Kin,grow=1,opt){
+  let K=refine(Object.assign({},DEFAULTS,Kin));
+  const e=clip(K.elegance);
+  // width, height, aspect: solve for the growth g = log(λ/η) whose ornament has the requested proportion.
+  // λ = extra trunk length (wider), η = larger eyes and rising arms (taller). Nothing is stretched.
+  const wr=Math.max(0.05,Math.abs(K.width))/Math.max(0.05,Math.abs(K.height));
+  const withG=(K,gg)=>Object.assign({},K,{_ext:Math.abs(gg),_extDir:gg>=0?0:Math.PI/2*(1-0.14*clip(K.mirror))});
+  if(Math.abs(wr-1)>1e-4||K.aspect>0){
+    const key='g'+JSON.stringify(Object.assign({},K,{varPhase:0})); let x=densCache.get(key);   // the ripple animation reuses the solve
+    if(x===undefined){
+      const asp=xx=>{COARSE.f=0.35;const b=bbox(buildOnce(withG(K,xx),1));COARSE.f=1;return Math.log(Math.max(1e-6,b.x1-b.x0)/Math.max(1e-6,b.y1-b.y0));};
+      const target=(K.aspect>0?Math.log(K.aspect):asp(0))+Math.log(wr);
+      let x0=clip(lastX,-5,11), f0=asp(x0)-target; x=x0;
+      if(Math.abs(f0)>0.02){let x1=x0+(f0>0?-0.2:0.2), f1=asp(x1)-target;
+        for(let it=0;it<5&&Math.abs(f1)>0.02;it++){const d=f1-f0; if(Math.abs(d)<1e-9) break; const x2=clip(x1-f1*(x1-x0)/d,-6,12); x0=x1;f0=f1;x1=x2;f1=asp(x1)-target;}
+        x=x1;
+        if(Math.abs(f1)>0.03){let lo=-6,hi=12,flo=asp(lo)-target,fhi=asp(hi)-target;
+          if(flo>=0) x=lo; else if(fhi<=0) x=hi;
+          else{for(let it=0;it<10;it++){const m=(lo+hi)/2,fm=asp(m)-target; if(fm<0){lo=m;flo=fm;}else{hi=m;fhi=fm;}} x=lo+(hi-lo)*(-flo)/(fhi-flo+1e-12);}}}
+      lastX=x;
+      if(densCache.size>300) densCache.clear(); densCache.set(key,x);
+    }
+    K=withG(K,x);
+  }
+  if(e>0){const key=JSON.stringify(Object.assign({},K,{varPhase:0})); let f=densCache.get(key);
+    if(f===undefined){COARSE.f=0.35;const rho=inkRatio(buildOnce(K,1));COARSE.f=1;const T=lerp(1,0.1,e);
+      f=Math.sqrt(1/Math.pow(1+Math.pow(rho/T,3),1/3)); if(densCache.size>200) densCache.clear(); densCache.set(key,f);}
+    K=Object.assign({},K,{fat:K.fat*f,echo:K.echo*f});}
+  if(opt&&opt.res){COARSE.f=opt.res; try{return buildOnce(K,grow);} finally{COARSE.f=1;}}   // higher resolution for export
+  return buildOnce(K,grow);
+}
+
+/* ---------------- Explore: three continuous coordinates -> every parameter ---------------- */
+const EX=[ // [key, lo, hi, threshold]
+ ['A',-0.9,0.9],['f',0.4,1.2],['phi',-1.5,1.5],['n0',-1.7,1.7,0.3],['n1',1.1,2.2],['c0',0.25,0.45],['c1',0.35,0.6],['beta',0.55,0.85],
+ ['skew',-0.3,0.3],['cornu',-0.5,0.5],
+ ['loops',0,3.4,0.25],['loopTurn',0.85,1.12],['loopDecay',0.6,1],['loopAlt',0,1],['loopWidth',0.025,0.07],
+ ['fat',0.018,0.034],['shade',0.55,1],['hair',0.06,0.18],['slant',-0.45,0.45],['pressure',0.2,0.8],
+ ['depth',0.4,1.7],['sprouts',0,2.6],['childCurl',0.9,1.6],['angle',0.6,1.2],['side',-1,1],['scale',0.3,0.48],['sproutS',0,1,0.4],
+ ['swirl',0,0.4],['nest',0,1,0.6],
+ ['mirror',0,1],['counter',0,0.8,0.65],['counterAngle',0.8,2.4],['chain',0,1,0.7],['chainTurn',-0.4,1.0],
+ ['spin',-0.3,1.9],['width',0.85,1.5],['height',0.8,1.3],
+ ['level',0,1],['tilt',-0.3,0.3],['symmetry',0,1],['asymPhase',0,6.283],
+ ['drift',0,0.9],['variation',0.2,1.1],['varPhase',0,6.283],['selfSim',0,1,0.35],['falloff',0.55,1],['varAngle',0,6.283],['varTwist',0,6.283]];
+const stair=v=>{const n=Math.floor(v),t=v-n,s=t*t*t*(t*(t*6-15)+10);return n+s;};  // continuous, flat at whole numbers
+function explore(x,y,z){
+  const raw={};
+  EX.forEach(([k,lo,hi,th],d)=>{
+    const wx=0.55*Math.cos(d*GOLD), wy=0.55*Math.sin(d*GOLD*1.31+0.4), wz=0.45*Math.cos(d*1.77+1.1);
+    let s=0.5+0.5*Math.sin(wx*x+wy*y+wz*z+d*1.618);
+    if(th) s=Math.max(0,(s-th)/(1-th));
+    raw[k]=lo+(hi-lo)*s;
+  });
+  const K=Object.assign({},raw);
+  // one connected shape: everything grows from a single root
+  K.copies=1; K.rows=1; K.repeat=1; K.radius=0;
+  const st=0, ch=raw.chain;
+  K.stems=1;
+  K.chain=stair(2*ch); K.chainAt=0.78; K.chainScale=0.75;
+  K.counter=0.75*raw.counter*(1-0.6*st);                 // an answering curve from the same root
+  const m=clip((raw.mirror-0.3)*5); K.mirror=m;            // steep but continuous: mostly symmetric
+  K.echo=0; K.spin=lerp(raw.spin,0.15+0.35*(raw.spin-0.8),m);    // mirrored flourishes grow sideways from the centre
+  K.bilateral=0; K.pingpong=0.3; K.thinning=0.8; K.childPressure=0.6;
+  const lv=clip((raw.level-0.3)*3)*m; K.level=lv;                 // mostly: symmetric horizontal dividers
+  K.width=1; K.height=1; K.aspect=lv>0.02?Math.exp(lerp(Math.log(1.3),Math.log(3.5+2.5*(raw.height-0.8)/0.5),lv)):0;
+  if(!(K.aspect>0)){K.width=raw.width; K.height=raw.height;}
+  // divider shapes: naturally low, so the squeeze only finishes the job
+  K.A*=lerp(1,0.45,lv); K.loops*=lerp(1,0.55,lv); K.loopWidth*=lerp(1,0.7,lv); K.counter*=lerp(1,0.4,lv);
+  K.cornu*=lerp(1,0.4,lv); K.angle*=lerp(1,0.85,lv); K.aspect=K.aspect>0?Math.exp(lerp(Math.log(1.3),Math.log(5+7*(raw.height-0.8)/0.5),lv)):0;
+  K.symmetry=1-0.45*clip((0.3-raw.symmetry)*3.3); K.asymPhase=raw.asymPhase;
+  K.elegance=0.8; K.cutoff=lerp(0.045,0.05,raw.selfSim); K.thinning=lerp(0.8,1,raw.selfSim);
+  for(const k in K) K[k]=+(+K[k]).toFixed(4);
+  return K;
+}
+return{DEFAULTS,build,bbox,theta,grow1,Scene,explore};
+})();
+if(typeof module!=='undefined')module.exports=KurbitsSwirl;
+
+</script>
+<script>
+(()=>{
+const G=KurbitsSwirl, PRESETS={"Swan divider":{"A":-0.2425,"f":1.1526,"phi":-0.8021,"n0":-1.7,"n1":1.4221,"c0":0.3579,"c1":0.4779,"beta":0.7976,"skew":-0.1625,"cornu":0.017,"loops":1.316,"loopTurn":0.9716,"loopDecay":0.6751,"loopAlt":0.5719,"loopWidth":0.0305,"fat":0.0334,"shade":0.5524,"hair":0.0663,"slant":0.3799,"pressure":0.7846,"depth":1.4157,"sprouts":0.4627,"childCurl":1.0995,"angle":0.8608,"side":0.3024,"scale":0.3083,"sproutS":0.9893,"swirl":0.2984,"nest":0,"mirror":1,"counter":0,"counterAngle":1.5185,"chain":0,"chainTurn":0.4049,"spin":-0.0889,"width":1,"height":1,"level":1,"tilt":0.0569,"symmetry":1,"asymPhase":4.3531,"drift":0.0749,"variation":0.4571,"varPhase":6.0529,"selfSim":0,"falloff":0.8693,"varAngle":5.4,"varTwist":0.0931,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":6.2043,"elegance":0.8,"cutoff":0.045},"Crowned divider":{"A":0.3446,"f":1.0632,"phi":-0.0054,"n0":-1.5719,"n1":1.146,"c0":0.4096,"c1":0.4966,"beta":0.848,"skew":-0.2462,"cornu":0.1989,"loops":0.1396,"loopTurn":0.9871,"loopDecay":0.6107,"loopAlt":0.2364,"loopWidth":0.0273,"fat":0.0302,"shade":0.7084,"hair":0.1005,"slant":-0.153,"pressure":0.6923,"depth":1.5482,"sprouts":0.0196,"childCurl":1.2656,"angle":0.9145,"side":0.9884,"scale":0.4353,"sproutS":0.2651,"swirl":0.3995,"nest":0,"mirror":1,"counter":0,"counterAngle":1.6208,"chain":0,"chainTurn":0.9984,"spin":-0.1075,"width":1,"height":1,"level":1,"tilt":-0.1361,"symmetry":1,"asymPhase":3.344,"drift":0.0811,"variation":1.0807,"varPhase":1.7863,"selfSim":0,"falloff":0.8899,"varAngle":3.9831,"varTwist":1.0345,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":5.168,"elegance":0.8,"cutoff":0.045},"Oval divider":{"A":0.4028,"f":0.9051,"phi":0.6541,"n0":-1.7,"n1":1.296,"c0":0.3675,"c1":0.5495,"beta":0.8212,"skew":-0.142,"cornu":0.1676,"loops":0,"loopTurn":1.0489,"loopDecay":0.6619,"loopAlt":0.4635,"loopWidth":0.0348,"fat":0.0265,"shade":0.8173,"hair":0.1296,"slant":-0.3355,"pressure":0.5593,"depth":1.2875,"sprouts":0.2856,"childCurl":1.0946,"angle":0.996,"side":0.9371,"scale":0.4675,"sproutS":0,"swirl":0.3806,"nest":0,"mirror":1,"counter":0,"counterAngle":1.2163,"chain":0,"chainTurn":0.8783,"spin":0.0739,"width":1,"height":1,"level":1,"tilt":0.0217,"symmetry":1,"asymPhase":1.681,"drift":0.2703,"variation":1.085,"varPhase":0.4959,"selfSim":0,"falloff":0.9751,"varAngle":5.4672,"varTwist":0.1146,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":5.09,"elegance":0.8,"cutoff":0.045},"Scroll band":{"A":-0.0774,"f":1.1997,"phi":-0.1637,"n0":-1.7,"n1":1.6679,"c0":0.3126,"c1":0.5336,"beta":0.8385,"skew":-0.2591,"cornu":0.1058,"loops":0.7656,"loopTurn":1.0348,"loopDecay":0.7613,"loopAlt":0.7932,"loopWidth":0.038,"fat":0.0312,"shade":0.5633,"hair":0.06,"slant":0.22,"pressure":0.7049,"depth":1.1137,"sprouts":1.0444,"childCurl":0.9656,"angle":0.9635,"side":0.7287,"scale":0.3373,"sproutS":0.9484,"swirl":0.3715,"nest":0,"mirror":1,"counter":0,"counterAngle":1.1297,"chain":0,"chainTurn":0.741,"spin":-0.2093,"width":1,"height":1,"level":1,"tilt":0.201,"symmetry":1,"asymPhase":2.6656,"drift":0.0003,"variation":0.6993,"varPhase":4.9935,"selfSim":0,"falloff":0.9634,"varAngle":6.2165,"varTwist":0.1601,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":5.1744,"elegance":0.8,"cutoff":0.045},"Running swash":{"A":-0.2167,"f":0.5258,"phi":-1.116,"n0":-1.7,"n1":1.2095,"c0":0.4249,"c1":0.4321,"beta":0.7032,"skew":-0.0505,"cornu":-0.0837,"loops":0,"loopTurn":0.9964,"loopDecay":0.6004,"loopAlt":0.0008,"loopWidth":0.0462,"fat":0.0336,"shade":0.8382,"hair":0.0666,"slant":0.0046,"pressure":0.7832,"depth":1.0272,"sprouts":0.6473,"childCurl":1.3334,"angle":0.5622,"side":0.241,"scale":0.3001,"sproutS":0.6969,"swirl":0.3513,"nest":0.9264,"mirror":1,"counter":0.2213,"counterAngle":0.8108,"chain":0,"chainTurn":-0.3953,"spin":-0.0527,"width":1,"height":1,"level":1,"tilt":-0.2891,"symmetry":1,"asymPhase":4.2193,"drift":0.7077,"variation":0.3179,"varPhase":5.8208,"selfSim":0,"falloff":0.8379,"varAngle":1.3682,"varTwist":4.5287,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":9.6209,"elegance":0.8,"cutoff":0.045},"Knotted border":{"A":-0.3015,"f":0.6951,"phi":-1.3532,"n0":-1.7,"n1":1.8148,"c0":0.3039,"c1":0.4591,"beta":0.6533,"skew":0.2578,"cornu":-0.1996,"loops":1.87,"loopTurn":0.9563,"loopDecay":0.7786,"loopAlt":0.8736,"loopWidth":0.0338,"fat":0.0337,"shade":0.7725,"hair":0.1535,"slant":0.3178,"pressure":0.792,"depth":1.2556,"sprouts":1.2967,"childCurl":0.9687,"angle":0.8016,"side":-0.7199,"scale":0.36,"sproutS":0,"swirl":0.1095,"nest":0,"mirror":1,"counter":0,"counterAngle":1.4175,"chain":0,"chainTurn":-0.381,"spin":0.4877,"width":1,"height":1,"level":1,"tilt":0.2259,"symmetry":1,"asymPhase":5.2303,"drift":0.5435,"variation":0.2766,"varPhase":4.1422,"selfSim":0.0397,"falloff":0.8476,"varAngle":6.1948,"varTwist":0.1877,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":7.9041,"elegance":0.8,"cutoff":0.045},"Rococo border":{"A":-0.1825,"f":0.5777,"phi":-1.4401,"n0":-1.7,"n1":1.1372,"c0":0.4182,"c1":0.5078,"beta":0.8498,"skew":0.2832,"cornu":-0.1205,"loops":0.5284,"loopTurn":1.0696,"loopDecay":0.6001,"loopAlt":0.0064,"loopWidth":0.0433,"fat":0.0316,"shade":0.9583,"hair":0.1734,"slant":-0.4342,"pressure":0.555,"depth":1.1718,"sprouts":0.4415,"childCurl":1.3386,"angle":0.7214,"side":0.9575,"scale":0.438,"sproutS":0,"swirl":0.3412,"nest":0.4532,"mirror":1,"counter":0.2053,"counterAngle":0.9234,"chain":0,"chainTurn":0.5285,"spin":0.5308,"width":1,"height":1,"level":1,"tilt":-0.2965,"symmetry":1,"asymPhase":1.5553,"drift":0.042,"variation":0.6324,"varPhase":0.2545,"selfSim":0,"falloff":0.9576,"varAngle":1.2879,"varTwist":4.4526,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":11.9541,"elegance":0.8,"cutoff":0.045},"Fine border":{"A":0.3868,"f":0.4473,"phi":-1.2634,"n0":-1.7,"n1":1.9497,"c0":0.2956,"c1":0.3904,"beta":0.5542,"skew":0.0095,"cornu":0.0828,"loops":0.751,"loopTurn":0.8875,"loopDecay":0.796,"loopAlt":0.9365,"loopWidth":0.0295,"fat":0.0274,"shade":0.9884,"hair":0.141,"slant":-0.3931,"pressure":0.5858,"depth":1.3872,"sprouts":1.5492,"childCurl":0.972,"angle":0.6201,"side":-0.6578,"scale":0.4768,"sproutS":0,"swirl":0.0157,"nest":0,"mirror":1,"counter":0,"counterAngle":1.7338,"chain":0,"chainTurn":0.4492,"spin":0.073,"width":1,"height":1,"level":1,"tilt":0.2476,"symmetry":1,"asymPhase":6.281,"drift":0.8673,"variation":1.0828,"varPhase":0.1329,"selfSim":0.9687,"falloff":0.701,"varAngle":6.1702,"varTwist":0.2175,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":11.2668,"elegance":0.8,"cutoff":0.045},"Arched divider":{"A":0.2179,"f":1.1684,"phi":-0.6638,"n0":-0.4797,"n1":1.1006,"c0":0.4391,"c1":0.4391,"beta":0.8431,"skew":-0.2971,"cornu":0.1867,"loops":0.7183,"loopTurn":0.9249,"loopDecay":0.6023,"loopAlt":0.0695,"loopWidth":0.0212,"fat":0.0329,"shade":0.6151,"hair":0.076,"slant":0.0662,"pressure":0.7788,"depth":1.6873,"sprouts":0.0694,"childCurl":1.4326,"angle":0.7954,"side":0.7888,"scale":0.3914,"sproutS":0.6594,"swirl":0.3663,"nest":0,"mirror":1,"counter":0.0977,"counterAngle":2.0197,"chain":0,"chainTurn":0.9261,"spin":-0.2173,"width":1,"height":1,"level":1,"tilt":-0.2547,"symmetry":1,"asymPhase":4.9476,"drift":0.0008,"variation":0.9481,"varPhase":3.4838,"selfSim":0,"falloff":0.7696,"varAngle":2.2397,"varTwist":2.6088,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":6.1888,"elegance":0.8,"cutoff":0.045},"Whisper border":{"A":0.0058,"f":0.4475,"phi":1.2717,"n0":-1.7,"n1":1.1054,"c0":0.417,"c1":0.5637,"beta":0.6874,"skew":0.2692,"cornu":-0.1125,"loops":0,"loopTurn":1.0621,"loopDecay":0.6058,"loopAlt":0.151,"loopWidth":0.0315,"fat":0.0216,"shade":0.9999,"hair":0.1775,"slant":-0.3655,"pressure":0.396,"depth":1.4433,"sprouts":0.0003,"childCurl":1.2601,"angle":1.0151,"side":0.1033,"scale":0.4282,"sproutS":0,"swirl":0.2286,"nest":0,"mirror":1,"counter":0,"counterAngle":1.3091,"chain":1.5717,"chainTurn":-0.0451,"spin":0.5348,"width":1,"height":1,"level":1,"tilt":-0.1667,"symmetry":1,"asymPhase":0.8554,"drift":0.7678,"variation":0.4715,"varPhase":1.6116,"selfSim":0.6662,"falloff":0.9847,"varAngle":4.0773,"varTwist":1.0978,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":5.9912,"elegance":0.8,"cutoff":0.045},"Pearl border":{"A":-0.154,"f":0.5369,"phi":-1.4999,"n0":-1.7,"n1":1.5649,"c0":0.3483,"c1":0.4052,"beta":0.5941,"skew":0.2993,"cornu":-0.1837,"loops":1.7288,"loopTurn":0.8989,"loopDecay":0.6892,"loopAlt":0.677,"loopWidth":0.0264,"fat":0.0318,"shade":0.8786,"hair":0.173,"slant":0.1285,"pressure":0.724,"depth":1.5258,"sprouts":0.6717,"childCurl":1.1044,"angle":0.6745,"side":-0.9669,"scale":0.4054,"sproutS":0,"swirl":0.0332,"nest":0,"mirror":1,"counter":0,"counterAngle":1.8334,"chain":0,"chainTurn":-0.3692,"spin":0.5348,"width":1,"height":1,"level":1,"tilt":0.0913,"symmetry":1,"asymPhase":6.1469,"drift":0.7599,"variation":0.464,"varPhase":2.4222,"selfSim":0.4629,"falloff":0.7234,"varAngle":5.3306,"varTwist":0.0739,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":9.7569,"elegance":0.8,"cutoff":0.045},"Lace border":{"A":0.3764,"f":1.0742,"phi":-0.9965,"n0":-1.7,"n1":1.1356,"c0":0.369,"c1":0.5255,"beta":0.7851,"skew":-0.1089,"cornu":0.162,"loops":1.6087,"loopTurn":1.0811,"loopDecay":0.6342,"loopAlt":0.1739,"loopWidth":0.0456,"fat":0.0271,"shade":0.6746,"hair":0.1402,"slant":0.0212,"pressure":0.3919,"depth":0.9934,"sprouts":0.015,"childCurl":1.1692,"angle":0.7827,"side":0.1665,"scale":0.4613,"sproutS":0.0901,"swirl":0.1602,"nest":0.3361,"mirror":1,"counter":0.0527,"counterAngle":0.8744,"chain":0,"chainTurn":0.9783,"spin":0.0302,"width":1,"height":1,"level":1,"tilt":-0.2619,"symmetry":1,"asymPhase":0.7593,"drift":0.1237,"variation":1.0973,"varPhase":2.0809,"selfSim":0.1358,"falloff":0.9703,"varAngle":2.8278,"varTwist":2.6378,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":11.7474,"elegance":0.8,"cutoff":0.045},"Headpiece":{"A":0.4145,"f":0.8349,"phi":-1.4777,"n0":-1.7,"n1":1.3718,"c0":0.3029,"c1":0.4416,"beta":0.8442,"skew":0.0949,"cornu":0.1107,"loops":1.4934,"loopTurn":0.9968,"loopDecay":0.7468,"loopAlt":0.5007,"loopWidth":0.0667,"fat":0.032,"shade":0.8329,"hair":0.1726,"slant":-0.2839,"pressure":0.6071,"depth":0.5727,"sprouts":0.2189,"childCurl":0.9598,"angle":0.6949,"side":0.795,"scale":0.4796,"sproutS":0,"swirl":0.3066,"nest":0.9379,"mirror":1,"counter":0,"counterAngle":0.8464,"chain":0,"chainTurn":0.9023,"spin":0.3248,"width":1,"height":1,"level":0.1573,"tilt":-0.077,"symmetry":1,"asymPhase":2.979,"drift":0.0006,"variation":0.9924,"varPhase":0.2564,"selfSim":0,"falloff":0.825,"varAngle":5.2368,"varTwist":0.5071,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":1.8369,"elegance":0.8,"cutoff":0.045},"Lyre":{"A":-0.4528,"f":0.5891,"phi":-0.3598,"n0":-1.7,"n1":1.1994,"c0":0.3181,"c1":0.3598,"beta":0.6461,"skew":-0.0806,"cornu":-0.1556,"loops":0,"loopTurn":0.8903,"loopDecay":0.7178,"loopAlt":0.3296,"loopWidth":0.0679,"fat":0.0306,"shade":0.7858,"hair":0.0642,"slant":0.1277,"pressure":0.7823,"depth":0.4604,"sprouts":0.0477,"childCurl":0.96,"angle":0.6063,"side":-0.1823,"scale":0.3018,"sproutS":0.8063,"swirl":0.2692,"nest":0.7807,"mirror":1,"counter":0,"counterAngle":1.1118,"chain":0,"chainTurn":-0.3458,"spin":-0.102,"width":0.9538,"height":0.9435,"level":0,"tilt":-0.134,"symmetry":1,"asymPhase":6.1141,"drift":0.8456,"variation":0.3872,"varPhase":6.1478,"selfSim":0.2941,"falloff":0.6225,"varAngle":5.2835,"varTwist":0.6278,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":0,"elegance":0.8,"cutoff":0.045},"Flourish":{"A":0.3122,"f":0.4007,"phi":-0.3719,"n0":1.6014,"n1":1.1839,"c0":0.4452,"c1":0.37,"beta":0.5584,"skew":0.2146,"cornu":-0.1507,"loops":0.9575,"loopTurn":0.8847,"loopDecay":0.6884,"loopAlt":0.0027,"loopWidth":0.03,"fat":0.0217,"shade":0.9992,"hair":0.1756,"slant":-0.3117,"pressure":0.3257,"depth":1.3235,"sprouts":0.6407,"childCurl":1.6,"angle":0.6293,"side":-0.566,"scale":0.4714,"sproutS":0,"swirl":0.0512,"nest":0.656,"mirror":0,"counter":0.5971,"counterAngle":2.2457,"chain":0.3959,"chainTurn":0.1899,"spin":1.3659,"width":1.2623,"height":1.2794,"level":0,"tilt":-0.2816,"symmetry":1,"asymPhase":3.4984,"drift":0.841,"variation":0.9219,"varPhase":0.0706,"selfSim":0.9849,"falloff":0.5854,"varAngle":0.0183,"varTwist":5.6387,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":0,"elegance":0.8,"cutoff":0.045},"Rising swash":{"A":-0.8946,"f":0.6856,"phi":-0.5969,"n0":0.9312,"n1":2.0353,"c0":0.3233,"c1":0.4122,"beta":0.5684,"skew":0.1791,"cornu":-0.458,"loops":2.579,"loopTurn":0.9459,"loopDecay":0.9659,"loopAlt":0.651,"loopWidth":0.0509,"fat":0.0234,"shade":0.7967,"hair":0.1285,"slant":0.2241,"pressure":0.3467,"depth":0.6172,"sprouts":2.5405,"childCurl":1.2748,"angle":0.7006,"side":-0.9978,"scale":0.3393,"sproutS":0.1153,"swirl":0.0001,"nest":0.9867,"mirror":0,"counter":0,"counterAngle":1.5662,"chain":0,"chainTurn":-0.3998,"spin":1.5833,"width":0.9087,"height":1.2803,"level":0,"tilt":0.1665,"symmetry":0.7361,"asymPhase":2.4835,"drift":0.8555,"variation":0.2486,"varPhase":3.9383,"selfSim":0.9291,"falloff":0.7047,"varAngle":3.0201,"varTwist":4.6153,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":0,"elegance":0.8,"cutoff":0.045},"Tall S":{"A":-0.4208,"f":0.6833,"phi":-0.5344,"n0":-1.7,"n1":2.0328,"c0":0.281,"c1":0.5847,"beta":0.7024,"skew":0.287,"cornu":-0.4941,"loops":3.2336,"loopTurn":1.1026,"loopDecay":0.9921,"loopAlt":0.598,"loopWidth":0.0699,"fat":0.033,"shade":0.7708,"hair":0.1656,"slant":0.3435,"pressure":0.737,"depth":0.4089,"sprouts":2.386,"childCurl":1.1619,"angle":1.1943,"side":-0.4216,"scale":0.3755,"sproutS":0,"swirl":0.2095,"nest":0,"mirror":0,"counter":0,"counterAngle":0.8397,"chain":0,"chainTurn":-0.3711,"spin":1.8471,"width":0.8513,"height":0.8178,"level":0,"tilt":0.0149,"symmetry":0.6619,"asymPhase":1.5452,"drift":0.363,"variation":0.3076,"varPhase":4.0854,"selfSim":0,"falloff":0.9912,"varAngle":2.0457,"varTwist":5.7995,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":0,"elegance":0.8,"cutoff":0.045},"Heart":{"A":-0.6453,"f":0.4207,"phi":-0.5854,"n0":0.5799,"n1":2.0548,"c0":0.254,"c1":0.3503,"beta":0.7678,"skew":0.2971,"cornu":-0.4559,"loops":0,"loopTurn":0.8542,"loopDecay":0.9823,"loopAlt":0.9947,"loopWidth":0.0496,"fat":0.032,"shade":0.998,"hair":0.1548,"slant":-0.3784,"pressure":0.7898,"depth":0.5649,"sprouts":1.923,"childCurl":1.0312,"angle":0.6531,"side":0.6587,"scale":0.3865,"sproutS":0,"swirl":0.3739,"nest":0.1846,"mirror":0.5412,"counter":0,"counterAngle":1.8557,"chain":0,"chainTurn":-0.055,"spin":1.0821,"width":1.3262,"height":0.9455,"level":0,"tilt":0.2923,"symmetry":0.5757,"asymPhase":6.283,"drift":0.4981,"variation":0.3376,"varPhase":2.0984,"selfSim":0,"falloff":0.5523,"varAngle":5.2856,"varTwist":1.692,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":0,"elegance":0.8,"cutoff":0.045},"Swash":{"A":-0.8217,"f":0.9452,"phi":0.4534,"n0":-0.5994,"n1":1.7001,"c0":0.3422,"c1":0.5978,"beta":0.7973,"skew":0.1649,"cornu":-0.428,"loops":2.1889,"loopTurn":1.1176,"loopDecay":0.9096,"loopAlt":0.254,"loopWidth":0.0632,"fat":0.0287,"shade":0.6231,"hair":0.1282,"slant":0.4498,"pressure":0.5529,"depth":0.5032,"sprouts":1.6191,"childCurl":1.4148,"angle":1.1554,"side":0.3113,"scale":0.3186,"sproutS":0.52,"swirl":0.3448,"nest":0.3414,"mirror":0,"counter":0.46,"counterAngle":1.2323,"chain":0,"chainTurn":-0.0345,"spin":1.2999,"width":0.9681,"height":0.8212,"level":0,"tilt":-0.205,"symmetry":1,"asymPhase":0.0819,"drift":0.0696,"variation":0.2027,"varPhase":5.9757,"selfSim":0,"falloff":0.8756,"varAngle":0.2292,"varTwist":6.1679,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":0,"elegance":0.8,"cutoff":0.045},"Cascade":{"A":-0.7642,"f":0.5881,"phi":1.2129,"n0":1.5542,"n1":2.0996,"c0":0.3579,"c1":0.4592,"beta":0.5815,"skew":0.0137,"cornu":-0.2823,"loops":0,"loopTurn":0.931,"loopDecay":0.9093,"loopAlt":0.6444,"loopWidth":0.0256,"fat":0.0216,"shade":0.7729,"hair":0.0756,"slant":0.2003,"pressure":0.4528,"depth":1.4341,"sprouts":2.4918,"childCurl":1.5044,"angle":1.0515,"side":-0.7065,"scale":0.3,"sproutS":0.7318,"swirl":0.1092,"nest":0,"mirror":0,"counter":0,"counterAngle":2.3623,"chain":1.7924,"chainTurn":-0.3042,"spin":0.2918,"width":0.8856,"height":0.8249,"level":0,"tilt":0.0577,"symmetry":1,"asymPhase":3.0078,"drift":0.8941,"variation":0.3459,"varPhase":6.1691,"selfSim":0.9155,"falloff":0.7617,"varAngle":0.663,"varTwist":6.0553,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":0,"elegance":0.8,"cutoff":0.045},"Trail":{"A":-0.5248,"f":0.5797,"phi":-1.1611,"n0":-1.7,"n1":1.5704,"c0":0.4488,"c1":0.5719,"beta":0.8487,"skew":0.2916,"cornu":-0.3348,"loops":1.4544,"loopTurn":1.1163,"loopDecay":0.6881,"loopAlt":0.1941,"loopWidth":0.0443,"fat":0.0289,"shade":0.9547,"hair":0.17,"slant":-0.4255,"pressure":0.4157,"depth":1.6219,"sprouts":1.7824,"childCurl":1.5829,"angle":1.0353,"side":0.877,"scale":0.433,"sproutS":0,"swirl":0.296,"nest":0,"mirror":0,"counter":0.4225,"counterAngle":1.4769,"chain":0,"chainTurn":0.5631,"spin":1.8966,"width":1.4995,"height":1.2828,"level":0,"tilt":-0.0809,"symmetry":1,"asymPhase":0.2302,"drift":0.0096,"variation":0.6187,"varPhase":0.234,"selfSim":0,"falloff":0.997,"varAngle":0.0449,"varTwist":6.283,"copies":1,"rows":1,"repeat":1,"radius":0,"stems":1,"chainAt":0.78,"chainScale":0.75,"echo":0,"bilateral":0,"pingpong":0.3,"thinning":0.8,"childPressure":0.6,"aspect":0,"elegance":0.8,"cutoff":0.045},"Fractal S":{"A":0.6,"f":0.5,"phi":0.2,"n0":-0.8,"n1":1.6,"c0":0.35,"c1":0.45,"beta":0.72,"fat":0.045,"shade":0.85,"hair":0.1,"slant":0.2,"pressure":0.5,"sprouts":2,"depth":3.5,"scale":0.55,"shrink":0.25,"side":0,"angle":1.1,"childCurl":1.1,"spin":0.5,"elegance":0.3,"thinning":1,"cutoff":0.05,"selfSim":1,"echo":0.3,"falloff":0.8},"Fractal S, varied":{"A":0.6,"f":0.5,"phi":0.2,"n0":-0.8,"n1":1.6,"c0":0.35,"c1":0.45,"beta":0.72,"fat":0.045,"shade":0.85,"hair":0.1,"slant":0.2,"pressure":0.5,"sprouts":2,"depth":3.5,"scale":0.55,"shrink":0.25,"side":0,"angle":1.1,"childCurl":1.1,"spin":0.5,"elegance":0.3,"thinning":1,"cutoff":0.05,"selfSim":1,"echo":0.3,"drift":0.6,"variation":0.7,"varAngle":1.5,"falloff":0.8},"Fractal divider":{"A":0.6,"f":0.5,"phi":0.2,"n0":-0.8,"n1":1.6,"c0":0.35,"c1":0.45,"beta":0.72,"fat":0.045,"shade":0.85,"hair":0.1,"slant":0.2,"pressure":0.5,"sprouts":2,"depth":3,"scale":0.55,"shrink":0.25,"side":0,"angle":0.9,"childCurl":1.1,"spin":0.5,"elegance":0.3,"thinning":1,"cutoff":0.05,"selfSim":1,"echo":0.3,"mirror":1,"level":1,"loops":1,"loopWidth":0.05,"variation":0.6,"falloff":0.8},"Fractal border 6:1":{"A":0.6,"f":0.5,"phi":0.2,"n0":-0.8,"n1":1.6,"c0":0.35,"c1":0.45,"beta":0.72,"fat":0.045,"shade":0.85,"hair":0.1,"slant":0.2,"pressure":0.5,"sprouts":2,"depth":2.6,"scale":0.55,"shrink":0.25,"side":0,"angle":0.9,"childCurl":1.1,"spin":0.5,"elegance":0.3,"thinning":1,"cutoff":0.05,"selfSim":1,"echo":0.3,"mirror":1,"level":1,"variation":0.8,"aspect":6,"falloff":0.8},"Bickham oval":{"fat":0.034,"shade":0.9,"hair":0.1,"slant":0.2,"pressure":0.5,"echo":0,"elegance":0.7,"depth":1.2,"sprouts":1.4,"scale":0.4,"childCurl":1.2,"angle":0.9,"A":0.3,"n0":-1.2,"c0":0.3,"n1":1.7,"c1":0.4,"loops":1,"loopTurn":1.05,"loopWidth":0.06,"spin":0.4,"side":0.5},"C-scroll":{"fat":0.034,"shade":0.8,"hair":0.1,"slant":0.2,"pressure":0.5,"echo":0,"elegance":0.7,"depth":1.4,"sprouts":2,"scale":0.42,"childCurl":1.2,"angle":0.9,"A":0.35,"n0":-1.4,"c0":0.4,"n1":1.6,"c1":0.5,"beta":0.72,"spin":0.9,"side":1},"Kurbits scroll":{"fat":0.04,"shade":0.7,"hair":0.1,"slant":0.2,"pressure":0.5,"echo":0,"elegance":0.8,"depth":2,"sprouts":3,"scale":0.45,"childCurl":1.2,"angle":0.8,"A":0.7,"n1":1.5,"c1":0.5,"side":1,"swirl":0.3,"spin":0.4}};
+const SPEC=[
+ ['Shape','proportions change the curves themselves, never a stretch',true,[
+  ['width',0.3,4,'wider: more scrolls grow outward along the arms'],['height',0.3,4,'taller: more scrolls climb upward'],
+  ['aspect',0,14,'exact width ÷ height to fit a box (0 = free)'],['level',0,1,'lay the arms horizontal (dividers)'],['tilt',-0.6,0.6,'tilt of the arms'],
+  ['mirror',0,1,'mirrored twin grows from the same root'],['symmetry',0,1,'twin drifts from an exact mirror'],['asymPhase',0,6.28,'which way it drifts'],
+  ['rotate',-3.14,3.14,'direction of growth']]],
+ ['Pen','pointed-pen shading and loops',true,[
+  ['shade',0,1,'swell on down-strokes'],['hair',0.02,0.5,'hairline weight'],['slant',-1,1,'pen slant'],
+  ['fat',0.01,0.08,'swell width / length'],['loops',0,5,'pen loops along the stroke'],['loopTurn',0.5,1.5,'turns per loop'],
+  ['loopDecay',0.4,1.2,'each loop smaller'],['loopAlt',0,1,'same way · alternating'],['loopWidth',0.015,0.15,'loop size']]],
+ ['Recursion','the same curve, smaller, growing from itself',false,[
+  ['elegance',0,1,'busy · restrained'],['depth',0,4.5,'generations'],['drift',0,1.5,'each generation morphs (fractal with variation)'],
+  ['variation',0,1.5,'how far each scroll and sprout moves through parameter space'],['varPhase',0,6.28,'slides along the variation (Ripple animates it)'],
+  ['varAngle',0,6.28,'direction of variation in parameter space'],['varTwist',0,6.28,'second direction of variation'],
+  ['selfSim',0,1,'sprouts become miniatures of their parent: a true fractal'],['cutoff',0,0.12,'low-pass: detail below this size fades out'],['falloff',0.3,1,'smaller generations: fewer sprouts, calmer'],['sprouts',0,16,'sprouts per curve'],
+  ['bilateral',0,1,'one-sided · mirrored pairs'],['thinning',0.2,1.4,'width from one generation to the next'],
+  ['childPressure',-1,1,'sprout width profile'],['childCurl',0,2,'sprout eye turns (0 = straight)'],
+  ['pingpong',0,1,'every other generation flips'],['swirl',0,1.5,'each generation curlier'],
+  ['nest',0,3,'the curve inside its own eye'],['nestScale',0.3,1.2,'size of the nested curve']]],
+ ['Curve','the eight numbers of θ(u)',false,[
+  ['A',-2,2,'wave height'],['f',0.25,3,'waves along the curve'],['phi',-3.14,3.14,'wave phase'],
+  ['n0',-3,3,'turns in the start eye'],['n1',-3,3,'turns in the end eye'],['c0',0.05,1,'start eye length'],
+  ['c1',0.05,1,'end eye length'],['beta',0.05,0.95,'eye tightness'],
+  ['skew',-0.5,0.5,'Kinoshita skew (3rd harmonic)'],['flat',-0.4,0.4,'Kinoshita flattening'],['cornu',-1.2,1.2,'Euler spiral: curvature linear in u']]],
+ ['Width','operations on the curve',false,[
+  ['pressure',-1,1,'heavy end · swelling · heavy start'],
+  ['nib',0,1,'broad-nib pen: width from direction'],['nibAngle',-1.6,1.6,'pen angle'],
+  ['lobes',0,9,'sinusoidal scallops'],['lobeDepth',0,0.9,'scallop depth'],['hollow',0,1,'solid · outline'],
+  ['stripes',0,4,'parallel curves inside'],['echo',0,1.5,'parallel curve outside'],['echoGap',0,1,'its distance']]],
+ ['Sprouting','where and how sprouts leave their parent',false,[
+  ['angle',0,2,'lean off the parent'],['side',-1,1,'one side · alternate · other side'],['fan',0,1,'along the curve · one point'],
+  ['scale',0.08,0.8,'sprout size'],['shrink',0,0.8,'later sprouts smaller'],['childWave',-1,2,'sprout wave'],
+  ['sproutS',0,1,'C-shaped · S-shaped sprouts'],['span',0,0.8,'first sprout position'],['reach',0.1,0.9,'sprouting length'],
+  ['vary',0,1,'difference between siblings'],['gravity',-1,1,'upward sprouts curl more']]],
+ ['Root','everything grows from one point, so the shape stays connected',false,[
+  ['stems',1,9,'curves from the root'],['sweep',0,4,'their spread'],['stemVary',0,1,'outer ones shorter'],['spin',-3.14,3.14,'start heading'],
+  ['counter',0,1.2,'answering curve from the root'],['counterAngle',-3.14,3.14,'its heading'],
+  ['chain',0,4,'curves continuing from curves'],['chainAt',0.3,0.95,'where the next starts'],['chainTurn',-1.5,1.5,'its turn'],
+  ['chainScale',0.4,1.2,'its size'],['chainFlip',0,1,'same way · alternating'],['flow',0,1,'added scrolls: aimed outward · tangent at the join']]],
+];
+const RANGE={x:[0,20],y:[0,20],z:[0,20]}; for(const[, , ,ps] of SPEC) for(const[k,lo,hi] of ps) RANGE[k]=[lo,hi];
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const EXP={x:4.6,y:11.0,z:3.7}; let follow=true;
+let K=Object.assign({},G.DEFAULTS,G.explore(EXP.x,EXP.y,EXP.z)), current=null;
+let mode=reduce?'still':'sweep', sweepKey='x', pal='ink', t0=performance.now(), dirty=true, sweepBase=null;
+
+/* ---- controls ---- */
+const box=document.getElementById('controls'), inputs={};
+for(const[title,sub,open,ps] of SPEC){
+  const d=document.createElement('details'); if(open) d.open=true;
+  d.innerHTML=`<summary>${title}<small>${sub}</small></summary>`;
+  const rows=document.createElement('div'); rows.className='rows';
+  for(const[k,lo,hi,help] of ps){
+    const row=document.createElement('div'); row.className='row';
+    const step=(hi-lo)>6?0.05:0.01;
+    row.innerHTML=`<label for="k-${k}">${k}</label><input type="range" id="k-${k}" min="${lo}" max="${hi}" step="${step}"><output id="o-${k}"></output><small>${help}</small>`;
+    rows.appendChild(row);
+    const inp=row.querySelector('input'); inputs[k]=inp;
+    inp.addEventListener('input',()=>{K[k]=parseFloat(inp.value); if(mode==='sweep'&&k===sweepKey) sweepBase=K[k]; current=null; if(follow){follow=false;const fb=document.getElementById('follow');fb.setAttribute('aria-pressed','false');fb.textContent='Follow';} markPreset(); syncOut(k); dirty=true;});
+  }
+  d.appendChild(rows); box.appendChild(d);
+}
+const exBox=document.getElementById('explore');
+for(const k of['x','y','z']){const row=document.createElement('div');row.className='row';
+  row.innerHTML=`<label for="e-${k}">${k}</label><input type="range" id="e-${k}" min="0" max="20" step="0.01" value="${EXP[k]}"><output id="o-${k}"></output>`;
+  exBox.appendChild(row); const inp=row.querySelector('input'); inputs[k]=inp;
+  inp.addEventListener('input',()=>{EXP[k]=parseFloat(inp.value); if(mode==='sweep'&&k===sweepKey) sweepBase=EXP[k]; setFollow(true); dirty=true;});}
+const followBtn=document.getElementById('follow');
+function setFollow(on){follow=on;followBtn.setAttribute('aria-pressed',String(on));followBtn.textContent=on?'Following':'Follow';
+  if(on){K=Object.assign({},G.DEFAULTS,G.explore(EXP.x,EXP.y,EXP.z));current=null;if(typeof markPreset==='function')markPreset();syncAll();}}
+followBtn.addEventListener('click',()=>setFollow(!follow));
+const sel=document.getElementById('sweepKey');
+for(const k of Object.keys(RANGE)){const o=document.createElement('option');o.value=k;o.textContent=(k.length===1?'explore '+k:k);sel.appendChild(o);}
+sel.value=sweepKey;
+sel.addEventListener('change',()=>{restoreSweep();sweepKey=sel.value;sweepBase=getV(sweepKey);if(sweepKey in EXP)setFollow(true);t0=performance.now();setMode('sweep');});
+const getV=k=>k in EXP?EXP[k]:K[k], setV=(k,v)=>{if(k in EXP){EXP[k]=v;if(follow)K=Object.assign({},G.DEFAULTS,G.explore(EXP.x,EXP.y,EXP.z));}else K[k]=v;};
+function syncOut(k){const o=document.getElementById('o-'+k); if(o) o.textContent=(+getV(k)).toFixed(2);}
+function syncAll(){for(const k in inputs){inputs[k].value=getV(k);syncOut(k);} showJSON();}
+function showJSON(){const out={};for(const k in G.DEFAULTS) if(Math.abs(K[k]-G.DEFAULTS[k])>1e-9) out[k]=+(+K[k]).toFixed(3);
+  document.getElementById('json').textContent=JSON.stringify(out,null,2);}
+function toSVG(){const items=G.build(K,1,{res:2.5}),P=palette(),b=G.bbox(items),pad=0.03*Math.max(b.x1-b.x0,b.y1-b.y0);
+  const f=v=>(+v).toFixed(4), X=v=>f(v-b.x0+pad), Y=v=>f(b.y1-v+pad);
+  let out=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${f(b.x1-b.x0+2*pad)} ${f(b.y1-b.y0+2*pad)}"><rect width="100%" height="100%" fill="${P.bg}"/>`;
+  for(const it of items){const p=it.pts;let d='M'+X(p[0])+' '+Y(p[1]);for(let i=2;i<p.length;i+=2)d+='L'+X(p[i])+' '+Y(p[i+1]);
+    if(it.t==='p'){if(it.h>0)out+=`<path d="${d}Z" fill="none" stroke="${P.bg}" stroke-width="${f(it.h)}" stroke-linejoin="round"/>`;out+=`<path d="${d}Z" fill="${P[it.c]||P.col}"/>`;}
+    else out+=`<path d="${d}" fill="none" stroke="${P[it.c]||P.col}" stroke-width="${f(it.w)}" stroke-linecap="round"/>`;}
+  return out+'</svg>';}
+document.getElementById('svg').addEventListener('click',async e=>{const b=e.currentTarget,s=toSVG();
+  try{await navigator.clipboard.writeText(s);b.textContent='SVG copied';}catch(_){document.getElementById('json').textContent=s;b.textContent='SVG shown below';}
+  setTimeout(()=>b.textContent='Copy SVG',1800);});
+document.getElementById('copy').addEventListener('click',async e=>{const b=e.currentTarget;
+  try{await navigator.clipboard.writeText(document.getElementById('json').textContent);b.textContent='Copied';}catch(_){b.textContent='Select the text';}
+  setTimeout(()=>b.textContent='Copy numbers',1600);});
+
+function setPressed(id,attr,val){document.querySelectorAll(`#${id} button`).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset[attr]===val)));}
+function restoreSweep(){if(sweepBase!==null){setV(sweepKey,sweepBase);sweepBase=null;syncAll();}}
+let rippleBase=0;
+function setMode(m){if(m==='ripple') rippleBase=K.varPhase||0; if(m!=='sweep') restoreSweep(); if(m==='sweep'&&sweepBase===null) sweepBase=getV(sweepKey); mode=m; t0=performance.now(); setPressed('modes','mode',m); dirty=true;}
+document.getElementById('modes').addEventListener('click',e=>{const b=e.target.closest('button'); if(b) setMode(b.dataset.mode);});
+document.getElementById('pals').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b)return; pal=b.dataset.pal; setPressed('pals','pal',pal); applyPal(); dirty=true; drawThumbs();});
+
+/* ---- palettes ---- */
+function themePal(){const cs=getComputedStyle(document.documentElement),g=v=>cs.getPropertyValue(v).trim();return{bg:g('--k-bg'),col:g('--k-col'),acc:g('--k-acc')};}
+function palette(){ if(pal==='red') return{bg:'#f7f2ee',col:'#c3323b',acc:'#e3a1a1'};
+  if(pal==='panel') return{bg:'#133a52',col:'#e6f1ee',acc:'#6c93a3'}; return themePal();}
+function applyPal(){const P=palette(); document.querySelectorAll('.canvas-box,.thumb canvas').forEach(el=>el.style.background=P.bg);}
+
+/* ---- drawing ---- */
+function fit(cv){const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1),W=Math.max(1,Math.round(r.width*d)),H=Math.max(1,Math.round(r.height*d));if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}return[W,H];}
+function draw(ctx,items,P,v,W,H,pad=0.9){
+  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=P.bg;ctx.fillRect(0,0,W,H);
+  const s=Math.min(W*pad/(v.x1-v.x0),H*pad/(v.y1-v.y0)),tx=W/2-s*(v.x0+v.x1)/2,ty=H/2+s*(v.y0+v.y1)/2;
+  ctx.lineJoin='round';ctx.lineCap='round';
+  for(const it of items){const p=it.pts;ctx.beginPath();ctx.moveTo(tx+s*p[0],ty-s*p[1]);for(let i=2;i<p.length;i+=2)ctx.lineTo(tx+s*p[i],ty-s*p[i+1]);
+    if(it.t==='p'){ctx.closePath(); if(it.h>0){ctx.strokeStyle=P.bg;ctx.lineWidth=it.h*s;ctx.stroke();} ctx.fillStyle=P[it.c]||P.col; ctx.fill();}
+    else{ctx.strokeStyle=P[it.c]||P.col;ctx.lineWidth=Math.max(0.5,it.w*s);ctx.stroke();}}
+}
+const main=document.getElementById('main'),mctx=main.getContext('2d');
+let view=null, fullKey='', fullBox=null;
+const narrow=matchMedia('(max-width:860px)'), box_=document.querySelector('.canvas-box'); let boxAspect=1, shownAspect=1;
+function pad(b,f){const w=b.x1-b.x0,h=b.y1-b.y0;return{x0:b.x0-w*f,x1:b.x1+w*f,y0:b.y0-h*f,y1:b.y1+h*f};}
+function square(b){const cx=(b.x0+b.x1)/2,cy=(b.y0+b.y1)/2,r=Math.max(b.x1-b.x0,b.y1-b.y0)/2||1;return{x0:cx-r,x1:cx+r,y0:cy-r,y1:cy+r};}
+function frame(now){
+  const t=Math.max(0,now-t0)/1000; let grow=1;
+  if(mode==='grow'){const ph=t%8.5;grow=ph<2.5?1:Math.min(1,(ph-2.5)/5.5);grow=grow*grow*(3-2*grow);}
+  if(mode==='sweep'){const[lo,hi]=RANGE[sweepKey],b=sweepBase??getV(sweepKey),ex=sweepKey in EXP;
+    if(ex){ setV(sweepKey,lo+((b-lo+t*0.3)%(hi-lo))); if(follow) syncAll(); }          // explore drifts forward
+    else { const a0=Math.acos(Math.max(-1,Math.min(1,1-2*(b-lo)/(hi-lo))));        // parameters swing
+      setV(sweepKey,lo+(hi-lo)*(0.5-0.5*Math.cos(a0+t*TAU_/9))); inputs[sweepKey].value=getV(sweepKey); syncOut(sweepKey);} }
+  if(mode==='ripple'){K.varPhase=(rippleBase+t*0.45)%(Math.PI*2); inputs.varPhase.value=K.varPhase; syncOut('varPhase');}
+  if(mode==='still'&&!dirty){requestAnimationFrame(frame);return;}
+  const key=JSON.stringify(K); let items=null;
+  if(key!==fullKey){const full=G.build(K,1); if(grow>=1) items=full; fullBox=pad(G.bbox(full),0.04); fullKey=key;}
+  const target=fullBox;
+  if(!narrow.matches){const b=target,a=Math.min(2.4,Math.max(1,(b.x1-b.x0)/Math.max(1e-6,b.y1-b.y0)));
+    boxAspect+=(a-boxAspect)*(mode==='sweep'?0.08:1); if(Math.abs(boxAspect-shownAspect)>0.01){shownAspect=boxAspect;box_.style.aspectRatio=boxAspect.toFixed(3)+' / 1';}}
+  if(!view||mode!=='sweep') view=Object.assign({},target);
+  else{for(const k of['x0','x1','y0','y1']) view[k]+=(target[k]-view[k])*0.12;   // zoom out at once, back in gently
+    view.x0=Math.min(view.x0,target.x0);view.y0=Math.min(view.y0,target.y0);view.x1=Math.max(view.x1,target.x1);view.y1=Math.max(view.y1,target.y1);}
+  const[W,H]=fit(main); draw(mctx,items||G.build(K,grow),palette(),view,W,H,0.92);
+  if(dirty||mode==='sweep') showJSON();
+  dirty=false; requestAnimationFrame(frame);
+}
+const TAU_=Math.PI*2;
+
+/* ---- presets ---- */
+const gal=document.getElementById('gallery'), thumbs=[];
+Object.entries(PRESETS).forEach(([name,p],i)=>{
+  const b=document.createElement('button');b.type='button';b.className='thumb';b.id='pre-'+i;b.setAttribute('aria-pressed','false');
+  b.innerHTML=`<canvas aria-hidden="true"></canvas><span>${name}</span>`;
+  b.addEventListener('click',()=>{restoreSweep();follow=false;const fb=document.getElementById('follow');fb.setAttribute('aria-pressed','false');fb.textContent='Follow';if(sweepKey in EXP){sweepKey='swirl';sel.value='swirl';}K=Object.assign({},G.DEFAULTS,p);current=name;sweepBase=mode==='sweep'?getV(sweepKey):null;syncAll();markPreset();dirty=true;t0=performance.now();view=null;
+    document.getElementById('main').scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'});});
+  gal.appendChild(b); thumbs.push([b,p,name]);
+});
+function markPreset(){thumbs.forEach(([b,,n])=>b.setAttribute('aria-pressed',String(n===current)));}
+function drawThumbs(){const P=palette();for(const[b,p] of thumbs){const cv=b.querySelector('canvas');const it=G.build(Object.assign({},G.DEFAULTS,p),1),bb=G.bbox(it);
+  b.classList.toggle('wide',(bb.x1-bb.x0)/Math.max(1e-6,bb.y1-bb.y0)>2.2);const[W,H]=fit(cv);draw(cv.getContext('2d'),it,P,bb,W,H,0.86);}}
+
+setPressed('modes','mode',mode); setPressed('pals','pal',pal);
+syncAll(); markPreset(); applyPal();
+requestAnimationFrame(()=>{drawThumbs();requestAnimationFrame(frame);});
+new ResizeObserver(()=>{dirty=true;}).observe(document.body);
+let rt; addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(drawThumbs,200);});
+const retheme=()=>{applyPal();dirty=true;drawThumbs();};
+new MutationObserver(retheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',retheme);
+})();
+</script>
+
+</body>
+</html>
