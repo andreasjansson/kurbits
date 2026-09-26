@@ -90,6 +90,14 @@ input[type=range]{width:100%;accent-color:var(--ink);height:28px;touch-action:pa
 .textin:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .hint{color:var(--muted);font-size:12.5px;line-height:1.35}
 </style>
+<style>
+/* the preview stays at the top on desktop too */
+.stage>.canvas-box{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);max-height:calc(100vh - 24px);z-index:5}
+.letters{display:flex;flex-wrap:wrap;gap:6px}
+.letters button{min-width:40px;font-family:var(--display);font-size:16px}
+.gtitle{font:700 15px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+@media (max-width:860px){.stage>.canvas-box{top:env(safe-area-inset-top,0px);max-height:340px}}
+</style>
 
 <div class="wrap">
   <header>
@@ -107,15 +115,15 @@ input[type=range]{width:100%;accent-color:var(--ink);height:28px;touch-action:pa
         </div>
         <div id="wordbox" hidden><label class="label" for="text">Text</label>
           <input class="textin" id="text" maxlength="24" value="Kurbits" autocomplete="off" spellcheck="false">
-          <div class="hint">A–Z. Curl, weight, contrast and the growth controls style the letters.</div></div>
+          <div class="label" style="margin-top:6px">Edit</div>
+          <div class="letters" id="letters"></div>
+          <div class="hint" id="edithint"></div></div>
       </div>
       <div class="box">
         <div class="label">Motion</div>
         <div class="seg" id="modes">
           <button type="button" id="m-still" data-mode="still">Still</button>
-          <button type="button" id="m-grow" data-mode="grow">Grow</button>
           <button type="button" id="m-sweep" data-mode="sweep">Sweep</button>
-          <button type="button" id="m-ripple" data-mode="ripple">Ripple</button>
           <select id="sweepKey" aria-label="Parameter to sweep"></select>
         </div>
         <div class="label">Colour</div>
@@ -125,12 +133,13 @@ input[type=range]{width:100%;accent-color:var(--ink);height:28px;touch-action:pa
           <button type="button" id="p-navy" data-pal="navy">Navy</button>
         </div>
       </div>
-      <div class="box">
+      <div class="box" id="explorebox">
         <div class="seg" style="justify-content:space-between"><div class="label">Explore</div><button type="button" id="follow" aria-pressed="true">Following</button></div>
         <div class="rows" id="explore"></div>
-        <div class="hint">Every control below is a smooth function of x, y and z. Move a control yourself to take over.</div>
+        <div class="hint">Every control below except width and height is a smooth function of x, y and z. Move a control yourself to take over.</div>
       </div>
       <div class="box" id="controls"></div>
+      <div class="box" id="wcontrols" hidden></div>
       <div class="box">
         <div class="seg" style="justify-content:space-between"><div class="label">These numbers</div><div class="seg"><button type="button" id="copy">Copy numbers</button><button type="button" id="svg">Copy SVG</button></div></div>
         <div class="json" id="json"></div>
@@ -154,7 +163,7 @@ width ∝ hair + (1 − hair)·max(0, cos(heading + π/2 − slant))^1.6</div>
     <div class="two">
       <div><h3>One curve</h3><p>Every mark, letters included, is the curve θ(u): a swing, an Euler bend, optional pen loops and a spiral eye at either end. A pointed pen swells on down-strokes and thins to a hairline on up-strokes.</p></div>
       <div><h3>One rule</h3><p>Smaller copies of the curve sprout along it, curling away. Fractal makes each sprout a varied miniature of its parent; smaller generations are sparser, so detail fades out instead of turning to fuzz.</p></div>
-      <div><h3>Letters</h3><p>Each capital is one to four strokes of the same curve, fitted by least squares to a skeleton of the letter. Its ends take spiral eyes, and the growth controls can sprout flourishes from them.</p></div>
+      <div><h3>Letters</h3><p>Each capital is one to four strokes of the same curve, fitted by least squares to a skeleton of the letter. Pick a letter to see and change the exact numbers of each of its strokes, or pick All to add the same offsets to every stroke of every letter.</p></div>
       <div><h3>No randomness</h3><p>The same numbers always draw the same ornament. Counts accept fractions and grow the next element in, so every control sweeps smoothly.</p></div>
     </div>
   </section>
@@ -640,9 +649,9 @@ const Compact=(G=>{
     ['Growth',[['detail',0,1,'sprouts and generations'],['fractal',0,1,'sprouts become varied miniatures of their parent'],
                ['side',-1,1,'sprouts on one side · alternating · the other side'],['variation',0,1,'every scroll and sprout a little different']]],
     ['Form',[['mirror',0,1,'mirrored twin from the same root'],['rise',-90,90,'angle of the arms (0 = divider)'],
-             ['extend',0,6,'extra scrolls along the arms']]],
+             ['width',0.3,4,'wider: more scrolls grow outward (never a stretch)'],['height',0.3,4,'taller: more scrolls climb upward']]],
   ];
-  const DEFAULTS={curl:0.5,scroll:-0.6,wave:0.6,bend:0,lean:0.2,loops:0,weight:0.4,contrast:0.8,detail:0.4,fractal:0,side:0.3,variation:0,mirror:1,rise:0,extend:0};
+  const DEFAULTS={curl:0.5,scroll:-0.6,wave:0.6,bend:0,lean:0.2,loops:0,weight:0.4,contrast:0.8,detail:0.4,fractal:0,side:0.3,variation:0,mirror:1,rise:0,width:1,height:1};
   function expand(C,phase=0){
     C=Object.assign({},DEFAULTS,C);
     const deg=C.rise*Math.PI/180, fr=clip(C.fractal), d=clip(C.detail);
@@ -654,63 +663,86 @@ const Compact=(G=>{
       sprouts:4*d, depth:0.4+2.4*d, scale:0.42+0.12*fr, angle:0.9, childCurl:1.1, side:C.side, elegance:0.6,
       selfSim:fr, drift:0.6*fr, falloff:1-0.25*fr, cutoff:0.03+0.02*fr, thinning:0.85+0.15*fr,
       variation:C.variation, varAngle:1.5, varTwist:0.7, varPhase:phase,
-      mirror:C.mirror, level:1, tilt:deg, spin:deg, _ext:C.extend, _extDir:0, chain:0,
-      width:1, height:1, aspect:0,
+      mirror:C.mirror, level:1, tilt:deg, spin:deg, chain:0,
+      width:C.width, height:C.height, aspect:0,
     };
   }
   const EX=[['curl',0,1],['scroll',-1,1],['wave',-1.3,1.3],['bend',-0.7,0.7],['lean',-2,2],['loops',0,1,0.55],
     ['weight',0.2,0.65],['contrast',0.5,1],['detail',0.1,0.8],['fractal',0,1,0.45],['side',-1,1],['variation',0,0.9,0.3],
-    ['mirror',0,1,0.25],['rise',-40,75],['extend',0,5,0.45]];
+    ['mirror',0,1,0.25],['rise',-40,75]];
   const GOLD=2.399963229728653;
   function explore(x,y,z){const C={};
     EX.forEach(([k,lo,hi,th],i)=>{let s=0.5+0.5*Math.sin(0.55*Math.cos(i*GOLD)*x+0.55*Math.sin(i*GOLD*1.31+0.4)*y+0.45*Math.cos(i*1.77+1.1)*z+i*1.618);
       if(th) s=Math.max(0,(s-th)/(1-th)); C[k]=+(lo+(hi-lo)*s).toFixed(3);});
     C.mirror=+clip((C.mirror-0.1)*4).toFixed(3); return C;}
-  return{SPEC,DEFAULTS,expand,explore};
+  const NOT_EXPLORED=['width','height'];
+  return{SPEC,DEFAULTS,expand,explore,NOT_EXPLORED};
 });
 
 
-/* Lettering: each capital is 1–4 strokes of the same curve θ(u), least-squares fitted to a skeleton.
-   Styled by the compact parameters: curl (terminal eyes), weight, contrast; detail/fractal/side/variation
-   sprout flourishes from the letter strokes through the same recursive rule. */
+/* Lettering with editable letters. Each letter = style + strokes; each stroke = the exact numbers of one curve θ(u)
+   (wave, waves, lean, bend, skew, start/end eye) and where its body starts (x, y, angle, length).
+   An "all" record of offsets is added to every stroke and every letter's style. */
 const Lettering=(G,L,Cm)=>{
-  // position and heading of the curve at u (local frame: starts at 0 with heading θ(0))
-  function at(p,u){const n=64,du=u/n;let x=0,y=0,t0=G.theta(0,p);
-    for(let i=0;i<n;i++){const a=G.theta(i*du,p),b=G.theta((i+1)*du,p);x+=(Math.cos(a)+Math.cos(b))/2*du;y+=(Math.sin(a)+Math.sin(b))/2*du;}
-    return[x,y,G.theta(u,p)];}
-  // a different start eye rotates everything after it: keep the letter body where it was fitted
-  function reanchor(s,p){if(!s.e0) return[s.x,s.y,s.h];
-    const u=s.p[5], [x0,y0,t0]=at(s.p,u), [x1,y1,t1]=at(p,u);
-    const r0=s.h-G.theta(0,s.p), W=[s.x+s.size*(x0*Math.cos(r0)-y0*Math.sin(r0)), s.y+s.size*(x0*Math.sin(r0)+y0*Math.cos(r0))];
-    const r1=r0+(t0+r0)-(t1+r0);  // body heading unchanged
-    return[W[0]-s.size*(x1*Math.cos(r1)-y1*Math.sin(r1)), W[1]-s.size*(x1*Math.sin(r1)+y1*Math.cos(r1)), r1+G.theta(0,p)];}
-  function word(text,C={},grow=1,phase=0){
-    const K0=Cm.expand(Object.assign({},C,{mirror:0,extend:0,loops:0}),phase);
-    const K=G.refine(Object.assign({},G.DEFAULTS,K0));
-    const wAbs=0.02+0.1*(C.weight??0.4), eye=(0.68+0.7*(C.curl??0.5))/0.9;
-    const sc=new G.Scene(); let x=0; const chars=[...text.toUpperCase()], n=chars.length||1;
-    const det=Math.min(1,Math.max(0,C.detail??0));
-    chars.forEach((ch,i)=>{
-      const g=L[ch]; if(!g){x+=0.42;return;}
-      const gsc=new G.Scene();
-      const gi=Math.max(0,Math.min(1,grow*(n+2)/1.5-i/1.5));
-      g.strokes.forEach((s,j)=>{
-        const gs=Math.max(0,Math.min(1,gi*g.strokes.length-j)); if(gs<=0) return;
-        const p=s.p.slice(); p[3]*=eye; p[4]*=eye;
-        // only terminal strokes (with an eye) sprout, and only a little: letters must stay legible
-        const Ks=Object.assign(Object.create(K),{fat:wAbs/s.size,depth:(s.e0||s.e1)?K.depth*det:0,sprouts:(s.e0||s.e1)?1.5*det:0,
-          scale:0.34,span:0.55,reach:0.4,_trunk:s.size});
-        const [ax,ay,ah]=reanchor(s,p);
-        G.branch(gsc,Ks,[1,0,0,1],p,ax,ay,ah,s.size,0,gs,10+j,0);
+  const DEG=Math.PI/180, TAU=Math.PI*2, clip=(v,a,b)=>Math.min(b,Math.max(a,v));
+  const STROKE=[['wave',-3,3,'swing'],['waves',0.15,2.5,'swings along the stroke'],['lean',-3.14,3.14,'where the swing falls'],
+    ['bend',-1.5,1.5,'Euler bend'],['skew',-0.6,0.6,'Kinoshita skew'],['eye0',-2,2,'start eye (turns)'],['eye1',-2,2,'end eye (turns)'],
+    ['x',-0.4,1.4,'body start x'],['y',-0.4,1.4,'body start y'],['angle',-180,180,'body start direction (°)'],['length',0.1,2.5,'stroke length']];
+  const STYLE=[['weight',0,1,'line weight'],['contrast',0,1,'monoline · thick and thin'],['detail',0,1,'flourishes sprouting from the ends'],
+    ['fractal',0,1,'flourishes as miniatures'],['side',-1,1,'which side they sprout'],['variation',0,1,'each flourish different']];
+  const DELTA={wave:1.5,waves:1,lean:3.14,bend:1,skew:0.5,eye0:1.5,eye1:1.5,x:0.5,y:0.5,angle:90,length:0.6,
+               weight:1,contrast:1,detail:1,fractal:1,side:2,variation:1};
+  const STYLE0={weight:0.6,contrast:0.9,detail:0,fractal:0,side:0.3,variation:0};
+  function at(p,u){const n=48,du=u/n;let x=0,y=0;for(let i=0;i<n;i++){const a=G.theta(i*du,p),b=G.theta((i+1)*du,p);x+=(Math.cos(a)+Math.cos(b))/2*du;y+=(Math.sin(a)+Math.sin(b))/2*du;}return[x,y,G.theta(u,p)];}
+  const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
+  function letter(ch){
+    const g=L[ch]; if(!g) return {ch,space:true};
+    const strokes=g.strokes.map(s=>{const p=s.p,u=p[5],[lx,ly,tu]=at(p,u),r=s.h-G.theta(0,p);
+      return {wave:+p[0].toFixed(4),waves:+p[1].toFixed(4),lean:+wrap(p[2]).toFixed(4),bend:+p[10].toFixed(4),skew:+p[8].toFixed(4),
+        eye0:+p[3].toFixed(3),eye1:+p[4].toFixed(3),x:+(s.x+s.size*(lx*Math.cos(r)-ly*Math.sin(r))).toFixed(4),
+        y:+(s.y+s.size*(lx*Math.sin(r)+ly*Math.cos(r))).toFixed(4),angle:+(wrap(tu+r)/DEG).toFixed(2),length:+s.size.toFixed(4),
+        _c0:p[5],_c1:p[6],_beta:p[7],_flat:p[9]};});
+    return {ch,adv:g.adv,style:Object.assign({},STYLE0),strokes};
+  }
+  function blankAll(){const o={};for(const[k] of STROKE)o[k]=0;for(const[k] of STYLE)o[k]=0;return o;}
+  function model(text,old){
+    const chars=[...text.toUpperCase()].filter(c=>c===' '||L[c]);
+    const prev=old&&old.letters||[];
+    return {text:chars.join(''),letters:chars.map((c,i)=>prev[i]&&prev[i].ch===c?prev[i]:letter(c)),all:old&&old.all||blankAll()};
+  }
+  function effStroke(s,A){
+    const e=(v,d)=>v===0?0:Math.sign(v)*Math.max(0.05,Math.abs(v)+d);    // offsets widen or tighten existing eyes only
+    return {wave:s.wave+A.wave,waves:clip(s.waves+A.waves,0.1,3),lean:s.lean+A.lean,bend:s.bend+A.bend,skew:s.skew+A.skew,
+      eye0:s._c0>0.1?e(s.eye0,A.eye0):0,eye1:s._c1>0.1?e(s.eye1,A.eye1):0,x:s.x+A.x,y:s.y+A.y,angle:s.angle+A.angle,
+      length:s.length*Math.max(0.05,1+A.length),_c0:s._c0,_c1:s._c1,_beta:s._beta,_flat:s._flat};
+  }
+  function render(M,grow=1,selected=null){
+    const sc=new G.Scene(); let x=0; const n=M.letters.length||1;
+    M.letters.forEach((Lt,i)=>{
+      if(Lt.space){x+=0.42;return;}
+      const st={};for(const[k,lo,hi] of STYLE)st[k]=clip(Lt.style[k]+M.all[k],lo,hi);
+      const K=G.refine(Object.assign({},G.DEFAULTS,Cm.expand(Object.assign({},st,{mirror:0,width:1,height:1,loops:0}))));
+      const wAbs=0.02+0.1*st.weight, gi=clip(grow*(n+2)/1.5-i/1.5,0,1), gsc=new G.Scene(), col=selected===null||selected===i?'col':'acc';
+      Lt.strokes.forEach((s0,j)=>{
+        const gs=clip(gi*Lt.strokes.length-j,0,1); if(gs<=0) return;
+        const s=effStroke(s0,M.all);
+        const p=[s.wave,s.waves,s.lean,s.eye0,s.eye1,s._c0,s._c1,s._beta,s.skew,s._flat,s.bend,0,0,0,0,0];
+        const [lx,ly,tu]=at(p,p[5]), r=s.angle*DEG-tu;                 // place the body start at (x, y) with the given direction
+        const sx=s.x-s.length*(lx*Math.cos(r)-ly*Math.sin(r)), sy=s.y-s.length*(lx*Math.sin(r)+ly*Math.cos(r));
+        const eyes=Math.abs(s.eye0)>0.05||Math.abs(s.eye1)>0.05;
+        const Ks=Object.assign(Object.create(K),{fat:wAbs/s.length,depth:eyes?K.depth*st.detail:0,sprouts:eyes?1.5*st.detail:0,
+          scale:0.34,span:0.55,reach:0.4,_trunk:s.length});
+        G.branch(gsc,Ks,[1,0,0,1],p,sx,sy,r+G.theta(0,p),s.length,0,gs,10+j,0);
       });
-      // measured spacing: place the glyph by its real drawn extent (eyes included)
-      const full=gi<1?null:gsc.items, bb=G.bbox(full||gsc.items), x0=isFinite(bb.x0)?Math.min(bb.x0,0):0, x1=isFinite(bb.x1)?Math.max(bb.x1,g.adv*0.8):g.adv;
-      for(const it of gsc.items){const q=it.pts;for(let k=0;k<q.length;k+=2)q[k]+=x-x0; sc.items.push(it);}
+      for(const it of gsc.items) if(col==='acc') it.c='acc';
+      const bb=G.bbox(gsc.items), x0=isFinite(bb.x0)?Math.min(bb.x0,0):0, x1=isFinite(bb.x1)?Math.max(bb.x1,Lt.adv*0.8):Lt.adv;
+      for(const it of gsc.items){const q=it.pts;for(let k=0;k<q.length;k+=2)q[k]+=x-x0;sc.items.push(it);}
       x+=(x1-x0)+0.09;
     });
     return sc.items;
   }
-  return{word};
+  function word(text,style={},grow=1){const M=model(text);for(const Lt of M.letters)if(!Lt.space)Object.assign(Lt.style,style);return render(M,grow);}
+  return{STROKE,STYLE,DELTA,model,render,word,letter,blankAll};
 };
 
 
@@ -718,58 +750,97 @@ const LETTERS={"A":{"adv":0.8,"strokes":[{"p":[-0.0,2.04315,0.11535,0.9,0.0,0.16
 </script>
 <script>
 (()=>{
-const G=KurbitsSwirl, Cm=Compact(G), W=Lettering(G,LETTERS,Cm), PRESETS={"Classic divider":{"curl":0.5,"scroll":-0.6,"wave":0.6,"bend":0,"lean":0.2,"loops":0,"weight":0.4,"contrast":0.8,"detail":0.4,"fractal":0,"side":0.3,"variation":0,"mirror":1,"rise":0,"extend":0},"Running border":{"curl":0.082,"scroll":-0.894,"wave":-0.616,"bend":0.698,"lean":0.638,"loops":0,"weight":0.401,"contrast":0.601,"detail":0.471,"fractal":0,"side":-0.097,"variation":0.083,"mirror":1,"rise":0.566,"extend":2.921},"Pendant divider":{"curl":0.285,"scroll":0.151,"wave":-0.779,"bend":0.406,"lean":1.815,"loops":0,"weight":0.499,"contrast":0.786,"detail":0.1,"fractal":0.202,"side":0.585,"variation":0.407,"mirror":1,"rise":73.802,"extend":4.999},"Lace border":{"curl":0.961,"scroll":0.853,"wave":-1.297,"bend":0.206,"lean":0.361,"loops":0,"weight":0.436,"contrast":0.999,"detail":0.686,"fractal":0.677,"side":0.866,"variation":0.254,"mirror":1,"rise":61.367,"extend":4.907},"Fine border":{"curl":0.647,"scroll":-0.997,"wave":-0.935,"bend":-0.271,"lean":1.766,"loops":0,"weight":0.434,"contrast":0.748,"detail":0.753,"fractal":0,"side":0.641,"variation":0.51,"mirror":1,"rise":38.861,"extend":2.756},"Eye divider":{"curl":0.095,"scroll":-0.896,"wave":0.633,"bend":0.444,"lean":1.424,"loops":0,"weight":0.236,"contrast":0.584,"detail":0.515,"fractal":0,"side":-0.929,"variation":0,"mirror":0.948,"rise":17.537,"extend":0},"Small divider":{"curl":0.264,"scroll":-0.699,"wave":0.795,"bend":0.692,"lean":1.242,"loops":0,"weight":0.202,"contrast":0.5,"detail":0.104,"fractal":0.054,"side":-0.942,"variation":0,"mirror":1,"rise":74.74,"extend":2.508},"Crowned divider":{"curl":0.991,"scroll":0.639,"wave":1.038,"bend":-0.602,"lean":0.291,"loops":0.173,"weight":0.555,"contrast":0.778,"detail":0.614,"fractal":0.794,"side":-0.472,"variation":0.754,"mirror":1,"rise":64.136,"extend":0.877},"Arch divider":{"curl":0.072,"scroll":0.462,"wave":0.08,"bend":-0.46,"lean":1.785,"loops":0,"weight":0.498,"contrast":1,"detail":0.114,"fractal":0.035,"side":0.829,"variation":0.643,"mirror":1,"rise":72.718,"extend":1.85},"Swag":{"curl":0.382,"scroll":-0.389,"wave":-0.266,"bend":0.69,"lean":1.997,"loops":0,"weight":0.203,"contrast":0.752,"detail":0.73,"fractal":0,"side":-0.43,"variation":0,"mirror":1,"rise":57.045,"extend":1.578},"Heart":{"curl":0.995,"scroll":-0.23,"wave":-1.026,"bend":-0.676,"lean":1.152,"loops":0.203,"weight":0.203,"contrast":0.501,"detail":0.652,"fractal":0.692,"side":-0.715,"variation":0,"mirror":1,"rise":71.985,"extend":0},"Heart knot":{"curl":0.922,"scroll":-0.809,"wave":-1.298,"bend":-0.629,"lean":1.945,"loops":0,"weight":0.282,"contrast":0.581,"detail":0.792,"fractal":0.073,"side":-0.05,"variation":0.039,"mirror":1,"rise":69.707,"extend":0},"Swash":{"curl":0.004,"scroll":-0.385,"wave":-1.215,"bend":0.486,"lean":-0.774,"loops":0,"weight":0.258,"contrast":0.773,"detail":0.231,"fractal":0,"side":0.604,"variation":0,"mirror":0,"rise":-32.566,"extend":0},"Scroll":{"curl":0.813,"scroll":0.986,"wave":0.272,"bend":-0.688,"lean":-1.09,"loops":0.814,"weight":0.4,"contrast":0.937,"detail":0.364,"fractal":0.999,"side":0.252,"variation":0.342,"mirror":0.412,"rise":28.26,"extend":0},"Flourish":{"curl":0.844,"scroll":0.147,"wave":0.457,"bend":-0.241,"lean":-1.549,"loops":0.62,"weight":0.306,"contrast":0.765,"detail":0.792,"fractal":0.137,"side":-0.451,"variation":0.02,"mirror":0,"rise":-39.747,"extend":0},"Rococo":{"curl":0.827,"scroll":-0.702,"wave":-0.439,"bend":0.304,"lean":-1.953,"loops":0.596,"weight":0.308,"contrast":0.503,"detail":0.799,"fractal":0,"side":-0.731,"variation":0,"mirror":0,"rise":-35.608,"extend":0},"Horns":{"curl":0.607,"scroll":-0.064,"wave":1.275,"bend":0.591,"lean":1.968,"loops":0,"weight":0.278,"contrast":0.555,"detail":0.157,"fractal":0.678,"side":-0.464,"variation":0,"mirror":1,"rise":62.831,"extend":0},"Pendant":{"curl":0.007,"scroll":-0.229,"wave":-0.79,"bend":-0.694,"lean":0.742,"loops":0.188,"weight":0.337,"contrast":0.925,"detail":0.266,"fractal":0,"side":0.988,"variation":0.189,"mirror":1,"rise":68.633,"extend":0},"Cartouche":{"curl":0.912,"scroll":1,"wave":-1.14,"bend":0.62,"lean":1.06,"loops":0,"weight":0.222,"contrast":1,"detail":0.407,"fractal":0.999,"side":0.854,"variation":0,"mirror":1,"rise":8.956,"extend":0.595},"Tail":{"curl":0.997,"scroll":0.756,"wave":-0.452,"bend":0.252,"lean":-0.326,"loops":0,"weight":0.209,"contrast":0.928,"detail":0.652,"fractal":0.739,"side":0.274,"variation":0,"mirror":0,"rise":-27.786,"extend":0},"Fractal S":{"curl":0.6,"scroll":-0.8,"wave":0.6,"bend":0,"lean":0.2,"loops":0,"weight":0.45,"contrast":0.8,"detail":0.6,"fractal":1,"side":0.3,"variation":0,"mirror":0,"rise":40,"extend":0}};
-const TAU=Math.PI*2, reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const RANGE={x:[0,20],y:[0,20],z:[0,20]}; for(const[,ps] of Cm.SPEC) for(const[k,lo,hi] of ps) RANGE[k]=[lo,hi];
+const G=KurbitsSwirl, Cm=Compact(G), W=Lettering(G,LETTERS,Cm), PRESETS={"Classic divider":{"curl":0.5,"scroll":-0.6,"wave":0.6,"bend":0,"lean":0.2,"loops":0,"weight":0.4,"contrast":0.8,"detail":0.4,"fractal":0,"side":0.3,"variation":0,"mirror":1,"rise":0,"width":1.0,"height":1},"Running border":{"curl":0.082,"scroll":-0.894,"wave":-0.616,"bend":0.698,"lean":0.638,"loops":0,"weight":0.401,"contrast":0.601,"detail":0.471,"fractal":0,"side":-0.097,"variation":0.083,"mirror":1,"rise":0.566,"width":2.31,"height":1},"Pendant divider":{"curl":0.285,"scroll":0.151,"wave":-0.779,"bend":0.406,"lean":1.815,"loops":0,"weight":0.499,"contrast":0.786,"detail":0.1,"fractal":0.202,"side":0.585,"variation":0.407,"mirror":1,"rise":73.802,"width":3.25,"height":1},"Lace border":{"curl":0.961,"scroll":0.853,"wave":-1.297,"bend":0.206,"lean":0.361,"loops":0,"weight":0.436,"contrast":0.999,"detail":0.686,"fractal":0.677,"side":0.866,"variation":0.254,"mirror":1,"rise":61.367,"width":3.21,"height":1},"Fine border":{"curl":0.647,"scroll":-0.997,"wave":-0.935,"bend":-0.271,"lean":1.766,"loops":0,"weight":0.434,"contrast":0.748,"detail":0.753,"fractal":0,"side":0.641,"variation":0.51,"mirror":1,"rise":38.861,"width":2.24,"height":1},"Eye divider":{"curl":0.095,"scroll":-0.896,"wave":0.633,"bend":0.444,"lean":1.424,"loops":0,"weight":0.236,"contrast":0.584,"detail":0.515,"fractal":0,"side":-0.929,"variation":0,"mirror":0.948,"rise":17.537,"width":1.0,"height":1},"Small divider":{"curl":0.264,"scroll":-0.699,"wave":0.795,"bend":0.692,"lean":1.242,"loops":0,"weight":0.202,"contrast":0.5,"detail":0.104,"fractal":0.054,"side":-0.942,"variation":0,"mirror":1,"rise":74.74,"width":2.13,"height":1},"Crowned divider":{"curl":0.991,"scroll":0.639,"wave":1.038,"bend":-0.602,"lean":0.291,"loops":0.173,"weight":0.555,"contrast":0.778,"detail":0.614,"fractal":0.794,"side":-0.472,"variation":0.754,"mirror":1,"rise":64.136,"width":1.39,"height":1},"Arch divider":{"curl":0.072,"scroll":0.462,"wave":0.08,"bend":-0.46,"lean":1.785,"loops":0,"weight":0.498,"contrast":1,"detail":0.114,"fractal":0.035,"side":0.829,"variation":0.643,"mirror":1,"rise":72.718,"width":1.83,"height":1},"Swag":{"curl":0.382,"scroll":-0.389,"wave":-0.266,"bend":0.69,"lean":1.997,"loops":0,"weight":0.203,"contrast":0.752,"detail":0.73,"fractal":0,"side":-0.43,"variation":0,"mirror":1,"rise":57.045,"width":1.71,"height":1},"Heart":{"curl":0.995,"scroll":-0.23,"wave":-1.026,"bend":-0.676,"lean":1.152,"loops":0.203,"weight":0.203,"contrast":0.501,"detail":0.652,"fractal":0.692,"side":-0.715,"variation":0,"mirror":1,"rise":71.985,"width":1.0,"height":1},"Heart knot":{"curl":0.922,"scroll":-0.809,"wave":-1.298,"bend":-0.629,"lean":1.945,"loops":0,"weight":0.282,"contrast":0.581,"detail":0.792,"fractal":0.073,"side":-0.05,"variation":0.039,"mirror":1,"rise":69.707,"width":1.0,"height":1},"Swash":{"curl":0.004,"scroll":-0.385,"wave":-1.215,"bend":0.486,"lean":-0.774,"loops":0,"weight":0.258,"contrast":0.773,"detail":0.231,"fractal":0,"side":0.604,"variation":0,"mirror":0,"rise":-32.566,"width":1.0,"height":1},"Scroll":{"curl":0.813,"scroll":0.986,"wave":0.272,"bend":-0.688,"lean":-1.09,"loops":0.814,"weight":0.4,"contrast":0.937,"detail":0.364,"fractal":0.999,"side":0.252,"variation":0.342,"mirror":0.412,"rise":28.26,"width":1.0,"height":1},"Flourish":{"curl":0.844,"scroll":0.147,"wave":0.457,"bend":-0.241,"lean":-1.549,"loops":0.62,"weight":0.306,"contrast":0.765,"detail":0.792,"fractal":0.137,"side":-0.451,"variation":0.02,"mirror":0,"rise":-39.747,"width":1.0,"height":1},"Rococo":{"curl":0.827,"scroll":-0.702,"wave":-0.439,"bend":0.304,"lean":-1.953,"loops":0.596,"weight":0.308,"contrast":0.503,"detail":0.799,"fractal":0,"side":-0.731,"variation":0,"mirror":0,"rise":-35.608,"width":1.0,"height":1},"Horns":{"curl":0.607,"scroll":-0.064,"wave":1.275,"bend":0.591,"lean":1.968,"loops":0,"weight":0.278,"contrast":0.555,"detail":0.157,"fractal":0.678,"side":-0.464,"variation":0,"mirror":1,"rise":62.831,"width":1.0,"height":1},"Pendant":{"curl":0.007,"scroll":-0.229,"wave":-0.79,"bend":-0.694,"lean":0.742,"loops":0.188,"weight":0.337,"contrast":0.925,"detail":0.266,"fractal":0,"side":0.988,"variation":0.189,"mirror":1,"rise":68.633,"width":1.0,"height":1},"Cartouche":{"curl":0.912,"scroll":1,"wave":-1.14,"bend":0.62,"lean":1.06,"loops":0,"weight":0.222,"contrast":1,"detail":0.407,"fractal":0.999,"side":0.854,"variation":0,"mirror":1,"rise":8.956,"width":1.27,"height":1},"Tail":{"curl":0.997,"scroll":0.756,"wave":-0.452,"bend":0.252,"lean":-0.326,"loops":0,"weight":0.209,"contrast":0.928,"detail":0.652,"fractal":0.739,"side":0.274,"variation":0,"mirror":0,"rise":-27.786,"width":1.0,"height":1},"Fractal S":{"curl":0.6,"scroll":-0.8,"wave":0.6,"bend":0,"lean":0.2,"loops":0,"weight":0.45,"contrast":0.8,"detail":0.6,"fractal":1,"side":0.3,"variation":0,"mirror":0,"rise":40,"width":1.0,"height":1}};
+const TAU=Math.PI*2, GOLD=0.6180339887, reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $=id=>document.getElementById(id);
 const EXP={x:12.7,y:13.9,z:2.0};
 let C=Object.assign({},Cm.DEFAULTS,Cm.explore(EXP.x,EXP.y,EXP.z)), follow=true, current=null;
-let kind='ornament', text='KURBITS', mode=reduce?'still':'ripple', sweepKey='x', sweepBase=null, pal='ink', phase=0;
-let t0=performance.now(), dirty=true;
-const $=id=>document.getElementById(id);
-function build(grow=1,res){ return kind==='word'?W.word(text,C,grow,phase):G.build(Cm.expand(C,phase),grow,res?{res}:undefined); }
+let kind='ornament', M=W.model('KURBITS'), sel='all';
+let mode=reduce?'still':'sweep', sweepKey='x+y+z', sweepBase=null, pal='ink', t0=performance.now(), dirty=true;
+const keepWH=()=>({width:C.width,height:C.height});
+function fromExplore(){C=Object.assign({},Cm.DEFAULTS,Cm.explore(EXP.x,EXP.y,EXP.z),keepWH());}
+function build(grow=1,res){return kind==='word'?W.render(M,grow,sel==='all'?null:sel):G.build(Cm.expand(C),grow,res?{res}:undefined);}
 
-/* ---- controls ---- */
-const inputs={}, box=$('controls');
-function slider(parent,k,lo,hi,help,onInput){
-  const row=document.createElement('div');row.className='row';const step=(hi-lo)>20?1:(hi-lo)>4?0.05:0.01;
-  row.innerHTML=`<label for="k-${k}">${k}</label><input type="range" id="k-${k}" min="${lo}" max="${hi}" step="${step}"><output id="o-${k}"></output>`+(help?`<small>${help}</small>`:'');
-  parent.appendChild(row); const inp=row.querySelector('input'); inputs[k]=inp; inp.addEventListener('input',()=>onInput(parseFloat(inp.value)));
+/* ---- one registry for every slider: id → {lo,hi,get,set,label} ---- */
+const REG=new Map(), inputs={};
+function fmt(v,lo,hi){return (hi-lo)>=100?(+v).toFixed(0):(+v).toFixed(2);}
+function slider(parent,id,label,lo,hi,help,get,set){
+  lo=Math.min(lo,get());hi=Math.max(hi,get());
+  const row=document.createElement('div');row.className='row';const step=(hi-lo)>=100?1:(hi-lo)>4?0.02:0.01;
+  const hid='s-'+id.replace(/[^a-zA-Z0-9]/g,'_');
+  row.innerHTML=`<label for="${hid}">${label}</label><input type="range" id="${hid}" min="${lo}" max="${hi}" step="${step}"><output></output>`+(help?`<small>${help}</small>`:'');
+  parent.appendChild(row);const inp=row.querySelector('input'),out=row.querySelector('output');
+  const r={lo,hi,get,set,label,inp,out,sync(){inp.value=get();out.textContent=fmt(get(),lo,hi);}};REG.set(id,r);r.sync();
+  inp.addEventListener('input',()=>{set(parseFloat(inp.value));if(mode==='sweep'&&id===sweepKey)sweepBase=get();r.sync();dirty=true;showJSON();});
 }
+/* ornament controls */
 for(const[title,ps] of Cm.SPEC){
-  const d=document.createElement('details'); d.open=true; d.innerHTML=`<summary>${title}</summary>`;
-  const rows=document.createElement('div');rows.className='rows';
-  for(const[k,lo,hi,help] of ps) slider(rows,k,lo,hi,help,v=>{C[k]=v;if(mode==='sweep'&&k===sweepKey)sweepBase=v;current=null;markPreset();setFollow(false,true);syncOut(k);dirty=true;});
-  d.appendChild(rows); box.appendChild(d);
+  const d=document.createElement('details');d.open=true;d.innerHTML=`<summary>${title}</summary>`;const rows=document.createElement('div');rows.className='rows';
+  for(const[k,lo,hi,help] of ps) slider(rows,k,k,lo,hi,help,()=>C[k],v=>{C[k]=v;current=null;markPreset();if(!Cm.NOT_EXPLORED.includes(k))setFollow(false,true);});
+  d.appendChild(rows);$('controls').appendChild(d);
 }
-for(const k of['x','y','z']) slider($('explore'),k,0,20,'',v=>{EXP[k]=v;if(mode==='sweep'&&k===sweepKey)sweepBase=v;setFollow(true);dirty=true;});
-const getV=k=>k in EXP?EXP[k]:C[k];
-function setV(k,v){if(k in EXP){EXP[k]=v;if(follow)C=Object.assign({},Cm.DEFAULTS,Cm.explore(EXP.x,EXP.y,EXP.z));}else C[k]=v;}
-function syncOut(k){const o=$('o-'+k);if(o)o.textContent=(+getV(k)).toFixed(k==='rise'?0:2);}
-function syncAll(){for(const k in inputs){inputs[k].value=getV(k);syncOut(k);}showJSON();}
-function showJSON(){const o={};for(const[,ps] of Cm.SPEC)for(const[k] of ps)o[k]=+(+C[k]).toFixed(3);if(kind==='word')o.text=text;$('json').textContent=JSON.stringify(o,null,2);}
+for(const k of['x','y','z']) slider($('explore'),k,k,0,20,'',()=>EXP[k],v=>{EXP[k]=v;setFollow(true);});
+function syncAll(){for(const r of REG.values())r.sync();showJSON();}
 function setFollow(on,quiet){follow=on;const b=$('follow');b.setAttribute('aria-pressed',String(on));b.textContent=on?'Following':'Follow';
-  if(on&&!quiet){C=Object.assign({},Cm.DEFAULTS,Cm.explore(EXP.x,EXP.y,EXP.z));current=null;markPreset();syncAll();}}
+  if(on&&!quiet){fromExplore();current=null;markPreset();syncAll();}}
 $('follow').addEventListener('click',()=>{setFollow(!follow);dirty=true;});
-const sel=$('sweepKey');
-for(const k of Object.keys(RANGE)){const o=document.createElement('option');o.value=k;o.textContent=k.length===1?'explore '+k:k;sel.appendChild(o);}
-sel.value=sweepKey;
-sel.addEventListener('change',()=>{restoreSweep();sweepKey=sel.value;if(sweepKey in EXP)setFollow(true);setMode('sweep');});
+
+/* ---- word mode: letter buttons and the exact numbers of the selected letter (or offsets for All) ---- */
+function letterButtons(){const box=$('letters');box.innerHTML='';
+  const mk=(label,val)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.setAttribute('aria-pressed',String(sel===val));
+    b.addEventListener('click',()=>{sel=val;restoreSweep();letterButtons();wordPanel();dirty=true;});box.appendChild(b);};
+  mk('All','all');M.letters.forEach((Lt,i)=>{if(!Lt.space)mk(Lt.ch,i);});
+  $('edithint').textContent=sel==='all'?'Offsets added to every stroke and every letter.':'The exact numbers of this letter; the others are shown grey.';}
+function wordPanel(){
+  for(const id of[...REG.keys()])if(id.startsWith('w.'))REG.delete(id);
+  const box=$('wcontrols');box.innerHTML='';
+  const group=(title,open)=>{const d=document.createElement('details');d.open=open;d.innerHTML=`<summary>${title}</summary>`;const rows=document.createElement('div');rows.className='rows';d.appendChild(rows);box.appendChild(d);return rows;};
+  if(sel==='all'){
+    const g1=group('Style offsets',true);for(const[k,,,help] of W.STYLE)slider(g1,'w.all.'+k,k,-W.DELTA[k],W.DELTA[k],help,()=>M.all[k],v=>{M.all[k]=v;});
+    const g2=group('Every stroke',true);for(const[k,,,help] of W.STROKE)slider(g2,'w.all.'+k,k,-W.DELTA[k],W.DELTA[k],k==='length'?'× (1 + offset)':help,()=>M.all[k],v=>{M.all[k]=v;});
+  }else{
+    const Lt=M.letters[sel];
+    const g1=group(`${Lt.ch} · style`,true);for(const[k,lo,hi,help] of W.STYLE)slider(g1,`w.${sel}.${k}`,k,lo,hi,help,()=>Lt.style[k],v=>{Lt.style[k]=v;});
+    Lt.strokes.forEach((s,j)=>{const g=group(`${Lt.ch} · stroke ${j+1}`,j===0);
+      for(const[k,lo,hi,help] of W.STROKE)slider(g,`w.${sel}.${j}.${k}`,k,lo,hi,help,()=>s[k],v=>{s[k]=v;});});
+  }
+  const rb=document.createElement('button');rb.type='button';rb.textContent=sel==='all'?'Reset offsets':'Reset letter';
+  rb.addEventListener('click',()=>{if(sel==='all')M.all=W.blankAll();else M.letters[sel]=W.letter(M.letters[sel].ch);wordPanel();dirty=true;});
+  box.appendChild(rb);sweepOptions();showJSON();
+}
+$('text').addEventListener('input',e=>{M=W.model((e.target.value||'').toUpperCase().replace(/[^A-Z ]/g,'')||'A',M);
+  if(sel!=='all'&&(!M.letters[sel]||M.letters[sel].space))sel='all';letterButtons();wordPanel();dirty=true;});
+function setKind(k){kind=k;restoreSweep();setPressed('kinds','kind',k);
+  $('wordbox').hidden=k!=='word';$('wcontrols').hidden=k!=='word';$('controls').hidden=k==='word';$('explorebox').hidden=k==='word';
+  if(k==='word'){letterButtons();wordPanel();}else sweepOptions();view=null;fullKey='';dirty=true;showJSON();}
+$('kinds').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setKind(b.dataset.kind);});
+
+/* ---- motion: still or sweep ---- */
+const sel_=$('sweepKey');
+function sweepOptions(){const keep=sweepKey;sel_.innerHTML='';const opts=[];
+  if(kind==='ornament'){opts.push(['x+y+z','x + y + z'],['x','x'],['y','y'],['z','z']);for(const[,ps] of Cm.SPEC)for(const[k] of ps)opts.push([k,k]);}
+  else for(const[id,r] of REG)if(id.startsWith('w.'))opts.push([id,(sel==='all'?'all ':'')+(id.split('.').length>3?'stroke '+(+id.split('.')[2]+1)+' ':'')+r.label]);
+  for(const[v,l] of opts){const o=document.createElement('option');o.value=v;o.textContent=l;sel_.appendChild(o);}
+  sweepKey=opts.some(o=>o[0]===keep)?keep:opts[0][0];sel_.value=sweepKey;}
+sel_.addEventListener('change',()=>{restoreSweep();sweepKey=sel_.value;if('x y z x+y+z'.split(' ').includes(sweepKey))setFollow(true);setMode('sweep');});
 function setPressed(id,attr,val){document.querySelectorAll(`#${id} button`).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset[attr]===val)));}
-function restoreSweep(){if(sweepBase!==null){setV(sweepKey,sweepBase);sweepBase=null;syncAll();}}
-function setMode(m){if(m!=='sweep')restoreSweep();if(m==='sweep')sweepBase=getV(sweepKey);mode=m;t0=performance.now();setPressed('modes','mode',m);dirty=true;}
+function baseOf(k){return k==='x+y+z'?{...EXP}:REG.get(k)?.get();}
+function restoreSweep(){if(sweepBase===null)return;if(sweepKey==='x+y+z'){Object.assign(EXP,sweepBase);if(follow)fromExplore();}
+  else{const r=REG.get(sweepKey);if(r){r.set(sweepBase);}}sweepBase=null;syncAll();}
+function setMode(m){if(m!=='sweep')restoreSweep();else sweepBase=baseOf(sweepKey);mode=m;t0=performance.now();setPressed('modes','mode',m);sel_.hidden=m!=='sweep';dirty=true;}
 $('modes').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setMode(b.dataset.mode);});
 $('pals').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;pal=b.dataset.pal;setPressed('pals','pal',pal);applyPal();dirty=true;drawThumbs();});
-function setKind(k){kind=k;setPressed('kinds','kind',k);$('wordbox').hidden=k!=='word';view=null;fullKey='';dirty=true;showJSON();}
-$('kinds').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setKind(b.dataset.kind);});
-$('text').addEventListener('input',e=>{text=(e.target.value||'').toUpperCase().replace(/[^A-Z ]/g,'')||' ';dirty=true;showJSON();});
+function showJSON(){let o;if(kind==='word'){const r=v=>typeof v==='number'?+v.toFixed(3):v;
+    o={text:M.text,all:Object.fromEntries(Object.entries(M.all).filter(([,v])=>v).map(([k,v])=>[k,r(v)])),
+       letters:M.letters.filter(l=>!l.space).map(l=>({ch:l.ch,style:l.style,strokes:l.strokes.map(s=>Object.fromEntries(Object.entries(s).filter(([k])=>k[0]!=='_').map(([k,v])=>[k,r(v)])))}))};}
+  else{o={};for(const[,ps] of Cm.SPEC)for(const[k] of ps)o[k]=+(+C[k]).toFixed(3);}
+  $('json').textContent=JSON.stringify(o,null,1);}
 $('copy').addEventListener('click',async e=>{const b=e.currentTarget;try{await navigator.clipboard.writeText($('json').textContent);b.textContent='Copied';}catch(_){b.textContent='Select the text';}setTimeout(()=>b.textContent='Copy numbers',1600);});
 
-/* ---- colour ---- */
+/* ---- colour and drawing ---- */
 function themePal(){const cs=getComputedStyle(document.documentElement),g=v=>cs.getPropertyValue(v).trim();return{bg:g('--k-bg'),col:g('--k-col'),acc:g('--k-acc')};}
 function palette(){if(pal==='red')return{bg:'#f7f2ee',col:'#c3323b',acc:'#e3a1a1'};if(pal==='navy')return{bg:'#133a52',col:'#e6f1ee',acc:'#6c93a3'};return themePal();}
 function applyPal(){const P=palette();document.querySelectorAll('.canvas-box,.thumb canvas').forEach(el=>el.style.background=P.bg);}
-
-/* ---- drawing ---- */
 function fit(cv){const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1),Wd=Math.max(1,Math.round(r.width*d)),H=Math.max(1,Math.round(r.height*d));if(cv.width!==Wd||cv.height!==H){cv.width=Wd;cv.height=H;}return[Wd,H];}
 function draw(ctx,items,P,v,Wd,H,pad=0.9){
   ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=P.bg;ctx.fillRect(0,0,Wd,H);
@@ -781,25 +852,23 @@ function draw(ctx,items,P,v,Wd,H,pad=0.9){
 }
 function padB(b,f){const w=b.x1-b.x0,h=b.y1-b.y0,m=f*Math.max(w,h);return{x0:b.x0-m,x1:b.x1+m,y0:b.y0-m,y1:b.y1+m};}
 const main=$('main'),mctx=main.getContext('2d'),narrow=matchMedia('(max-width:860px)'),cbox=document.querySelector('.canvas-box');
-let view=null,fullKey='',fullBox=null,boxAspect=1,shownAspect=1;
+let view=null,boxAspect=1,shownAspect=1;
 function frame(now){
-  const t=Math.max(0,now-t0)/1000; let grow=1;
-  if(mode==='grow'){const ph=t%8.5;grow=ph<2.5?1:Math.min(1,(ph-2.5)/5.5);grow=grow*grow*(3-2*grow);}
-  if(mode==='sweep'){const[lo,hi]=RANGE[sweepKey],b=sweepBase??getV(sweepKey);
-    if(sweepKey in EXP){setV(sweepKey,lo+((b-lo+t*0.3)%(hi-lo)));if(follow)syncAll();}
-    else{const a0=Math.acos(Math.max(-1,Math.min(1,1-2*(b-lo)/(hi-lo))));setV(sweepKey,lo+(hi-lo)*(0.5-0.5*Math.cos(a0+t*TAU/9)));inputs[sweepKey].value=getV(sweepKey);syncOut(sweepKey);}}
-  if(mode==='ripple') phase=(t*0.45)%TAU;
-  if(mode==='still'&&!dirty){requestAnimationFrame(frame);return;}
-  const key=JSON.stringify(C)+kind+text+(mode==='ripple'?'':phase); let items=null;
-  if(key!==fullKey){const full=build(1);if(grow>=1)items=full;fullBox=padB(G.bbox(full),0.03);fullKey=key;}
-  const target=fullBox;
+  const t=Math.max(0,now-t0)/1000;
+  if(mode==='sweep'&&sweepBase!==null){
+    if(sweepKey==='x+y+z'){const r=[0.3,0.3*GOLD,0.3*GOLD*GOLD];['x','y','z'].forEach((k,i)=>{EXP[k]=(sweepBase[k]+t*r[i])%20;});if(follow){fromExplore();syncAll();}}
+    else if('xyz'.includes(sweepKey)&&sweepKey.length===1){EXP[sweepKey]=(sweepBase+t*0.3)%20;if(follow){fromExplore();syncAll();}}
+    else{const r=REG.get(sweepKey);if(r){const lo=r.lo,hi=r.hi,a0=Math.acos(Math.max(-1,Math.min(1,1-2*(sweepBase-lo)/(hi-lo))));r.set(lo+(hi-lo)*(0.5-0.5*Math.cos(a0+t*TAU/9)));r.sync();}}
+    dirty=true;}
+  if(!dirty){requestAnimationFrame(frame);return;}
+  const items=build(1),target=padB(G.bbox(items),0.03);
   if(!narrow.matches){const a=Math.min(2.6,Math.max(1,(target.x1-target.x0)/Math.max(1e-6,target.y1-target.y0)));boxAspect+=(a-boxAspect)*(mode==='sweep'?0.08:1);
     if(Math.abs(boxAspect-shownAspect)>0.01){shownAspect=boxAspect;cbox.style.aspectRatio=boxAspect.toFixed(3)+' / 1';}}
   if(!view||mode!=='sweep')view=Object.assign({},target);
   else{for(const k of['x0','x1','y0','y1'])view[k]+=(target[k]-view[k])*0.12;
     view.x0=Math.min(view.x0,target.x0);view.y0=Math.min(view.y0,target.y0);view.x1=Math.max(view.x1,target.x1);view.y1=Math.max(view.y1,target.y1);}
-  const[Wd,H]=fit(main);draw(mctx,items||build(grow),palette(),view,Wd,H,0.92);
-  if(dirty&&mode!=='sweep')showJSON();
+  const[Wd,H]=fit(main);draw(mctx,items,palette(),view,Wd,H,0.92);
+  if(mode!=='sweep')showJSON();
   dirty=false;requestAnimationFrame(frame);
 }
 
@@ -820,25 +889,23 @@ const gal=$('gallery'),thumbs=[];
 Object.entries(PRESETS).forEach(([name,p],i)=>{
   const b=document.createElement('button');b.type='button';b.className='thumb';b.id='pre-'+i;b.setAttribute('aria-pressed','false');
   b.innerHTML=`<canvas aria-hidden="true"></canvas><span>${name}</span>`;
-  b.addEventListener('click',()=>{restoreSweep();setFollow(false,true);if(sweepKey in EXP){sweepKey='curl';sel.value='curl';}
-    C=Object.assign({},Cm.DEFAULTS,p);current=name;setKind('ornament');syncAll();markPreset();dirty=true;t0=performance.now();view=null;
-    main.scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'});});
+  b.addEventListener('click',()=>{restoreSweep();setFollow(false,true);C=Object.assign({},Cm.DEFAULTS,p);current=name;setKind('ornament');
+    if('x y z x+y+z'.split(' ').includes(sweepKey)){sweepKey='curl';sel_.value='curl';}if(mode==='sweep')sweepBase=baseOf(sweepKey);
+    syncAll();markPreset();dirty=true;t0=performance.now();view=null;main.scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'});});
   gal.appendChild(b);thumbs.push([b,p,name]);
 });
 function markPreset(){thumbs.forEach(([b,,n])=>b.setAttribute('aria-pressed',String(n===current)));}
 function drawThumbs(){const P=palette();for(const[b,p] of thumbs){const cv=b.querySelector('canvas');const it=G.build(Cm.expand(Object.assign({},Cm.DEFAULTS,p)),1),bb=G.bbox(it);
   b.classList.toggle('wide',(bb.x1-bb.x0)/Math.max(1e-6,bb.y1-bb.y0)>2.2);const[Wd,H]=fit(cv);draw(cv.getContext('2d'),it,P,bb,Wd,H,0.86);}}
 
-/* ---- the heading: KURBITS drawn with the same curve ---- */
-const WM=$('wordmark'),wt0=performance.now();let wmDone=false;
-const WMC={weight:0.85,contrast:0.9,curl:0.6,detail:0};
+/* ---- the heading ---- */
+const WMD=$('wordmark'),wt0=performance.now();let wmDone=false;const WMS={weight:0.85,contrast:0.9};
 function wordmark(now){const g=reduce?1:Math.min(1,Math.max(0,(now-wt0)/2200)),e=g*g*(3-2*g);
-  const all=W.word('KURBITS',WMC),items=g<1?W.word('KURBITS',WMC,e):all;
-  const[Wd,H]=fit(WM),cs=getComputedStyle(document.body);
-  draw(WM.getContext('2d'),items,{bg:cs.backgroundColor,col:cs.color,acc:cs.color},G.bbox(all),Wd,H,0.98);
+  const all=W.word('KURBITS',WMS),items=g<1?W.word('KURBITS',WMS,e):all;const[Wd,H]=fit(WMD),cs=getComputedStyle(document.body);
+  draw(WMD.getContext('2d'),items,{bg:cs.backgroundColor,col:cs.color,acc:cs.color},G.bbox(all),Wd,H,0.98);
   if(g<1)requestAnimationFrame(wordmark);else wmDone=true;}
 
-setPressed('modes','mode',mode);setPressed('pals','pal',pal);setKind('ornament');syncAll();markPreset();applyPal();
+sweepOptions();setPressed('pals','pal',pal);setKind('ornament');setMode(mode);syncAll();markPreset();applyPal();
 requestAnimationFrame(()=>{drawThumbs();requestAnimationFrame(frame);requestAnimationFrame(wordmark);});
 new ResizeObserver(()=>{dirty=true;if(wmDone)wordmark(performance.now());}).observe(document.body);
 let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(drawThumbs,200);});
