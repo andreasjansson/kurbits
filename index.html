@@ -18,6 +18,8 @@ img{max-width:100%}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans+Extra+Condensed:wght@600;700;800&family=Fira+Sans:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js"></script>
 <style>
 :root{color-scheme:light;
   --panel:#c9ccc6; --panel-hi:#d3d6d0; --navy:#173a58; --ink:#1b3a56; --muted:#4f6477; --teal:#a9dcdb; --ivory:#efe7c6;
@@ -86,6 +88,17 @@ footer::before,footer::after{content:"";height:var(--hair);background:var(--navy
   .stage>.canvas-box{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;aspect-ratio:auto!important;height:34svh;min-height:180px;max-height:340px}
   .cols{grid-template-columns:1fr;gap:18px}.cols>div{padding:0;border-left:0;border-top:var(--hair) solid var(--navy);padding-top:12px}}
 select{-webkit-appearance:none;appearance:none;padding-right:26px;background-image:linear-gradient(45deg,transparent 50%,var(--navy) 50%),linear-gradient(135deg,var(--navy) 50%,transparent 50%);background-position:calc(100% - 15px) 50%,calc(100% - 10px) 50%;background-size:5px 5px;background-repeat:no-repeat}
+.math{display:grid;gap:14px;padding:18px 20px;background:var(--panel-hi);border:var(--hair) solid var(--navy);color:var(--navy);overflow-x:auto}
+.math .eq{min-height:1.6em;min-width:0;overflow-x:auto;overflow-y:hidden}
+.box>*,.stage>*,.side>*{min-width:0}
+.math .katex-display{margin:0}
+.math .katex{font-size:1.12em}
+.terms{display:grid;grid-template-columns:minmax(150px,max-content) 1fr;margin:0}
+.terms dt,.terms dd{margin:0;padding:10px 0;border-top:var(--hair) solid var(--navy)}
+.terms dt{padding-right:22px;color:var(--navy)}
+.terms dd{font:500 14px/1.5 var(--text);color:var(--ink)}
+.terms dt:first-of-type,.terms dt:first-of-type+dd{border-top:0}
+@media (max-width:860px){.math{padding:14px 10px}.math .katex{font-size:.86em}.terms{grid-template-columns:1fr}.terms dd{border-top:0;padding-top:0}}
 </style>
 
 <div class="wrap">
@@ -138,14 +151,24 @@ select{-webkit-appearance:none;appearance:none;padding-right:26px;background-ima
       <div><h3><b>2</b>Four numbers</h3><p>x, y and z move through the space; every engine number is a smooth function of them. Detail adds sprouts and generations, and at the high end self-similar, varied miniatures. Aspect widens or heightens an ornament by adding scrolls, never by stretching.</p></div>
       <div><h3><b>3</b>No randomness</h3><p>The same numbers always draw the same ornament. Counts accept fractions and grow the next element in, so every number sweeps smoothly.</p></div>
     </div>
-    <div class="formula">θ(u) = A·sin(2π·0.6u + φ) + π·bend·((2u − 1)² − 1)
-     + Σⱼ₌₁³ τⱼ·½(1 + tanh((u − uⱼ)/σⱼ))                three soft turns
-     + 2π·n₀·H(u/c₀) + 2π·n₁·(1 − H((1 − u)/c₁))        spiral eyes
-H(v) = ((v+ε)^(1−β) − ε^(1−β)) / ((1+ε)^(1−β) − ε^(1−β))
-x(u) = ∫cos θ du,  y(u) = ∫sin θ du,  u = 0…1
-
-limbs: the same curve, grown from the trunk at u, angle a, length ℓ, arc b, curl c
-width ∝ hair + (1 − hair)·max(0, cos(heading + π/2 − slant))^1.6</div>
+    <div class="math">
+      <div class="eq" data-tex="\begin{aligned}\theta(u) = {}&amp; A\sin(2\pi f u + \varphi) + \pi b\,\big((2u-1)^2-1\big)\\ &amp;+ \sum_{j=1}^{3}\tau_j\,\tfrac12\Big(1+\tanh\frac{u-u_j}{\sigma_j}\Big)\\ &amp;+ 2\pi n_0\,H\!\Big(\frac{u}{c_0}\Big)\\ &amp;+ 2\pi n_1\Big(1-H\Big(\frac{1-u}{c_1}\Big)\Big)\end{aligned}"></div>
+      <div class="eq" data-tex="H(v)=\frac{(v+\varepsilon)^{1-\beta}-\varepsilon^{1-\beta}}{(1+\varepsilon)^{1-\beta}-\varepsilon^{1-\beta}}"></div>
+      <div class="eq" data-tex="x(u)=\int_0^u\cos\theta\,ds,\qquad y(u)=\int_0^u\sin\theta\,ds"></div>
+      <div class="eq" data-tex="w(u)\;\propto\;h+(1-h)\,\max\!\big(0,\;\cos(\psi(u)+\tfrac{\pi}{2}-s)\big)^{1.6}"></div>
+    </div>
+    <dl class="terms">
+      <dt data-tex="\theta(u)"></dt><dd>The direction of the pen at a point along the stroke, with u running from 0 at the start to 1 at the end. The stroke is drawn by walking in that direction.</dd>
+      <dt data-tex="A\sin(2\pi f u+\varphi)"></dt><dd>The swing: a gentle sway from side to side. A is how far it sways, f = 0.6 how often, and φ (lean) where along the stroke the sway falls.</dd>
+      <dt data-tex="\pi b\,\big((2u-1)^2-1\big)"></dt><dd>The Euler bend. Curvature changes steadily along the stroke, so it tightens or opens like a clothoid, the curve of a well-drawn road or a fiddlehead.</dd>
+      <dt data-tex="\tau_j\,\tfrac12\big(1+\tanh\tfrac{u-u_j}{\sigma_j}\big)"></dt><dd>Three soft turns. Each turns the pen by the angle τⱼ around the point uⱼ, spread over a width σⱼ: a narrow width is a corner, a wide one a slow bend.</dd>
+      <dt data-tex="2\pi n_0\,H(u/c_0)"></dt><dd>The spiral eye at the start: n₀ full turns, wound into the first c₀ of the stroke.</dd>
+      <dt data-tex="2\pi n_1\big(1-H\big(\tfrac{1-u}{c_1}\big)\big)"></dt><dd>The spiral eye at the end: n₁ turns in the last c₁ of the stroke. Its sign decides which way it curls.</dd>
+      <dt data-tex="H(v)"></dt><dd>The shape of the spirals: a log-aesthetic curve. β sets how quickly the spiral tightens towards its centre; the small ε keeps the centre finite.</dd>
+      <dt data-tex="x(u),\;y(u)"></dt><dd>The stroke itself: adding up tiny steps in direction θ. Everything above describes only how the pen turns; the shape follows.</dd>
+      <dt data-tex="w(u)"></dt><dd>The pointed pen: width swells on down-strokes and thins to a hairline h on up-strokes, where ψ is the heading and s the slant of the nib.</dd>
+      <dt data-tex="\text{limbs, sprouts}"></dt><dd>Not in the formula, but made of it: up to two limbs grow from the trunk as the same curve, and smaller copies sprout along every stroke, curling away. Detail decides how many generations grow.</dd>
+    </dl>
   </section>
 
   <footer>Kurbits</footer>
@@ -785,7 +808,7 @@ const Field=(Cm,GLYPHS)=>{
 </script>
 <script>
 (()=>{
-const G=KurbitsSwirl, Cm=Compact(G), PRESETS={"Lily":[12.4,13.6,17.5,0.4,1],"Divider":[9.4,16.6,5,0.2,1],"Cartouche":[16,10,9.9,0.85,2],"Hairline":[17.8,8.2,6,0.2,1],"Antlers":[14.9,11.1,10.5,0.85,1],"Knot":[0.3,12.8,6.4,0.2,1],"Lyre":[8.7,15.2,16.6,0.2,1],"Heart":[5.341,15.627,12.689,0.15,1],"Vase":[12.3,1,15.2,0.2,1],"Crest":[8.6,17.4,17,0.6,1],"Band":[17.1,8.9,9.2,0.85,5],"Scroll":[0,6,4.7,0.2,1]}, F=Field(Cm,{});
+const G=KurbitsSwirl, Cm=Compact(G), PRESETS={"Lily":[12.4,13.6,17.5,0.4,1],"Divider":[9.4,16.6,5,0.2,1],"Cartouche":[16,10,9.9,0.85,2],"Hairline":[17.8,8.2,6,0.2,1],"Antlers":[14.9,11.1,10.5,0.85,1],"Knot":[0.3,12.8,6.4,0.2,1],"Lyre":[8.7,15.2,16.6,0.2,1],"Heart":[5.953,15.081,12.417,0.15,1],"Vase":[12.3,1,15.2,0.2,1],"Crest":[8.6,17.4,17,0.6,1],"Band":[17.1,8.9,9.2,0.85,5],"Scroll":[0,6,4.7,0.2,1]}, F=Field(Cm,{});
 const TAU=Math.PI*2, GOLD=0.6180339887, reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const $=id=>document.getElementById(id);
 /* ---- the space: four numbers (plus aspect for ornaments) ---- */
@@ -836,18 +859,20 @@ function setPressed(id,attr,val){document.querySelectorAll(`#${id} button`).forE
 const keysOf=k=>k==='x+y+z'?['x','y','z']:[k];
 function setMode(m){mode=m;rephase=true;last=null;setPressed('modes','mode',m);sel_.hidden=m!=='sweep';dirty=true;}   // Still keeps whatever the sweep reached
 $('modes').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setMode(b.dataset.mode);});
-// each swept number has a phase φ and sits at lo + (hi − lo)·(½ − ½cos φ): a smooth back-and-forth with no wrap-around.
-// Any change from outside (a drag, a preset, Random) moves φ to the new value, keeping the direction of travel.
+// each swept number has a phase φ in [0, 2) and moves as a triangle wave: up at constant speed for φ in [0, 1], down for
+// φ in [1, 2], turning at the ends (no wrap-around). Any change from outside (a drag, a preset, Random) moves φ to the
+// new value, keeping the direction of travel.
 function sweepRange(k){const{pre}=target();const r=REG.get(pre+k)||REG.get(k);return r?[r.lo,r.hi]:RANGE[k];}
-const SPEED={x:0.35,y:0.35,z:0.35,detail:0.07,aspect:0.25};
+const SPEED={x:0.075,y:0.075,z:0.075,detail:0.015,aspect:0.053};   // units per second: a third of the old average speed
 let PH={}, rephase=true, last=null;
-function phaseOf(k,v,prev){const[lo,hi]=sweepRange(k),a=Math.acos(Math.max(-1,Math.min(1,1-2*(v-lo)/Math.max(1e-6,hi-lo))));
-  return prev!==undefined&&Math.sin(prev)<0?2*Math.PI-a:a;}
+function phaseOf(k,v,prev){const[lo,hi]=sweepRange(k),f=Math.max(0,Math.min(1,(v-lo)/Math.max(1e-6,hi-lo)));
+  return prev!==undefined&&(((prev%2)+2)%2)>1?2-f:f;}
+const tri=p=>{const q=((p%2)+2)%2;return q<=1?q:2-q;};
 function sweepStep(dt){const{o,pre}=target(),ks=keysOf(sweepKey);
   if(rephase){const P={};for(const k of ks)P[k]=phaseOf(k,o[k],PH[k]);PH=P;rephase=false;}
   ks.forEach((k,i)=>{const r=REG.get(pre+k)||REG.get(k);if(r&&r.held)return;          // a drag takes precedence
     const[lo,hi]=sweepRange(k),span=Math.max(1e-6,hi-lo),rate=ks.length>1?[1,GOLD,GOLD*GOLD][i]:1;
-    PH[k]+=2*SPEED[k]/span*rate*dt; o[k]=lo+span*(0.5-0.5*Math.cos(PH[k]));});}
+    PH[k]+=SPEED[k]/span*rate*dt; o[k]=lo+span*tri(PH[k]);});}
 $('pals').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;pal=b.dataset.pal;setPressed('pals','pal',pal);applyPal();dirty=true;drawThumbs();});
 function showJSON(){const r3=v=>+(+v).toFixed(3);$('json').textContent=JSON.stringify(Object.fromEntries(['x','y','z','detail','aspect'].map(k=>[k,r3(ORN[k])])),null,1);}
 $('copy').addEventListener('click',async e=>{const b=e.currentTarget;try{await navigator.clipboard.writeText($('json').textContent);b.textContent='Copied';}catch(_){b.textContent='Select the text';}setTimeout(()=>b.textContent='Copy numbers',1600);});
@@ -917,6 +942,9 @@ setPressed('pals','pal',pal);pointPanel();setMode(mode);markPreset();applyPal();
 requestAnimationFrame(()=>{drawThumbs();decorate();requestAnimationFrame(frame);});
 new ResizeObserver(()=>{dirty=true;}).observe(document.body);
 let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{drawThumbs();decorate();},200);});
+/* typeset the formula and its terms once KaTeX has loaded (the page works without it) */
+function typeset(){if(typeof katex==='undefined')return false;document.querySelectorAll('[data-tex]').forEach(el=>{try{katex.render(el.dataset.tex,el,{displayMode:el.classList.contains('eq'),throwOnError:false});}catch(_){el.textContent=el.dataset.tex;}});return true;}
+if(!typeset())addEventListener('load',()=>{if(!typeset())document.querySelectorAll('[data-tex]').forEach(el=>el.textContent=el.dataset.tex);});
 })();
 
 </script>
