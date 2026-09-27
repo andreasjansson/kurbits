@@ -21,29 +21,30 @@ img{max-width:100%}
 <style>
 :root{color-scheme:light;
   --panel:#c9ccc6; --panel-hi:#d3d6d0; --navy:#173a58; --ink:#1b3a56; --muted:#4f6477; --teal:#a9dcdb; --ivory:#efe7c6;
-  --label:"Fira Sans Extra Condensed","Arial Narrow",sans-serif; --text:"Fira Sans",system-ui,sans-serif; --mono:ui-monospace,Menlo,Consolas,monospace;}
+  --hair:2px; --label:"Fira Sans Extra Condensed","Arial Narrow",sans-serif; --text:"Fira Sans",system-ui,sans-serif; --mono:ui-monospace,Menlo,Consolas,monospace;}
 *{box-sizing:border-box}
+button,select,input,canvas,.json,.formula,.band{border-radius:0}   /* square everything; only the knob caps are round */
 body{background:var(--panel);color:var(--ink);font:500 15px/1.5 var(--text);padding-inline:clamp(16px,4vw,44px);padding-block:18px 40px}
 .wrap{max-width:1180px;margin-inline:auto;display:grid;gap:24px}
 /* header: a fine flourish, then the name between two hairlines, like the panel's footer */
 header{display:grid;justify-items:center;gap:6px}
 #flourish{width:min(640px,94%);height:58px;display:block}
 .name{width:100%;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:22px}
-.name::before,.name::after{content:"";height:1.5px;background:var(--navy)}
+.name::before,.name::after{content:"";height:var(--hair);background:var(--navy)}
 h1{margin:0;font:600 clamp(28px,4vw,40px)/1 var(--text);letter-spacing:.01em;color:var(--navy)}
 .sub{font:700 13px/1 var(--label);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .stage{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(300px,.85fr);gap:28px;align-items:start}
-.canvas-box{position:relative;aspect-ratio:1/1;background:var(--panel);border:1.5px solid var(--navy);border-radius:3px;overflow:hidden}
+.canvas-box{position:relative;aspect-ratio:1/1;background:var(--panel);border:var(--hair) solid var(--navy);overflow:hidden}
 .canvas-box canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .stage>.canvas-box{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);max-height:calc(100vh - 24px);z-index:5}
 .side{display:grid;gap:22px}
 /* groups: a hairline above with a small tick at its start, like the panel's column brackets */
-.box{position:relative;display:grid;gap:12px;padding-top:12px;border-top:1.5px solid var(--navy)}
-.box::before{content:"";position:absolute;left:0;top:-1.5px;width:1.5px;height:9px;background:var(--navy)}
+.box{position:relative;display:grid;gap:12px;padding-top:14px}
+.box::before{content:"";position:absolute;left:0;right:0;top:0;height:10px;border-top:var(--hair) solid var(--navy);border-left:var(--hair) solid var(--navy);pointer-events:none}   /* rule and tick: one element, one width */
 .label{font:800 15px/1 var(--label);letter-spacing:.04em;text-transform:uppercase;color:var(--navy)}
 .seg{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 button,select{min-height:34px;font:700 15px/1 var(--label);letter-spacing:.05em;text-transform:uppercase;color:var(--navy);
-  background:var(--panel-hi);border:1.5px solid var(--navy);border-radius:3px;padding:7px 12px;cursor:pointer}
+  background:var(--panel-hi);border:var(--hair) solid var(--navy);padding:7px 12px;cursor:pointer}
 button[aria-pressed="true"]{background:var(--navy);color:var(--ivory)}
 select{text-transform:none;letter-spacing:.02em}
 button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
@@ -59,31 +60,32 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--cap);border:4px solid #151617}
 .hint{font:600 12.5px/1.4 var(--label);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 /* the one small display */
-.json{font:500 13px/1.55 var(--mono);color:#e9e6dc;background:#0b0c0c;border-radius:3px;box-shadow:0 0 0 1.5px var(--navy),inset 0 0 0 4px #0b0c0c,inset 0 0 0 5px #2b2f31;padding:12px 14px;max-height:180px;overflow:auto;white-space:pre}
+.json{font:500 13px/1.55 var(--mono);color:#e9e6dc;background:#0b0c0c;box-shadow:0 0 0 var(--hair) var(--navy),inset 0 0 0 4px #0b0c0c,inset 0 0 0 5px #2b2f31;padding:12px 14px;max-height:180px;overflow:auto;white-space:pre}
 /* the navy band with teal scrollwork and ivory numerals */
-.band{position:relative;background:var(--navy);border-radius:4px;height:clamp(64px,9vw,92px);overflow:hidden}
+.band{position:relative;background:var(--navy);height:clamp(64px,9vw,92px);overflow:hidden}
 .band canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 h2{margin:0;font:800 22px/1 var(--label);letter-spacing:.04em;text-transform:uppercase;color:var(--navy)}
 .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:14px}
 .thumb{display:grid;gap:7px;background:none;border:0;padding:0;min-height:0;text-align:left;color:var(--navy)}
-.thumb canvas{width:100%;aspect-ratio:1/1;display:block;border:1.5px solid #8c98a3;border-radius:3px}
+.thumb canvas{width:100%;aspect-ratio:1/1;display:block;border:var(--hair) solid #8c98a3;}
 .thumb span{font:800 15px/1 var(--label);letter-spacing:.04em;text-transform:uppercase}
 .thumb[aria-pressed="true"]{background:none;color:var(--navy)}
-.thumb[aria-pressed="true"] canvas{border-color:var(--navy);box-shadow:0 0 0 1.5px var(--navy)}
+.thumb[aria-pressed="true"] canvas{border-color:var(--navy);box-shadow:0 0 0 var(--hair) var(--navy)}
 .thumb.wide{grid-column:span 2}
 .thumb.wide canvas{aspect-ratio:2.6/1}
 .cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
-.cols>div{padding:0 22px;border-left:1.5px solid var(--navy)}
+.cols>div{padding:0 22px;border-left:var(--hair) solid var(--navy)}
 .cols>div:first-child{padding-left:0;border-left:0}
 .cols h3{margin:0 0 8px;display:flex;align-items:baseline;gap:10px;font:800 17px/1.1 var(--label);letter-spacing:.04em;text-transform:uppercase;color:var(--navy)}
 .cols h3 b{font:800 italic 34px/1 var(--label);color:var(--navy)}
 .cols p{margin:0;font:500 14px/1.55 var(--text);color:var(--ink)}
-.formula{font:500 12.5px/1.7 var(--mono);color:var(--ink);background:var(--panel-hi);border:1.5px solid var(--navy);border-radius:3px;padding:14px 16px;overflow-x:auto;white-space:pre}
+.formula{font:500 12.5px/1.7 var(--mono);color:var(--ink);background:var(--panel-hi);border:var(--hair) solid var(--navy);padding:14px 16px;overflow-x:auto;white-space:pre}
 footer{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:22px;color:var(--navy);font:800 14px/1 var(--label);letter-spacing:.1em;text-transform:uppercase}
-footer::before,footer::after{content:"";height:1.5px;background:var(--navy)}
+footer::before,footer::after{content:"";height:var(--hair);background:var(--navy)}
 @media (max-width:860px){.stage{display:block}.stage>.side{margin-top:20px}
   .stage>.canvas-box{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;aspect-ratio:auto!important;height:34svh;min-height:180px;max-height:340px}
-  .cols{grid-template-columns:1fr;gap:18px}.cols>div{padding:0;border-left:0;border-top:1.5px solid var(--navy);padding-top:12px}}
+  .cols{grid-template-columns:1fr;gap:18px}.cols>div{padding:0;border-left:0;border-top:var(--hair) solid var(--navy);padding-top:12px}}
+select{-webkit-appearance:none;appearance:none;padding-right:26px;background-image:linear-gradient(45deg,transparent 50%,var(--navy) 50%),linear-gradient(135deg,var(--navy) 50%,transparent 50%);background-position:calc(100% - 15px) 50%,calc(100% - 10px) 50%;background-size:5px 5px;background-repeat:no-repeat}
 </style>
 
 <div class="wrap">
@@ -783,7 +785,7 @@ const Field=(Cm,GLYPHS)=>{
 </script>
 <script>
 (()=>{
-const G=KurbitsSwirl, Cm=Compact(G), PRESETS={"Lily":[12.4,13.6,17.5,0.4,1],"Divider":[9.4,16.6,5,0.2,1],"Cartouche":[16,10,9.9,0.85,2],"Hairline":[17.8,8.2,6,0.2,1],"Antlers":[14.9,11.1,10.5,0.85,1],"Knot":[9,17,19.5,0.4,1],"Lyre":[10.8,15.2,15.7,0.6,1],"Heart":[5,1,7.7,0.2,1],"Vase":[14.4,11.6,8,0.2,1],"Crest":[8.6,17.4,17,0.6,1],"Band":[17.1,8.9,9.2,0.85,5],"Scroll":[0,6,4.7,0.2,1]}, F=Field(Cm,{});
+const G=KurbitsSwirl, Cm=Compact(G), PRESETS={"Lily":[12.4,13.6,17.5,0.4,1],"Divider":[9.4,16.6,5,0.2,1],"Cartouche":[16,10,9.9,0.85,2],"Hairline":[17.8,8.2,6,0.2,1],"Antlers":[14.9,11.1,10.5,0.85,1],"Knot":[0.3,12.8,6.4,0.2,1],"Lyre":[8.7,15.2,16.6,0.2,1],"Heart":[5.341,15.627,12.689,0.15,1],"Vase":[12.3,1,15.2,0.2,1],"Crest":[8.6,17.4,17,0.6,1],"Band":[17.1,8.9,9.2,0.85,5],"Scroll":[0,6,4.7,0.2,1]}, F=Field(Cm,{});
 const TAU=Math.PI*2, GOLD=0.6180339887, reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const $=id=>document.getElementById(id);
 /* ---- the space: four numbers (plus aspect for ornaments) ---- */
