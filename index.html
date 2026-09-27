@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="A purely mathematical ornament generator in the tradition of 18th-century pen flourishes, printers' dividers and Swedish kurbits scrolls.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 24c0-9 8-16 16-16 5 0 8 3 8 7s-3 6-6 6-5-2-5-4 2-3 3-2' fill='none' stroke='%23ffc44a' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 24c0-9 8-16 16-16 5 0 8 3 8 7s-3 6-6 6-5-2-5-4 2-3 3-2' fill='none' stroke='%23173a58' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
 <title>Kurbits</title>
 <style>
-:root{color-scheme:dark;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-body{margin:0;-webkit-text-size-adjust:100%;background:#0e110f}
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;-webkit-text-size-adjust:100%;background:#c9ccc6}
 img{max-width:100%}
 [hidden]{display:none!important}
 </style>
@@ -17,75 +17,81 @@ img{max-width:100%}
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@1,500;1,600;1,800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans+Extra+Condensed:wght@600;700;800&family=Fira+Sans:wght@500;600&display=swap">
 <style>
-:root{color-scheme:dark;
-  --page:#0e110f; --panel:#111315; --panel2:#171a18; --edge:#444b46; --edge2:#2a2e2b;
-  --ink:#ede9dc; --muted:#969e97; --amber:#ffc44a; --green:#b7e86b;
-  --face:"Exo 2","Arial Narrow",Arial,sans-serif; --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
+:root{color-scheme:light;
+  --panel:#c9ccc6; --panel-hi:#d3d6d0; --navy:#173a58; --ink:#1b3a56; --muted:#4f6477; --teal:#a9dcdb; --ivory:#efe7c6;
+  --label:"Fira Sans Extra Condensed","Arial Narrow",sans-serif; --text:"Fira Sans",system-ui,sans-serif; --mono:ui-monospace,Menlo,Consolas,monospace;}
 *{box-sizing:border-box}
-body{background:var(--page);color:var(--ink);font:italic 600 14px/1.5 var(--face);text-transform:uppercase;letter-spacing:.04em;
-  padding-inline:clamp(16px,4vw,44px);padding-block:22px 64px}
-.wrap{max-width:1240px;margin-inline:auto;display:grid;gap:22px}
-header{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
-h1{margin:0;font:italic 800 clamp(40px,7vw,72px)/.9 var(--face);letter-spacing:.02em}
-h1 span{color:var(--amber)}
-.tag{font:italic 600 12px/1 var(--face);letter-spacing:.2em;color:var(--muted)}
-.rule{height:4px;border:0;margin:0;background:linear-gradient(90deg,var(--amber) 0 22%,transparent 22% 24%,var(--amber) 24% 30%,transparent 30% 32%,var(--amber) 32% 34%,transparent 34%)}
-h2{margin:0;font:italic 800 24px/1 var(--face);letter-spacing:.06em}
-p{margin:0;max-width:70ch}
-.stage{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(300px,.85fr);gap:22px;align-items:start}
-.canvas-box{position:relative;aspect-ratio:1/1;border-radius:6px;overflow:hidden;background:#0c0e0d;
-  box-shadow:0 0 0 3px #141715,0 0 0 4px #3a3f3b,inset 0 0 28px #0008}
+body{background:var(--panel);color:var(--ink);font:500 15px/1.5 var(--text);padding-inline:clamp(16px,4vw,44px);padding-block:18px 40px}
+.wrap{max-width:1180px;margin-inline:auto;display:grid;gap:24px}
+/* header: a fine flourish, then the name between two hairlines, like the panel's footer */
+header{display:grid;justify-items:center;gap:6px}
+#flourish{width:min(640px,94%);height:58px;display:block}
+.name{width:100%;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:22px}
+.name::before,.name::after{content:"";height:1.5px;background:var(--navy)}
+h1{margin:0;font:600 clamp(28px,4vw,40px)/1 var(--text);letter-spacing:.01em;color:var(--navy)}
+.sub{font:700 13px/1 var(--label);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.stage{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(300px,.85fr);gap:28px;align-items:start}
+.canvas-box{position:relative;aspect-ratio:1/1;background:var(--panel);border:1.5px solid var(--navy);border-radius:3px;overflow:hidden}
 .canvas-box canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-.canvas-box::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:6px;
-  background:repeating-linear-gradient(0deg,#0000 0 2px,#00000022 2px 3px);box-shadow:inset 0 0 40px #0009}
 .stage>.canvas-box{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);max-height:calc(100vh - 24px);z-index:5}
-.side{display:grid;gap:14px}
-.box{background:var(--panel);border:1px solid var(--edge);border-bottom:3px solid #070808;border-radius:4px;padding:14px 16px;display:grid;gap:12px}
-.label{font:italic 800 13px/1 var(--face);letter-spacing:.14em;color:var(--muted)}
-.seg{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-button,select{min-height:36px;font:italic 800 13px/1 var(--face);letter-spacing:.1em;text-transform:uppercase;color:var(--ink);
-  background:var(--panel2);border:1px solid #494d4a;border-bottom:3px solid #0a0b0a;border-radius:4px;padding:8px 12px;cursor:pointer}
-button:active{transform:translateY(1px)}
-button[aria-pressed="true"]{color:#111;background:var(--amber);border-color:#ffd199;border-bottom-color:#8c6a1c;box-shadow:0 0 12px #f5b97144}
-select{font-family:var(--mono);font-style:normal;font-weight:700;color:var(--green);background:#0b1511;border-color:#395045}
-button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-.rows{display:grid;gap:8px}
-.row{display:grid;grid-template-columns:70px 1fr 58px;gap:10px;align-items:center}
-.row label{font:italic 800 13px/1 var(--face);letter-spacing:.12em}
-.row output{font:700 13px/1 var(--mono);font-variant-numeric:tabular-nums;text-align:right;color:var(--green);text-shadow:0 0 8px #b7e86b55}
-.row small{grid-column:2/4;margin-top:-5px;font:italic 500 11px/1.3 var(--face);letter-spacing:.06em;color:var(--muted)}
-input[type=range]{width:100%;accent-color:var(--amber);height:28px;touch-action:pan-y}
-.hint{color:var(--muted);font:italic 500 11.5px/1.45 var(--face);letter-spacing:.06em}
-.json{font:700 12px/1.6 var(--mono);text-transform:none;letter-spacing:.04em;color:var(--green);text-shadow:0 0 10px #b7e86b44;
-  background:#0b1511;border:1px solid #395045;box-shadow:inset 0 0 22px #12302488;border-radius:3px;padding:10px 12px;max-height:180px;overflow:auto;white-space:pre}
-.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:12px}
-.thumb{display:grid;gap:7px;background:none;border:0;padding:0;min-height:0;text-align:left}
-.thumb canvas{width:100%;aspect-ratio:1/1;border-radius:4px;display:block;box-shadow:0 0 0 1px #3a3f3b}
-.thumb span{font:italic 800 13px/1 var(--face);letter-spacing:.1em;color:var(--ink)}
-.thumb[aria-pressed="true"]{background:none;box-shadow:none}
-.thumb[aria-pressed="true"] canvas{box-shadow:0 0 0 2px var(--amber),0 0 14px #ffc44a55}
-.thumb[aria-pressed="true"] span{color:var(--amber)}
+.side{display:grid;gap:22px}
+/* groups: a hairline above with a small tick at its start, like the panel's column brackets */
+.box{position:relative;display:grid;gap:12px;padding-top:12px;border-top:1.5px solid var(--navy)}
+.box::before{content:"";position:absolute;left:0;top:-1.5px;width:1.5px;height:9px;background:var(--navy)}
+.label{font:800 15px/1 var(--label);letter-spacing:.04em;text-transform:uppercase;color:var(--navy)}
+.seg{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,select{min-height:34px;font:700 15px/1 var(--label);letter-spacing:.05em;text-transform:uppercase;color:var(--navy);
+  background:var(--panel-hi);border:1.5px solid var(--navy);border-radius:3px;padding:7px 12px;cursor:pointer}
+button[aria-pressed="true"]{background:var(--navy);color:var(--ivory)}
+select{text-transform:none;letter-spacing:.02em}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+.rows{display:grid;gap:6px}
+.row{display:grid;grid-template-columns:64px 1fr 52px;gap:10px;align-items:center}
+.row label{font:800 15px/1 var(--label);letter-spacing:.04em;text-transform:uppercase;color:var(--navy)}
+.row output{font:700 15px/1 var(--label);font-variant-numeric:tabular-nums;text-align:right;color:var(--navy)}
+.row small{grid-column:2/4;margin-top:-6px;font:600 12px/1.3 var(--label);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+input[type=range]{--cap:var(--navy);-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;touch-action:pan-y;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--navy)}
+input[type=range]::-moz-range-track{height:2px;background:var(--navy)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-9px;border-radius:50%;background:var(--cap);border:4px solid #151617;box-shadow:0 1px 0 #0003}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--cap);border:4px solid #151617}
+.hint{font:600 12.5px/1.4 var(--label);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+/* the one small display */
+.json{font:500 13px/1.55 var(--mono);color:#e9e6dc;background:#0b0c0c;border-radius:3px;box-shadow:0 0 0 1.5px var(--navy),inset 0 0 0 4px #0b0c0c,inset 0 0 0 5px #2b2f31;padding:12px 14px;max-height:180px;overflow:auto;white-space:pre}
+/* the navy band with teal scrollwork and ivory numerals */
+.band{position:relative;background:var(--navy);border-radius:4px;height:clamp(64px,9vw,92px);overflow:hidden}
+.band canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+h2{margin:0;font:800 22px/1 var(--label);letter-spacing:.04em;text-transform:uppercase;color:var(--navy)}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:14px}
+.thumb{display:grid;gap:7px;background:none;border:0;padding:0;min-height:0;text-align:left;color:var(--navy)}
+.thumb canvas{width:100%;aspect-ratio:1/1;display:block;border:1.5px solid #8c98a3;border-radius:3px}
+.thumb span{font:800 15px/1 var(--label);letter-spacing:.04em;text-transform:uppercase}
+.thumb[aria-pressed="true"]{background:none;color:var(--navy)}
+.thumb[aria-pressed="true"] canvas{border-color:var(--navy);box-shadow:0 0 0 1.5px var(--navy)}
 .thumb.wide{grid-column:span 2}
 .thumb.wide canvas{aspect-ratio:2.6/1}
-.formula{font:500 12.5px/1.7 var(--mono);text-transform:none;letter-spacing:0;color:var(--green);background:#0b1511;border:1px solid #395045;
-  box-shadow:inset 0 0 22px #12302488;border-radius:4px;padding:14px 16px;overflow-x:auto;white-space:pre}
-.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px}
-.two h3{margin:0 0 6px;font:italic 800 16px/1.1 var(--face);letter-spacing:.1em;color:var(--amber)}
-.two p{color:#b8beb7;font:italic 500 13px/1.55 var(--face);letter-spacing:.05em}
-.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-@media (max-width:860px){.stage{display:block}.stage>.side{margin-top:16px}
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.cols>div{padding:0 22px;border-left:1.5px solid var(--navy)}
+.cols>div:first-child{padding-left:0;border-left:0}
+.cols h3{margin:0 0 8px;display:flex;align-items:baseline;gap:10px;font:800 17px/1.1 var(--label);letter-spacing:.04em;text-transform:uppercase;color:var(--navy)}
+.cols h3 b{font:800 italic 34px/1 var(--label);color:var(--navy)}
+.cols p{margin:0;font:500 14px/1.55 var(--text);color:var(--ink)}
+.formula{font:500 12.5px/1.7 var(--mono);color:var(--ink);background:var(--panel-hi);border:1.5px solid var(--navy);border-radius:3px;padding:14px 16px;overflow-x:auto;white-space:pre}
+footer{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:22px;color:var(--navy);font:800 14px/1 var(--label);letter-spacing:.1em;text-transform:uppercase}
+footer::before,footer::after{content:"";height:1.5px;background:var(--navy)}
+@media (max-width:860px){.stage{display:block}.stage>.side{margin-top:20px}
   .stage>.canvas-box{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;aspect-ratio:auto!important;height:34svh;min-height:180px;max-height:340px}
-  .row{grid-template-columns:62px 1fr 54px}}
+  .cols{grid-template-columns:1fr;gap:18px}.cols>div{padding:0;border-left:0;border-top:1.5px solid var(--navy);padding-top:12px}}
 </style>
 
 <div class="wrap">
   <header>
-    <h1>KURBITS<span>.</span></h1>
-    <div class="tag">A mathematical ornament machine</div>
+    <canvas id="flourish" aria-hidden="true"></canvas>
+    <div class="name"><h1>Kurbits</h1></div>
+    <div class="sub">A mathematical ornament machine</div>
   </header>
-  <hr class="rule" aria-hidden="true">
 
   <div class="stage">
     <div class="canvas-box"><canvas id="main" aria-label="Generated ornament"></canvas></div>
@@ -97,11 +103,11 @@ input[type=range]{width:100%;accent-color:var(--amber);height:28px;touch-action:
           <button type="button" id="m-sweep" data-mode="sweep">Sweep</button>
           <select id="sweepKey" aria-label="Parameter to sweep"></select>
         </div>
-        <div class="label">Screen</div>
+        <div class="label">Colour</div>
         <div class="seg" id="pals">
-          <button type="button" id="p-cream" data-pal="cream">Cream</button>
-          <button type="button" id="p-amber" data-pal="amber">Amber</button>
-          <button type="button" id="p-green" data-pal="green">Green</button>
+          <button type="button" id="p-panel" data-pal="panel">Panel</button>
+          <button type="button" id="p-band" data-pal="band">Band</button>
+          <button type="button" id="p-slate" data-pal="slate">Slate</button>
         </div>
       </div>
       <div class="box" id="pointbox">
@@ -116,13 +122,20 @@ input[type=range]{width:100%;accent-color:var(--amber);height:28px;touch-action:
     </div>
   </div>
 
-  <section style="display:grid;gap:16px">
+  <div class="band" aria-hidden="true"><canvas id="bandart"></canvas></div>
+
+  <section class="box" style="gap:16px">
     <h2>Presets</h2>
     <div class="gallery" id="gallery"></div>
   </section>
 
-  <section style="display:grid;gap:16px">
+  <section class="box" style="gap:18px">
     <h2>How it is built</h2>
+    <div class="cols">
+      <div><h3><b>1</b>One curve</h3><p>Every mark is the curve θ(u): a swing, an Euler bend, up to three soft turns and a spiral eye at either end. Up to two limbs grow from it, and smaller copies sprout along everything. A pointed pen swells on down-strokes and thins to a hairline on up-strokes.</p></div>
+      <div><h3><b>2</b>Four numbers</h3><p>x, y and z move through the space; every engine number is a smooth function of them. Detail adds sprouts and generations, and at the high end self-similar, varied miniatures. Aspect widens or heightens an ornament by adding scrolls, never by stretching.</p></div>
+      <div><h3><b>3</b>No randomness</h3><p>The same numbers always draw the same ornament. Counts accept fractions and grow the next element in, so every number sweeps smoothly.</p></div>
+    </div>
     <div class="formula">θ(u) = A·sin(2π·0.6u + φ) + π·bend·((2u − 1)² − 1)
      + Σⱼ₌₁³ τⱼ·½(1 + tanh((u − uⱼ)/σⱼ))                three soft turns
      + 2π·n₀·H(u/c₀) + 2π·n₁·(1 − H((1 − u)/c₁))        spiral eyes
@@ -131,12 +144,9 @@ x(u) = ∫cos θ du,  y(u) = ∫sin θ du,  u = 0…1
 
 limbs: the same curve, grown from the trunk at u, angle a, length ℓ, arc b, curl c
 width ∝ hair + (1 − hair)·max(0, cos(heading + π/2 − slant))^1.6</div>
-    <div class="two">
-      <div><h3>One curve</h3><p>Every mark is the curve θ(u): a swing, an Euler bend, up to three soft turns and a spiral eye at either end. Up to two limbs grow from it, and smaller copies sprout along everything. A pointed pen swells on down-strokes and thins to a hairline on up-strokes.</p></div>
-      <div><h3>Four numbers</h3><p>x, y and z move through the space; every engine number is a smooth function of them. Detail adds sprouts and generations, and at the high end self-similar, varied miniatures. Aspect widens or heightens an ornament by adding scrolls, never by stretching.</p></div>
-      <div><h3>No randomness</h3><p>The same numbers always draw the same ornament. Counts accept fractions and grow the next element in, so every number sweeps smoothly.</p></div>
-    </div>
   </section>
+
+  <footer>Kurbits</footer>
 </div>
 
 <script>
@@ -782,17 +792,17 @@ const HELP={x:'',y:'',z:'',detail:'sprouts, generations, then varied miniatures'
 const first=Object.values(PRESETS)[0];
 const ORN={x:first[0],y:first[1],z:first[2],detail:first[3],aspect:first[4]};
 let current=Object.keys(PRESETS)[0];
-let mode='still', sweepKey='x+y+z', pal='cream', dirty=true;
+let mode='still', sweepKey='x+y+z', pal='panel', dirty=true;
 const build=(grow=1,res)=>G.build(Cm.expand(F.at(ORN.x,ORN.y,ORN.z,ORN.detail,ORN.aspect).C),grow,res?{res}:undefined);
 
 /* ---- one registry for every slider: id → {lo,hi,get,set,label} ---- */
-const REG=new Map();
+const REG=new Map(), CAPS={x:'#e8505b',y:'#f08a3a',z:'#f2c93a',detail:'#35b27f',aspect:'#3cb6e3'};   // the panel's knob caps
 function fmt(v,lo,hi){return (hi-lo)>=10?(+v).toFixed(1):(+v).toFixed(2);}
 function slider(parent,id,label,lo,hi,help,get,set){
   const row=document.createElement('div');row.className='row';const step=+((hi-lo)/400).toPrecision(6);
   const hid='s-'+id.replace(/[^a-zA-Z0-9]/g,'_');
   row.innerHTML=`<label for="${hid}">${label}</label><input type="range" id="${hid}" min="${lo}" max="${hi}" step="${step}"><output></output>`+(help?`<small>${help}</small>`:'');
-  parent.appendChild(row);const inp=row.querySelector('input'),out=row.querySelector('output');
+  parent.appendChild(row);const inp=row.querySelector('input'),out=row.querySelector('output');if(CAPS[id])inp.style.setProperty('--cap',CAPS[id]);
   const r={lo,hi,get,set,label,inp,out,key:id.split('.').pop(),held:false,
     sync(){if(!this.held)inp.value=get();out.textContent=fmt(get(),lo,hi);}};REG.set(id,r);r.sync();
   const hold=on=>{r.held=on;if(!on)rephase=true;};
@@ -841,9 +851,9 @@ function showJSON(){const r3=v=>+(+v).toFixed(3);$('json').textContent=JSON.stri
 $('copy').addEventListener('click',async e=>{const b=e.currentTarget;try{await navigator.clipboard.writeText($('json').textContent);b.textContent='Copied';}catch(_){b.textContent='Select the text';}setTimeout(()=>b.textContent='Copy numbers',1600);});
 
 /* ---- colour and drawing ---- */
-/* three screens, like the module's: cream ink on the black panel, an amber and a green phosphor display */
-const PALS={cream:{bg:'#0c0e0d',col:'#ede9dc',acc:'#77756f',glow:0},amber:{bg:'#0b0805',col:'#ffc44a',acc:'#8a6a28',glow:0.5},green:{bg:'#050d09',col:'#b7e86b',acc:'#5d7a3a',glow:0.6}};
-function palette(){return PALS[pal]||PALS.cream;}
+/* the panel's own palettes: navy ink on grey aluminium, the teal scrollwork of the navy band, and the dark slate panel */
+const PALS={panel:{bg:'#c9ccc6',col:'#173a58',acc:'#6b7f90'},band:{bg:'#173a58',col:'#a9dcdb',acc:'#5f8fa0'},slate:{bg:'#232b35',col:'#dcded8',acc:'#6c7580'}};
+function palette(){return PALS[pal]||PALS.panel;}
 function applyPal(){const P=palette();document.querySelectorAll('.canvas-box,.thumb canvas').forEach(el=>el.style.background=P.bg);}
 function fit(cv){const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1),Wd=Math.max(1,Math.round(r.width*d)),H=Math.max(1,Math.round(r.height*d));if(cv.width!==Wd||cv.height!==H){cv.width=Wd;cv.height=H;}return[Wd,H];}
 function draw(ctx,items,P,v,Wd,H,pad=0.9){
@@ -898,10 +908,13 @@ function markPreset(){thumbs.forEach(([b,,n])=>b.setAttribute('aria-pressed',Str
 function drawThumbs(){const P=palette();for(const[b,p] of thumbs){const cv=b.querySelector('canvas');const it=G.build(Cm.expand(F.at(...p).C),1),bb=G.bbox(it);
   b.classList.toggle('wide',(bb.x1-bb.x0)/Math.max(1e-6,bb.y1-bb.y0)>2.2);const[Wd,H]=fit(cv);draw(cv.getContext('2d'),it,P,bb,Wd,H,0.86);}}
 
+function ornament(cv,p,P,pad,wt){const it=G.build(Cm.expand(Object.assign({},F.at(...p).C,{weight:wt})),1);const[Wd,H]=fit(cv);draw(cv.getContext('2d'),it,P,G.bbox(it),Wd,H,pad);}
+function decorate(){ornament($('flourish'),[12.4,13.6,17.5,0.1,4.5],{bg:'#c9ccc6',col:'#173a58',acc:'#173a58'},0.98,0.45);
+  ornament($('bandart'),[16,10,9.9,0.3,7],{bg:'#173a58',col:'#a9dcdb',acc:'#a9dcdb'},0.9,0.4);}
 setPressed('pals','pal',pal);pointPanel();setMode(mode);markPreset();applyPal();
-requestAnimationFrame(()=>{drawThumbs();requestAnimationFrame(frame);});
+requestAnimationFrame(()=>{drawThumbs();decorate();requestAnimationFrame(frame);});
 new ResizeObserver(()=>{dirty=true;}).observe(document.body);
-let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(drawThumbs,200);});
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{drawThumbs();decorate();},200);});
 })();
 
 </script>
