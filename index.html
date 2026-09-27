@@ -106,6 +106,10 @@ select{-webkit-appearance:none;appearance:none;padding-right:26px;background-ima
 .layer .intro{margin:0;max-width:78ch;font:500 14.5px/1.55 var(--text);color:var(--ink)}
 .terms dd span .katex{font-size:1em}
 .lead{margin:0;max-width:78ch;font:500 15px/1.55 var(--text);color:var(--ink)}
+.layer .intro i{font-style:italic}
+.steps{margin:0;padding-left:1.4em;display:grid;gap:6px;font:500 14.5px/1.55 var(--text);color:var(--ink);max-width:78ch}
+.steps li::marker{font:800 15px var(--label);color:var(--navy)}
+.fn{font-family:KaTeX_Main,'Times New Roman',serif;font-weight:400;font-size:1.05em}
 </style>
 
 <div class="wrap">
@@ -153,40 +157,60 @@ select{-webkit-appearance:none;appearance:none;padding-right:26px;background-ima
 
   <section class="box" style="gap:18px">
     <h2>How it is built</h2>
-    <p class="intro lead">Four numbers go in and an ornament comes out, in six layers. The formulas below are not a description of the code: the page prints them from the same definitions the engine compiles and runs, so the two can’t disagree. There is no randomness anywhere. The same numbers always draw the same ornament, and every number sweeps smoothly.</p>
+    <p class="intro lead">Four numbers go in: x, y, z and detail. Aspect only sets the proportions. An ornament comes out. In between are seven layers, described below with the exact formulas the engine runs. The page prints them from the same definitions the program compiles, so the two cannot disagree. Nothing is random: the same numbers always draw the same ornament, and every number can be swept smoothly.</p>
     <div class="layer">
-      <h3><b>1</b>From x, y, z to the settings</h3>
-      <p class="intro">About thirty settings describe an ornament: curl, scroll, wave, bend, lean, the turns and limbs, the sprouts’ angle and length, the mirror and so on. Each setting k is a slow wave through the space, stretched to its own range. The waves run in different directions, so moving through x, y and z mixes them without ever repeating.</p>
-      <div class="math"><div class="eq" data-def="osc"></div><div class="eq" data-def="phase" data-lines="1,1,1,1"></div><div class="eq" data-def="setting"></div><div class="eq" data-def="dead"></div><div class="eq" data-def="mirror"></div></div>
-      <dl class="terms"><dt data-tex="\operatorname{osc}"></dt><dd>A wave through the space, between 0 and 1. Its direction and offset (the phase) come from k and the golden angle g ≈ 2.40.</dd><dt data-tex="\mathrm{lo},\,\mathrm{hi},\,t"></dt><dd>The setting’s range, and a threshold t (0 for most). Below the threshold the setting stays at lo, so features such as pen loops or an answering curve appear only in some regions of the space.</dd><dt data-tex="\operatorname{dead}"></dt><dd>The two turn angles pass through a dead zone, so a turn fades in from nothing instead of always being present.</dd><dt data-tex="\operatorname{mirror}"></dt><dd>The mirrored twin, from none to full.</dd><dt data-tex="[\,\cdot\,]_0^1"></dt><dd>Clamped between 0 and 1.</dd></dl>
+      <h3><b>1</b>Where x, y and z go</h3>
+      <p class="intro">An ornament is described by about thirty settings: how tightly the stroke curls, how much it sways, where it turns, how long its sprouts are, whether it is mirrored, and so on. x, y and z do not appear in the curve itself. Instead, each setting is read off a slow wave that runs through the space.</p><p class="intro">Setting number <i>k</i> has its own wave, osc(x, y, z, k), which rises and falls between 0 and 1. The waves all point in different directions, so moving through the space mixes the settings in ever-new combinations without repeating. The value of the wave is then stretched to the setting’s own range.</p>
+      <div class="math"><div class="eq" data-def="phase" data-lines="1,1,1,1"></div><div class="eq" data-def="osc"></div><div class="eq" data-def="setting"></div><div class="eq" data-def="dead"></div><div class="eq" data-def="mirror"></div></div>
+      <dl class="terms"><dt data-tex="\operatorname{phase},\ \operatorname{osc}"></dt><dd>The wave for setting k. Its direction and offset come from k and the golden angle g ≈ 2.40, which spreads the thirty waves evenly.</dd><dt data-tex="\mathrm{lo},\ \mathrm{hi},\ t"></dt><dd>The setting’s range and a threshold. Below t (zero for most settings) the setting rests at lo, so some features, such as pen loops, exist only in parts of the space.</dd><dt data-tex="\operatorname{dead}"></dt><dd>Applied to the two turn angles: a dead zone around zero, so a turn fades in from nothing instead of every stroke having one.</dd><dt data-tex="\operatorname{mirror}"></dt><dd>Turns the mirror setting into how strongly the ornament is doubled by its mirror image.</dd><dt data-tex="[\,\cdot\,]_0^1"></dt><dd>Clamped to lie between 0 and 1.</dd></dl>
     </div>
     <div class="layer">
-      <h3><b>2</b>Detail</h3>
-      <p class="intro">Detail d, from 0 to 1, barely touches the stroke. It decides how much grows: how many sprouts, how many generations, and when the sprouts become miniatures of their parents.</p>
-      <div class="math"><div class="eq" data-def="sprouts"></div><div class="eq" data-def="depth"></div><div class="eq" data-def="selfsim"></div><div class="eq" data-def="variation"></div><div class="eq" data-def="flourish"></div><div class="eq" data-def="swing"></div><div class="eq" data-def="loops"></div><div class="eq" data-def="turn"></div><div class="eq" data-def="smooth"></div></div>
-      <dl class="terms"><dt data-tex="\operatorname{sprouts},\ \operatorname{depth}"></dt><dd>Sprouts per stroke and the number of generations. Both accept fractions: the last one grows in gradually, so detail sweeps smoothly.</dd><dt data-tex="\operatorname{selfsim}"></dt><dd>Self-similarity: from 0.55 upwards each sprout is blended towards a scaled, rotated, mirrored copy of its parent. At 1 it is an exact miniature, the fractal.</dd><dt data-tex="\operatorname{variation}"></dt><dd>Every sprout and scroll a little different, never less than the setting from x, y, z.</dd><dt data-tex="\operatorname{flourish}"></dt><dd>The end curls grow longer and wind further.</dd><dt data-tex="\operatorname{swing},\ \operatorname{loops},\ \operatorname{turn}"></dt><dd>Above the middle, the stroke itself swings, loops and turns a little more.</dd><dt data-tex="\operatorname{smooth}"></dt><dd>A smooth step from 0 at a to 1 at b.</dd></dl>
+      <h3><b>2</b>What detail does</h3>
+      <p class="intro">Detail <i>d</i> runs from 0 to 1. It hardly changes the main stroke; mostly it decides how much grows on it. The functions below turn <i>d</i> into the number of sprouts, the number of generations they branch into, and how closely each sprout copies its parent. The last four also take the value that x, y and z gave a setting, and only ever strengthen it.</p>
+      <div class="math"><div class="eq" data-def="smooth"></div><div class="eq" data-def="sprouts"></div><div class="eq" data-def="depth"></div><div class="eq" data-def="selfsim"></div><div class="eq" data-def="variation"></div><div class="eq" data-def="flourish"></div><div class="eq" data-def="swing"></div><div class="eq" data-def="loops"></div><div class="eq" data-def="turn"></div></div>
+      <dl class="terms"><dt data-tex="\operatorname{smooth}"></dt><dd>A smooth step, rising from 0 at a to 1 at b. Most of what detail does fades in this way, so detail sweeps without jumps.</dd><dt data-tex="N,\ D"></dt><dd>How many sprouts grow on each stroke, and how many generations deep the branching goes. Fractions are allowed: the last sprout or generation grows in gradually.</dd><dt data-tex="\chi = \operatorname{selfsim}(d)"></dt><dd>Self-similarity, which begins above d = 0.55. At 1, every sprout is an exact small copy of its parent, turned and mirrored: a true fractal.</dd><dt data-tex="\operatorname{variation}"></dt><dd>How much each sprout and scroll differs from its neighbours.</dd><dt data-tex="F = \operatorname{flourish}(d)"></dt><dd>How far the curls at the two ends of the stroke grow (layer 6).</dd><dt data-tex="\operatorname{swing},\ \operatorname{loops},\ \operatorname{turn}"></dt><dd>Above d = 0.4 the main stroke sways a little more, gains small pen loops and turns more sharply.</dd></dl>
     </div>
     <div class="layer">
-      <h3><b>3</b>Settings become the symbols of the curve</h3>
-      <p class="intro">A few settings map directly onto the symbols in the stroke’s equation below.</p>
-      <div class="math"><div class="eq" data-def="A_"></div><div class="eq" data-def="phi_"></div><div class="eq" data-def="b_"></div><div class="eq" data-def="n0_"></div><div class="eq" data-def="n1_"></div><div class="eq" data-def="c0_"></div><div class="eq" data-def="c1_"></div><div class="eq" data-def="beta_"></div></div>
-      <dl class="terms"><dt data-tex="\ell"></dt><dd>The length of the spiral eyes, fixed at 1.</dd></dl>
+      <h3><b>3</b>Settings become symbols</h3>
+      <p class="intro">The settings are named for what they do. Here they are translated into the symbols that the formulas in the following layers use.</p>
+      <div class="math"><div class="eq" data-def="A_"></div><div class="eq" data-def="phi_"></div><div class="eq" data-def="b_"></div><div class="eq" data-def="n0_"></div><div class="eq" data-def="n1_"></div><div class="eq" data-def="c0_"></div><div class="eq" data-def="c1_"></div><div class="eq" data-def="beta_"></div><div class="eq" data-def="m_"></div><div class="eq" data-def="fat_"></div><div class="eq" data-def="hair_"></div><div class="eq" data-def="scale_"></div><div class="eq" data-def="span_"></div><div class="eq" data-def="reach_"></div><div class="eq" data-def="cc_"></div><div class="eq" data-def="cw_"></div><div class="eq" data-def="fall_"></div><div class="eq" data-def="cut_"></div><div class="eq" data-def="thin_"></div><div class="eq" data-def="drift_"></div></div>
+      <dl class="terms"><dt data-tex="\mathrm{wave},\ \mathrm{lean},\ \mathrm{bend},\ \ldots"></dt><dd>Settings from layer 1. Among them, at is where along a stroke the sprouts start, length how long they are, and straight how little they curl.</dd><dt data-tex="\ell"></dt><dd>The length of the spiral eyes, fixed at 1.</dd><dt data-tex="\mathrm{weight},\ \mathrm{contrast}"></dt><dd>The pen’s weight and contrast, fixed at 0.4 and 0.8.</dd><dt data-tex="\chi"></dt><dd>Self-similarity, from layer 2.</dd></dl>
     </div>
     <div class="layer">
-      <h3><b>4</b>The stroke</h3>
-      <p class="intro">Every mark is one curve. u is a single number running along it, from 0 at the start to 1 at the end, and θ(u) is the direction the pen is heading there. The shape comes from walking in that direction; the equation only says how the pen turns.</p>
-      <div class="math"><div class="eq" data-def="theta" data-lines="2,2,1,1,1"></div><div class="eq" data-def="q"></div><div class="eq" data-def="step"></div><div class="eq" data-def="H"></div><div class="eq" data-tex="x(u)=\int_0^u\cos\theta(s)\,ds,\qquad y(u)=\int_0^u\sin\theta(s)\,ds"></div></div>
-      <dl class="terms"><dt data-tex="A\sin q"></dt><dd>The swing, a sway from side to side: A how far, f = 0.6 how often, φ where along the stroke.</dd><dt data-tex="A^3(\mathrm{flat}\ldots)"></dt><dd>A sharper, meandering swing (Kinoshita). Available to the engine; x, y and z leave it at zero.</dd><dt data-tex="\pi b\,((2u-1)^2-1)"></dt><dd>The Euler bend: curvature changing steadily along the stroke, like a clothoid.</dd><dt data-tex="\kappa u"></dt><dd>Constant curvature. It is zero until detail lengthens the curls; then it keeps the Euler bend exactly as it was on the rest of the stroke.</dd><dt data-tex="\sum_k\operatorname{step}"></dt><dd>Soft steps in direction: the three turns (angle a, place μ, softness σ) and the pen loops, full turns spaced along the stroke.</dd><dt data-tex="n_0,\ c_0,\ n_1,\ c_1"></dt><dd>The spiral eyes at the start and end: how many turns, wound into how much of the stroke. The sign of n₁ decides which way the end curls.</dd><dt data-tex="H,\ \beta,\ \varepsilon"></dt><dd>The spiral’s profile, a log-aesthetic curve. β sets how quickly it tightens towards its centre; ε = 0.01 keeps the centre finite.</dd><dt data-tex="x(u),\ y(u)"></dt><dd>The stroke itself. The engine adds up small steps in direction θ (the trapezoid rule).</dd></dl>
+      <h3><b>4</b>One stroke</h3>
+      <p class="intro">Every mark in the ornament, large or small, is the same kind of curve, described by its direction rather than its position. <i>u</i> is a single number that runs along the stroke, from 0 at its start to 1 at its end, and θ(u) is the direction the pen is heading at that point, as an angle.</p><p class="intro">To draw the stroke, the pen keeps stepping forward in the direction θ(u); x(u) and y(u) add up those steps. So the formula for θ says how the pen turns, and the shape follows from it.</p>
+      <div class="math"><div class="eq" data-def="theta" data-lines="2,2,1,1,1"></div><div class="eq" data-def="q"></div><div class="eq" data-def="step"></div><div class="eq" data-def="loopPlace"></div><div class="eq" data-def="loopAngle"></div><div class="eq" data-def="H"></div><div class="eq" data-tex="\begin{aligned}x(u)&amp;=\int_0^u\cos\theta(s)\,ds\\y(u)&amp;=\int_0^u\sin\theta(s)\,ds\end{aligned}"></div></div>
+      <dl class="terms"><dt data-tex="A\sin q(u)"></dt><dd>The sway: the stroke swings from side to side. A is how far, f = 0.6 how often, and φ where along the stroke.</dd><dt data-tex="A^3(\mathrm{flat}\ldots)"></dt><dd>A sharper, meandering sway (the Kinoshita curve). The engine supports it, but here flat and skew are always 0.</dd><dt data-tex="\pi b\,((2u-1)^2-1)"></dt><dd>The Euler bend: the curvature changes steadily along the stroke, so it tightens or opens like a clothoid.</dd><dt data-tex="\kappa u"></dt><dd>A constant turn. It is zero unless the curls have grown (layer 6).</dd><dt data-tex="\textstyle\sum_k\operatorname{step}"></dt><dd>Soft changes of direction. Each step turns the pen by a, spread over a stretch of width σ around the place μ. There are three turns, whose angle, place and width are settings, and m pen loops, which are full turns placed as the next two formulas show.</dd><dt data-tex="\operatorname{loop\,place},\ \operatorname{loop\,angle}"></dt><dd>Where the i-th pen loop sits and how far it turns: 2πT·rⁱ, with the direction alternating by the amount alt. Here T = 1, r = 0.8 and alt = 0.5. A fractional m grows the last loop in.</dd><dt data-tex="n_0,\ c_0,\ n_1,\ c_1"></dt><dd>The spiral eyes at the start and at the end: n is how many turns, c the fraction of the stroke they are wound into.</dd><dt data-tex="H,\ \beta,\ \varepsilon"></dt><dd>The shape of the spirals, a log-aesthetic curve. β sets how quickly a spiral tightens towards its centre, and ε = 0.01 stops it from winding infinitely tight.</dd><dt data-tex="x(u),\ y(u)"></dt><dd>The stroke’s position. The engine adds up a few hundred small steps (the trapezoid rule).</dd></dl>
     </div>
     <div class="layer">
       <h3><b>5</b>The pen</h3>
-      <p class="intro">The stroke is inked with a pointed pen: it swells on down-strokes and thins to a hairline on up-strokes.</p>
-      <div class="math"><div class="eq" data-def="pen"></div></div>
-      <dl class="terms"><dt data-tex="\psi,\ h,\ s"></dt><dd>ψ is the heading, h the hairline width and s the slant of the nib. The result multiplies the stroke’s width, which also tapers along its length and thins inside the spiral eyes.</dd></dl>
+      <p class="intro">The stroke is inked like a pointed pen. Its width at each point is the product of three factors: a base width w₀, scaled to the size of the stroke; the taper, which shapes the width along the stroke and thins it inside the spiral eyes; and the pen, which swells on down-strokes and thins to a hairline on up-strokes.</p>
+      <div class="math"><div class="eq" data-def="pen"></div><div class="eq" data-def="taper"></div><div class="eq" data-def="profile" data-lines="1,1,1"></div><div class="eq" data-def="swell"></div><div class="eq" data-def="comma"></div><div class="eq" data-def="tear"></div><div class="eq" data-def="eyes"></div><div class="eq" data-def="eyeStart"></div><div class="eq" data-def="eyeEnd"></div></div>
+      <dl class="terms"><dt data-tex="\psi,\ h,\ s"></dt><dd>The direction of travel, the hairline width, and the slant of the nib (s = 0.25).</dd><dt data-tex="v,\ r"></dt><dd>v is the position along the stroke, and r the pressure: 0.5 for main strokes and 0.75 for sprouts. The pressure blends the swelling shape towards a comma, heavy at the start.</dd><dt data-tex="\operatorname{swell},\ \operatorname{comma},\ \operatorname{tear}"></dt><dd>Three width profiles: thickest in the middle; heavy at the start and tapering away; heavy towards the end.</dd><dt data-tex="\operatorname{eye\,start},\ \operatorname{eye\,end}"></dt><dd>Thin the line inside the spirals, where the turns are tight.</dd></dl>
     </div>
     <div class="layer">
-      <h3><b>6</b>The recursive rule</h3>
-      <p class="intro">This part is a procedure rather than a formula. Along every stroke, “sprouts” smaller strokes grow, curling away, alternating sides and shrinking towards the tip, each drawn by the same equation. Each sprout grows its own sprouts, down to the depth. Deeper generations get fewer sprouts and thinner lines, and anything smaller than a cutoff fraction of the main stroke fades out, a low-pass filter that keeps the fractal from turning into fuzz. Up to two limbs grow from the main stroke in the same way, the mirrored twin repeats everything on the other side, and aspect adds chained scrolls until the ornament has the requested proportion, never stretching it.</p>
+      <h3><b>6</b>Growing curls</h3>
+      <p class="intro">As detail rises, through F = flourish(d), the curls at both ends of the stroke grow longer and wind further, while the middle of the stroke, its body, keeps exactly its shape. The start curl grows to the length T₀ and the end curl to T₁, both measured as fractions of the original stroke; the body keeps its length. The stroke therefore becomes Λ times longer.</p><p class="intro">In the longer stroke the body sits on a different stretch of u, so every symbol of θ is rewritten for the substitution u = δ + Λu′. The rewritten symbols, marked with a prime, replace the originals. The root of the stroke is also turned and moved, so that the body stays exactly where it was.</p>
+      <div class="math"><div class="eq" data-def="T0_"></div><div class="eq" data-def="T1_"></div><div class="eq" data-def="Lam_"></div><div class="eq" data-def="del_"></div><div class="eq" data-def="fN_"></div><div class="eq" data-def="phiN_"></div><div class="eq" data-def="bN_"></div><div class="eq" data-def="kap_"></div><div class="eq" data-def="c0N_"></div><div class="eq" data-def="c1N_"></div><div class="eq" data-def="muN"></div><div class="eq" data-def="sigmaN"></div><div class="eq" data-def="n0N_"></div><div class="eq" data-def="n1N_"></div><div class="eq" data-def="limbCurl"></div><div class="eq" data-def="limbEye"></div></div>
+      <dl class="terms"><dt data-tex="T_0,\ T_1"></dt><dd>The new lengths of the start and end curls. Only curls that exist grow: the smooth step on |n₀| or |curl| is zero for a stroke without one.</dd><dt data-tex="\Lambda,\ \delta"></dt><dd>How many times longer the stroke becomes, and where its old start now lies.</dd><dt data-tex="f&#x27;,\ \varphi&#x27;,\ b&#x27;,\ \kappa"></dt><dd>The sway and the Euler bend, rewritten so that the body keeps its shape; the bend gains the constant turn κ.</dd><dt data-tex="\mu&#x27;,\ \sigma&#x27;"></dt><dd>The same for the place and width of each turn.</dd><dt data-tex="n_0&#x27;,\ n_1&#x27;"></dt><dd>The curls wind further: to at least 1.6 turns at the start and 2.1 at the end.</dd><dt data-tex="\operatorname{limb\,curl},\ \operatorname{limb\,eye}"></dt><dd>The limbs’ end curls grow the same way, to at least 1.6 turns, wound into up to 62% of the limb.</dd></dl>
+    </div>
+    <div class="layer">
+      <h3><b>7</b>The recursive rule</h3>
+      <p class="intro">The ornament is built by one rule applied again and again. Along every stroke, smaller strokes grow, the sprouts, and each sprout grows sprouts of its own, down to the depth D. The main stroke is generation 0, its sprouts are generation 1, and so on.</p><p class="intro">First an elegance budget trims the detail, so that the ornament never becomes crowded: the more sprouts and generations there are, the more they are all cut back. The weight exponent ω is also set here, from self-similarity (see step 6).</p>
+      <div class="math"><div class="eq" data-def="budget"></div><div class="eq" data-def="rSprouts"></div><div class="eq" data-def="rDepth"></div><div class="eq" data-def="rScale"></div><div class="eq" data-def="rThin"></div><div class="eq" data-def="rFat"></div><div class="eq" data-def="omega"></div></div>
+      <p class="intro">Then, for each stroke of generation k and size s:</p>
+      <ol class="steps">
+        <li>It grows <span class="fn">sprout count</span>(k) sprouts. Their growth is weighted by <span class="fn">grown</span>(k), so a fractional depth fades the last generation in.</li>
+        <li>Sprout j sits at u = <span class="fn">place</span>(j, n) along the stroke, where n is the sprout count, and leans away from it at the angle <span class="fn">sprout angle</span>(j, v), alternating sides.</li>
+        <li>Its size is s × <span class="fn">sprout size</span>(u, t), so sprouts get smaller towards the tip, times a weight that fades in the last, fractional sprout.</li>
+        <li>It curls into an eye of <span class="fn">sprout curl</span>(n, dir, v) turns, where n is the parent’s end curl and dir is +1 or −1 for the side it grows on.</li>
+        <li>A sprout smaller than s<sub>min</sub>, measured as a fraction of the main stroke, is not drawn, and one just above it is shrunk by <span class="fn">lowpass</span>. Detail therefore fades out instead of turning into fuzz.</li>
+        <li>Its line is w₀ × s × <span class="fn">line width</span>(k, rel) wide, where rel is its size relative to the main stroke. With ω = 1 the line shrinks in proportion to the sprout; as self-similarity lowers ω towards 0.4, small sprouts keep bolder lines. Each generation is also η times thinner.</li>
+        <li>With self-similarity χ, each of its symbols is mixed towards its parent’s: <span class="fn">mix</span>(sprout, parent, χ). At χ = 1 the sprout is an exact small copy of its parent.</li>
+      </ol>
+      <div class="math"><div class="eq" data-def="count"></div><div class="eq" data-def="grown"></div><div class="eq" data-def="place"></div><div class="eq" data-def="angleJ" data-lines="1,1"></div><div class="eq" data-def="sizeJ"></div><div class="eq" data-def="curlJ"></div><div class="eq" data-def="lowpass"></div><div class="eq" data-def="width"></div><div class="eq" data-def="mix"></div><div class="eq" data-def="Q"></div></div>
+      <dl class="terms"><dt data-tex="e"></dt><dd>The elegance, fixed at 0.6.</dd><dt data-tex="B"></dt><dd>The budget, between 0 and 1: close to 1 for a sparse ornament, smaller for a busy one.</dd><dt data-tex="\mathrm{width},\ \mathrm{height}"></dt><dd>The requested proportions (aspect and 1). Wide ornaments get a slightly finer pen.</dd><dt data-tex="v,\ t"></dt><dd>Small, fixed variations: v is Q evaluated at a point that depends on the sprout and its generation, and t is such a point. Q adds three sine waves whose frequencies never line up, so the pattern never repeats.</dd><dt data-tex="v_a,\ s_h"></dt><dd>How much sprouts vary (0.25), and how much they shrink towards the tip of their parent (0.35).</dd><dt data-tex="n_{\min}"></dt><dd>Every sprout curls at least 1.1 turns.</dd><dt data-tex="\mathrm{side},\ \mathrm{fan}"></dt><dd>Settings from layer 1: which side the sprouts grow on (−1 one side, 0 alternating, +1 the other), and whether they spread along the stroke or fan out from one point.</dd></dl>
+      <p class="intro">A few things are done by the program rather than by a formula. A sprout attaches at the edge of its parent’s line, on the side it leans towards. Variation also moves each sprout’s settings a little in a fixed direction through the settings. The mirror image, an answering curve and up to two limbs grow from the same root as the main stroke. Aspect is met by adding chained scrolls: the program searches for the number of scrolls that gives the requested ratio of width to height. Finally, the line width is adjusted by measuring how much of the ornament’s area is ink, so that dense ornaments are drawn with a finer pen.</p>
     </div>
   </section>
 
@@ -196,45 +220,110 @@ select{-webkit-appearance:none;appearance:none;padding-right:26px;background-ima
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/13.2.0/math.min.js"></script>
 <script>
 /* The mathematics of the machine, written once. Each definition is a math.js expression: it is compiled to plain
-   JavaScript for the engine (no interpreter at draw time) and printed as LaTeX for the page, so the two can't drift. */
+   JavaScript for the engine (no interpreter at draw time) and printed as LaTeX for the page, so the two can't drift.
+   Free symbols in a definition are read from the scope the engine passes in (its own parameter names). */
 const KurbitsMath=(math=>{
   const CONST={epsilon:0.01, g:2.399963229728653};           // fixed numbers: the spiral's core, the golden angle
+  // [id, expression, group]: groups of assignments are evaluated in order on a scope (settings → symbols, growing curls)
   const DEFS=[
-    // the stroke
-    ['q',     'q(u) = 2 pi f u + phi'],
-    ['H',     'H(v, beta) = ((v + epsilon)^(1 - beta) - epsilon^(1 - beta)) / ((1 + epsilon)^(1 - beta) - epsilon^(1 - beta))'],
-    ['step',  'step(u, a, mu, sigma) = a / 2 * (1 + tanh((u - mu) / sigma))'],
-    ['theta', 'theta(u) = A sin(q(u)) + A^3 * (flat sin(3 q(u)) - skew cos(3 q(u))) + pi * b * ((2 u - 1)^2 - 1) + kappa u + steps(u)'
-             +' + 2 pi n_0 H(clamp(u / c_0), beta) + 2 pi * n_1 * (1 - H(clamp((1 - u) / c_1), beta))'],
-    ['pen',   'pen(psi) = h + (1 - h) * 1.35 * max(0, cos(psi + pi / 2 - s))^1.6'],
-    // from x, y, z to the k-th setting
+    // helpers
+    ['mix',   'mix(a, b, t) = a + (b - a) t'],
+    ['smooth','smooth(a, b, v) = clamp((v - a) / (b - a))^2 * (3 - 2 clamp((v - a) / (b - a)))'],
+    ['Q',     'Q(t) = (sin(t) + 0.7 sin(1.6180339887 t + 1.1) + 0.5 sin(2.4142135624 t + 2.3)) / 2.2'],
+    // 1  x, y, z → settings
     ['phase', 'phase(x, y, z, k) = 0.55 cos(k g) x + 0.55 sin(1.31 k g + 0.4) y + 0.45 cos(1.77 k + 1.1) z + 1.618 k'],
     ['osc',   'osc(x, y, z, k) = 1 / 2 + 1 / 2 sin(phase(x, y, z, k))'],
     ['setting','setting(w, lo, hi, t) = lo + (hi - lo) * max(0, (w - t) / (1 - t))'],
     ['dead',  'dead(v) = sign(v) * max(0, abs(v) - 1.2) * 1.6'],
-    ['mirror','mirror(m) = clamp((m - 0.1) * 4)'],
-    // detail
-    ['smooth','smooth(a, b, v) = clamp((v - a) / (b - a))^2 * (3 - 2 clamp((v - a) / (b - a)))'],
+    ['mirror','mirror(v) = clamp((v - 0.1) * 4)'],
+    // 2  detail
     ['sprouts','sprouts(d) = 4 d'],
     ['depth', 'depth(d) = 0.4 + 2.4 d'],
     ['selfsim','selfsim(d) = smooth(0.55, 1, d)'],
-    ['flourish','flourish(d) = smooth(0, 0.8, d)'],
     ['variation','variation(d, v) = max(v, 0.5 smooth(0.3, 1, d))'],
+    ['flourish','flourish(d) = smooth(0, 0.8, d)'],
     ['swing', 'swing(d, w) = w + sign(w) * 0.3 smooth(0.4, 1, d)'],
     ['loops', 'loops(d, l) = max(l, 0.2 smooth(0.4, 1, d))'],
     ['turn',  'turn(d, tau) = tau * (1 + 0.24 smooth(0.4, 1, d))'],
-    // settings → the symbols of the stroke
-    ['A_',    'A = wave'],
-    ['phi_',  'phi = lean'],
-    ['b_',    'b = bend'],
-    ['n0_',   'n_0 = 1.5 scroll'],
-    ['n1_',   'n_1 = 2.2 curl'],
-    ['c0_',   'c_0 = 0.35 ell'],
-    ['c1_',   'c_1 = (0.35 + 0.25 abs(curl)) * ell'],
-    ['beta_', 'beta = 0.6 + 0.25 abs(curl)'],
+    // 3  settings → symbols
+    ['A_',    'A = wave','sym'],
+    ['phi_',  'phi = lean','sym'],
+    ['b_',    'b = bend','sym'],
+    ['n0_',   'n_0 = 1.5 scroll','sym'],
+    ['n1_',   'n_1 = 2.2 curl','sym'],
+    ['c0_',   'c_0 = 0.35 ell','sym'],
+    ['c1_',   'c_1 = (0.35 + 0.25 abs(curl)) * ell','sym'],
+    ['beta_', 'beta = 0.6 + 0.25 abs(curl)','sym'],
+    ['m_',    'm = 3.2 loops','sym'],
+    ['fat_',  'fat = 0.018 + 0.055 weightSetting','sym'],
+    ['hair_', 'hair = 0.35 - 0.25 contrast','sym'],
+    ['scale_','scale = length + 0.12 selfSim','sym'],
+    ['span_', 'span = at','sym'],
+    ['reach_','reach = min(0.9 - at, 0.6)','sym'],
+    ['cc_',   'childCurl = 1.1 (1 - straight)','sym'],
+    ['cw_',   'childWave = 0.6 (1 - straight)','sym'],
+    ['fall_', 'falloff = 1 - 0.25 selfSim','sym'],
+    ['cut_',  'cutoff = 0.03 + 0.02 selfSim','sym'],
+    ['thin_', 'thinning = 0.85 + 0.15 selfSim','sym'],
+    ['drift_','drift = 0.6 selfSim','sym'],
+    // 4  the stroke
+    ['q',     'q(u) = 2 pi f u + phi'],
+    ['H',     'H(v, beta) = ((v + epsilon)^(1 - beta) - epsilon^(1 - beta)) / ((1 + epsilon)^(1 - beta) - epsilon^(1 - beta))'],
+    ['step',  'step(u, a, mu, sigma) = a / 2 * (1 + tanh((u - mu) / sigma))'],
+    ['loopPlace','loopPlace(i, m) = 0.12 + 0.76 (i + 1 / 2) / max(1, m)'],
+    ['loopAngle','loopAngle(i, m, T, r, alt) = (1 + alt (cos(pi i) - 1)) * 2 pi T r^i clamp(m - i)'],
+    ['theta', 'theta(u) = A sin(q(u)) + A^3 * (flat sin(3 q(u)) - skew cos(3 q(u))) + pi * b * ((2 u - 1)^2 - 1) + kappa u + steps(u)'
+             +' + 2 pi n_0 H(clamp(u / c_0), beta) + 2 pi * n_1 * (1 - H(clamp((1 - u) / c_1), beta))'],
+    // 5  the pen
+    ['pen',   'pen(psi) = hair + (1 - hair) * 1.35 * max(0, cos(psi + pi / 2 - slant))^1.6'],
+    ['swell', 'swell(v) = sin(pi v^0.8)^0.55'],
+    ['comma', 'comma(v) = (1 - 0.8 v)^1.2 * min(1, v / 0.12)^0.5'],
+    ['tear',  'tear(v) = 1.9 v^0.9 * max(0, 1 - v)^0.35'],
+    ['profile','profile(v, r) = swell(v) + max(0, r) * (comma(v) - swell(v)) + max(0, -r) * (tear(v) - swell(v))'],
+    ['eyeStart','eyeStart(u) = 1 + clamp(abs(n_0) / 0.4) * (sqrt(H(clamp(u / c_0), beta)) - 1)'],
+    ['eyeEnd','eyeEnd(u) = 1 + clamp(abs(n_1) / 0.4) * (sqrt(H(clamp((1 - u) / c_1), beta)) - 1)'],
+    ['eyes',  'eyes(u) = eyeStart(u) eyeEnd(u)'],
+    ['taper', 'taper(v, r, u) = (0.9 profile(clamp(v), r) + 0.1) * (0.45 + 0.55 eyes(u))'],
+    // 6  growing curls: the stroke is lengthened by Lambda and the body re-parametrised, u = delta + Lambda u'
+    ['T0_',   'T_0 = mix(c_0, max(c_0, 0.12), fl smooth(0, 0.12, abs(n_0)))','grow'],
+    ['T1_',   'T_1 = mix(c_1, max(c_1, 0.8), fl smooth(0, 0.12, abs(curl)))','grow'],
+    ['Lam_',  'Lambda = T_0 + (1 - c_0 - c_1) + T_1','grow'],
+    ['del_',  'delta = c_0 - T_0','grow'],
+    ['fN_',   'fN = Lambda f','grow'],
+    ['phiN_', 'phiN = phi + 2 pi f delta','grow'],
+    ['bN_',   'bN = Lambda^2 b','grow'],
+    ['kap_',  'kappa = pi b (8 delta Lambda - 4 Lambda) + 4 pi bN','grow'],
+    ['c0N_',  'c0N = T_0 / Lambda','grow'],
+    ['c1N_',  'c1N = T_1 / Lambda','grow'],
+    ['n0N_',  'n0N = sign(n_0) * mix(abs(n_0), max(abs(n_0), 1.6), fl smooth(0, 0.12, abs(n_0)))','grow'],
+    ['n1N_',  'n1N = 2.2 sign(curl) * mix(abs(curl), max(abs(curl), 0.95), fl smooth(0, 0.12, abs(curl)))','grow'],
+    ['muN',   'muN(mu) = c0N + (mu - c_0) / Lambda'],
+    ['sigmaN','sigmaN(sigma) = sigma / Lambda'],
+    ['limbCurl','limbCurl(c) = sign(c) * mix(abs(c), max(abs(c), 1.6), fl)'],
+    ['limbEye','limbEye(s) = mix(0.3, min(0.62, max(0.3, 0.56 / (0.56 + 0.7 max(0.001, s)))), fl)'],
+    // 7  the recursive rule
+    ['budget','budget(N, D) = 1 / (1 + (0.28 N (1 + D) / mix(40, 2.4, elegance))^4)^(1 / 4)'],
+    ['rSprouts','trimSprouts(N, B) = N mix(1, B, 0.55)'],
+    ['rDepth','trimDepth(D, B) = D mix(1, sqrt(B), 0.6)'],
+    ['rScale','trimScale(lambda) = mix(lambda, min(lambda, 0.42), elegance)'],
+    ['rThin', 'trimThinning(eta) = eta mix(1, 0.9, elegance)'],
+    ['rFat',  'trimFat(w) = min(w, mix(w, 0.05, elegance)) / mix(1, sqrt(max(1, sqrt(abs(width height)))), elegance)'],
+    ['omega', 'omega(chi) = 1 - 0.6 chi'],
+    ['grown', 'grown(k) = clamp(depth - k)'],
+    ['count', 'sproutCount(k) = sprouts falloff^k'],
+    ['place', 'place(j, n) = mix(span + reach (j + 1 / 2) / max(1, n), span + reach / 2, fan)'],
+    ['angleJ','sproutAngle(j, v) = angle ((1 - abs(side)) cos(pi j) + side) (1 + 0.45 vary v) + 0.34 fan j clampPM(3 side + 1)'],
+    ['sizeJ', 'sproutSize(u, t) = scale (1 - shrink (u - span) / max(0.05, reach)) (1 + 0.3 vary Q(t))'],
+    ['curlJ', 'sproutCurl(n, dir, v) = max(abs(n), childMin) childCurl (1 + swirl) dir (1 + 0.25 vary v)'],
+    ['lowpass','lowpass(s) = s smooth(cutoff, 2 cutoff, s)'],
+    ['width', 'lineWidth(k, rel) = min(thinning^k rel^(weight - 1), 0.35 / fat)'],
   ];
-  const nodes={}, order=[];
-  for(const [id,src] of DEFS){nodes[id]=math.parse(src);order.push(id);}
+  const nodes={}, order=[], group={};
+  // a plain symbol followed by a bracket is a product, not a call (only defined names and known functions are calls)
+  const CALLS=new Set(DEFS.map(d=>(/^\s*([A-Za-z_]\w*)\s*\(/.exec(d[1])||[])[1]).filter(Boolean).concat(['sin','cos','tanh','abs','sqrt','exp','log','max','min','sign','clamp','clampPM','steps']));
+  const explicit=src=>src.replace(/([A-Za-z_]\w*)\s+\(/g,(m,w)=>CALLS.has(w)?m:w+' * (');
+  for(const [id,src0,grp] of DEFS){const src=explicit(src0);nodes[id]=math.parse(src);order.push(id);if(grp)(group[grp]=group[grp]||[]).push(id);}
+  const DEFNAMES=new Set(order.filter(id=>nodes[id].type==='FunctionAssignmentNode').map(id=>nodes[id].name));
   /* ---- math.js → JavaScript ---- */
   const MATHFN={sin:'Math.sin',cos:'Math.cos',tanh:'Math.tanh',abs:'Math.abs',sqrt:'Math.sqrt',exp:'Math.exp',log:'Math.log',max:'Math.max',min:'Math.min',sign:'Math.sign'};
   const OPS={add:'+',subtract:'-',multiply:'*',divide:'/'};
@@ -246,7 +335,7 @@ const KurbitsMath=(math=>{
         if(params.includes(n.name)) return n.name;
         if(n.name==='pi') return 'Math.PI';
         if(n.name in CONST) return String(CONST[n.name]);
-        return 'S.'+n.name;                                   // a free symbol: read from the scope the engine passes in
+        return 'S.'+n.name;
       case 'OperatorNode':{
         const a=n.args.map(x=>'('+js(x,params)+')');
         if(n.fn==='unaryMinus') return '-'+a[0];
@@ -257,52 +346,63 @@ const KurbitsMath=(math=>{
       case 'FunctionNode':{
         const f=n.fn.name, a=n.args.map(x=>js(x,params));
         if(MATHFN[f]) return MATHFN[f]+'('+a.join(',')+')';
-        if(f==='clamp') return 'F.clamp('+a[0]+')';
+        if(f==='clamp'||f==='clampPM') return 'F.'+f+'('+a[0]+')';
         if(f==='steps') return 'steps('+a[0]+')';
-        return 'F.'+f+'('+a.concat('S').join(',')+')';}     // another definition
+        if(!DEFNAMES.has(f)) throw new Error('unknown function '+f);
+        return 'F.'+f+'('+a.concat('S').join(',')+')';}
       default: throw new Error('node '+n.type);
     }
   }
-  const F={clamp:v=>v<0?0:v>1?1:v};
+  const F={clamp:v=>v<0?0:v>1?1:v, clampPM:v=>v<-1?-1:v>1?1:v};
   for(const id of order){const n=nodes[id];
-    if(n.type==='FunctionAssignmentNode'){
-      const params=n.params, body=js(n.expr,params);
-      F[n.name]=new Function('F','steps',`return function(${params.concat('S').join(',')}){return ${body};}`)(F,null);
-    }
+    if(n.type==='FunctionAssignmentNode'&&n.name!=='theta')
+      F[n.name]=new Function('F',`return function(${n.params.concat('S').join(',')}){return ${js(n.expr,n.params)};}`)(F);
   }
-  // θ takes the list of soft steps (turns and pen loops) as a function supplied by the engine
-  const thetaBody=js(nodes.theta.expr,['u']);
-  F.theta=new Function('F',`return function(u,S,steps){return ${thetaBody};}`)(F);
-  /* settings → symbols, evaluated with the settings as scope */
-  const assign=order.filter(id=>nodes[id].type==='AssignmentNode').map(id=>{const n=nodes[id];return [n.object.name,new Function('F','S',`return ${js(n.value,[])};`).bind(null,F)];});
-  function symbols(settings){const S=Object.assign({},settings);for(const [k,f] of assign) S[k]=f(S);return S;}
+  // θ takes the soft steps (turns and pen loops) as a function supplied by the engine
+  F.theta=new Function('F',`return function(u,S,steps){return ${js(nodes.theta.expr,['u'])};}`)(F);
+  /* a group of assignments evaluated in order on a scope */
+  const assign={};
+  for(const g in group) assign[g]=group[g].map(id=>{const n=nodes[id];return [n.object.name,new Function('F','S',`return ${js(n.value,[])};`).bind(null,F)];});
+  function run(g,scope){const S=Object.assign({},scope);for(const [k,f] of assign[g]) S[k]=f(S);return S;}
+  const symbols=settings=>run('sym',settings);
   /* ---- math.js → LaTeX ---- */
-  const GREEK=new Set(['alpha','beta','gamma','delta','epsilon','theta','kappa','mu','sigma','phi','psi','pi','tau','ell']);
-  const NAMES={setting:'\\operatorname{setting}',flourish:'\\operatorname{flourish}',variation:'\\operatorname{variation}',selfsim:'\\operatorname{selfsim}',sprouts:'\\operatorname{sprouts}',depth:'\\operatorname{depth}',smooth:'\\operatorname{smooth}',step:'\\operatorname{step}',pen:'\\operatorname{pen}',swing:'\\operatorname{swing}',loops:'\\operatorname{loops}',turn:'\\operatorname{turn}',dead:'\\operatorname{dead}',mirror:'\\operatorname{mirror}',osc:'\\operatorname{osc}',phase:'\\operatorname{phase}',q:'q',H:'H',theta:'\\theta'};
+  const GREEK=new Set(['alpha','beta','gamma','delta','epsilon','theta','kappa','lambda','mu','sigma','phi','psi','pi','tau','ell','chi','eta','omega','rho','Lambda']);
+  const NAMES={theta:'\\theta',H:'H',q:'q',Q:'Q',
+    fN:"f'",phiN:"\\varphi'",bN:"b'",c0N:"c_0'",c1N:"c_1'",n0N:"n_0'",n1N:"n_1'",muN:"\\mu'",sigmaN:"\\sigma'",
+    fl:'F',rel:'\\mathrm{rel}',dir:'\\mathrm{dir}',weightSetting:'\\mathrm{weight}',
+    fat:'w_0',hair:'h',slant:'s',scale:'\\lambda',span:'u_a',reach:'r_a',childCurl:'k_c',childWave:'k_w',childMin:'n_{\\min}',
+    falloff:'\\rho_f',cutoff:'s_{\\min}',thinning:'\\eta',drift:'\\mathrm{drift}',weight:'\\omega',selfSim:'\\chi',
+    sprouts:'N',depth:'D',angle:'\\alpha',elegance:'e',vary:'v_a',shrink:'s_h',alt:'\\mathrm{alt}'};
+  const FNAMES={theta:'\\theta',H:'H',q:'q',Q:'Q',muN:"\\mu'",sigmaN:"\\sigma'",omega:'\\omega'};
+  const words=f=>'\\operatorname{'+f.replace(/([a-z])([A-Z])/g,'$1\\,$2').toLowerCase()+'}';
   const sym=name=>{if(NAMES[name])return NAMES[name];const m=/^([a-zA-Z]+)_(\w+)$/.exec(name);if(m)return sym(m[1])+'_{'+m[2]+'}';
     if(GREEK.has(name))return name==='phi'?'\\varphi':name==='epsilon'?'\\varepsilon':'\\'+name;return name.length>1?'\\mathrm{'+name+'}':name;};
+  const fname=f=>FNAMES[f]||words(f);
   function handler(node,opt){
     if(node.type==='SymbolNode') return sym(node.name);
+    if(node.type==='OperatorNode'&&node.fn==='pow'&&node.args[0].type==='FunctionNode'&&node.args[0].fn.name==='clamp')   // a clamp raised to a power: bracket it
+      return '\\left('+node.args[0].toTex(opt)+'\\right)^{'+node.args[1].toTex(opt)+'}';
     if(node.type==='FunctionNode'){const f=node.fn.name;
-      if(f==='clamp') return '\\left['+node.args[0].toTex(opt)+'\\right]_0^1';                 // clamped to [0, 1]
+      if(f==='clamp') return '\\left['+node.args[0].toTex(opt)+'\\right]_0^1';
+      if(f==='clampPM') return '\\left['+node.args[0].toTex(opt)+'\\right]_{-1}^{1}';
       if(f==='sign') return '\\operatorname{sign}\\left('+node.args[0].toTex(opt)+'\\right)';
       if(f==='steps') return '\\sum_{k}\\operatorname{step}\\left(u,a_k,\\mu_k,\\sigma_k\\right)';
       if(f==='abs') return '\\left|'+node.args[0].toTex(opt)+'\\right|';
-      if(NAMES[f]||f==='H'||f==='q') return (NAMES[f]||f)+'\\left('+node.args.map(a=>a.toTex(opt)).join(',')+'\\right)';}
-    if(node.type==='FunctionAssignmentNode') return (NAMES[node.name]||sym(node.name))+'\\left('+node.params.map(sym).join(',')+'\\right)='+node.expr.toTex(opt);
+      if(DEFNAMES.has(f)) return fname(f)+'\\left('+node.args.map(a=>a.toTex(opt)).join(',')+'\\right)';}
+    if(node.type==='FunctionAssignmentNode') return fname(node.name)+'\\left('+node.params.map(sym).join(',')+'\\right)='+node.expr.toTex(opt);
     if(node.type==='AssignmentNode') return sym(node.object.name)+'='+node.value.toTex(opt);
   }
+  const OPT={handler,implicit:'hide',parenthesis:'auto'};
   const post=t=>t.replace(/~/g,'\\,').replace(/\\cdot/g,'\\,');
   /* a long sum is printed over aligned lines: `lines` says how many of its top-level terms go on each line */
-  function texLines(id,lines){const n=nodes[id],opt={handler,implicit:'hide',parenthesis:'auto'},terms=[];
-    (function flat(e){if(e.type==='OperatorNode'&&e.fn==='add'){flat(e.args[0]);flat(e.args[1]);}else terms.push(e);})(n.expr);
-    const head=(NAMES[n.name]||sym(n.name))+'\\left('+n.params.map(sym).join(',')+'\\right)';let i=0;const rows=[];
-    for(const c of lines){rows.push(terms.slice(i,i+c).map(t=>t.toTex(opt)).join('+'));i+=c;}
-    if(i<terms.length) rows.push(terms.slice(i).map(t=>t.toTex(opt)).join('+'));
+  function texLines(id,lines){const n=nodes[id],terms=[],body=n.type==='AssignmentNode'?n.value:n.expr;
+    (function flat(e){if(e.type==='OperatorNode'&&e.fn==='add'){flat(e.args[0]);flat(e.args[1]);}else terms.push(e);})(body);
+    const head=n.type==='AssignmentNode'?sym(n.object.name):fname(n.name)+'\\left('+n.params.map(sym).join(',')+'\\right)';let i=0;const rows=[];
+    for(const c of lines){rows.push(terms.slice(i,i+c).map(t=>t.toTex(OPT)).join('+'));i+=c;}
+    if(i<terms.length) rows.push(terms.slice(i).map(t=>t.toTex(OPT)).join('+'));
     return post('\\begin{aligned}'+head+'={}&'+rows.join('\\\\&+')+'\\end{aligned}');}
-  const tex0=id=>nodes[id].toTex({handler,implicit:'hide',parenthesis:'auto'});
-  const tex=(id,lines)=>lines?texLines(id,lines):post(tex0(id));
-  return {F,symbols,tex,ids:order,DEFS,CONST};
+  const tex=(id,lines)=>lines?texLines(id,lines):post(nodes[id].toTex(OPT));
+  return {F,symbols,run,tex,ids:order,DEFS,CONST};
 });
 //KurbitsMath;
 
@@ -384,21 +484,14 @@ function prep(p){let c=PREP.get(p);if(c)return c;
   const S={A:p[0],f:p[1],phi:p[2],n_0:p[3],n_1:p[4],c_0:p[5],c_1:p[6],beta:p[7],skew:p[8]||0,flat:p[9]||0,b:p[10]||0,kappa:p[34]||0}, st=[];
   const N=p[11]||0;
   if(N>0){const T=p[12]||1, r=p[13]||1, alt=p[14]||0, sg=p[15]||0.04, NN=Math.ceil(N);
-    for(let i=0;i<NN;i++){const wi=clip(N-i), s=lerp(1,i%2?-1:1,alt);st.push([s*TAU*T*Math.pow(r,i)*wi,0.12+0.76*(i+0.5)/Math.max(1,N),sg]);}}
+    for(let i=0;i<NN;i++) st.push([KM.F.loopAngle(i,N,T,r,alt),KM.F.loopPlace(i,N),sg]);}
   if(p.length>16) for(let j=0;j<6&&p.length>16+3*j;j++){const a=p[16+3*j]; if(a) st.push([a,p[17+3*j]??0.5,Math.max(1e-7,p[18+3*j]||0.1)]);}
   const steps=u=>{let t=0;for(let k=0;k<st.length;k++)t+=KM.F.step(u,st[k][0],st[k][1],st[k][2]);return t;};
   c={S,steps};PREP.set(p,c);return c;}
 const NT=6;
 function theta(u,p){const c=prep(p);return KM.F.theta(u,c.S,c.steps);}   // θ(u), exactly as printed on the page
-function eyeThin(u,p){const a=lerp(1,Math.sqrt(Hf(clip(u/p[5]),p[7])),clip(Math.abs(p[3])/0.4)),c=lerp(1,Math.sqrt(Hf(clip((1-u)/p[6]),p[7])),clip(Math.abs(p[4])/0.4));return a*c;}
-function brushW(v,u,p,pr){
-  v=clip(v);
-  const swell=Math.pow(Math.sin(Math.PI*Math.pow(v,0.8)),0.55),
-        comma=Math.pow(1-0.8*v,1.2)*Math.pow(Math.min(1,v/0.12),0.5),
-        tear=Math.pow(v,0.9)*Math.pow(Math.max(0,1-v),0.35)*1.9;
-  const b=pr>=0?lerp(swell,comma,pr):lerp(swell,tear,-pr);
-  return (b*0.9+0.1)*(0.45+0.55*eyeThin(u,p));
-}
+function eyeThin(u,p){return KM.F.eyes(u,prep(p).S);}
+function brushW(v,u,p,pr){return KM.F.taper(v,pr,u,prep(p).S);}   // the stroke's taper along its length
 function local(p,n,upto){
   const u=new Float64Array(n),th=new Float64Array(n),x=new Float64Array(n),y=new Float64Array(n),du=upto/(n-1);
   for(let i=0;i<n;i++){u[i]=i*du;th[i]=theta(u[i],p);}
@@ -435,7 +528,7 @@ function grow1(sc,p,x0,y0,M,hD,size,W,pr,c,z,g,halo,thin,o){
   const X=new Float64Array(n),Y=new Float64Array(n),H=new Float64Array(n),Hd=new Float64Array(n),w=new Float64Array(n),wl=new Float64Array(n),wr=new Float64Array(n);
   const ls=o?o.lobeSide||0:0, ld=o?o.lobeDepth||0:0;
   const sq=o&&o.sq?o.sq:0, ex=Math.exp(sq), du=g/(n-1);
-  const PS=o&&o.shade?{h:o.hair,s:o.slant}:null;                                   // the pointed pen's scope
+  const PS=o&&o.shade?{hair:o.hair,slant:o.slant}:null;                                   // the pointed pen's scope
   for(let i=0;i<n;i++){
     H[i]=fl*L.th[i]+rot; Hd[i]=L.th[i]+r0;
     if(sq){ // squeezed direction field: tan θ' = e^(−2x)·tan θ, winding preserved, then re-integrated
@@ -464,7 +557,7 @@ function grow1(sc,p,x0,y0,M,hD,size,W,pr,c,z,g,halo,thin,o){
 }
 
 /* quasi-periodic variation: incommensurate frequencies 1, φ, 1+√2 — deterministic, never exactly repeating */
-function Q(t){return (Math.sin(t)+0.7*Math.sin(1.6180339887*t+1.1)+0.5*Math.sin(2.4142135624*t+2.3))/2.2;}
+function Q(t){return KM.F.Q(t);}
 /* variation = movement in parameter space. Two directions D1, D2 over the shape numbers, set by
    varAngle and varTwist, span a plane; each chained scroll and each sprout sits at a quasi-periodic
    point (s1, s2) of that plane: value = base + range·(s1·D1 + s2·D2). */
@@ -491,11 +584,10 @@ function along(r,f){const t=Math.max(0,Math.min(r.n-1,f*(r.n-1))),i=Math.min(r.n
   return{X:L_(r.X),Y:L_(r.Y),H:L_(r.H),Hd:L_(r.Hd),w:L_(r.w),wl:L_(r.wl),wr:L_(r.wr)};}
 function branch(sc,K,M,p,x,y,hD,size,level,g,z,nd){
   const det=M[0]*M[3]-M[1]*M[2], fl0=det<0?-1:1, curl0=clip(p[4]/0.3,-1,1)*fl0;
-  const lam=(level===0&&!nd)?(K._lam||1):1;                     // the trunk's extra length
   // line weight: width ∝ size^weight relative to the trunk (weight 1 = proportional, 0 = same weight everywhere);
   // capped so a tiny stroke never becomes a blob
   const tr=K._trunk||1, rel=Math.max(1e-4,size/tr);
-  const thin=Math.min(Math.pow(K.thinning,level)*Math.pow(rel,K.weight-1),0.35/Math.max(1e-6,K.fat))/lam, pr=level?K.childPressure:K.pressure;
+  const thin=KM.F.lineWidth(level,rel,K), pr=level?K.childPressure:K.pressure;
   const r=grow1(sc,p,x,y,M,hD,size,K.fat*thin,pr,'col',z,g,K.fat*thin*0.45,false,
     {lobes:K.lobes,lobeDepth:K.lobeDepth*Math.pow(0.7,level),lobeSide:-curl0,hollow:K.hollow,nib:K.nib,nibAngle:K.nibAngle,shade:K.shade,hair:K.hair,slant:K.slant});
   if(!r) return null;
@@ -516,37 +608,37 @@ function branch(sc,K,M,p,x,y,hD,size,level,g,z,nd){
       Lp.push(cx-Math.sin(H[i])*ew/2,cy+Math.cos(H[i])*ew/2); Rp.push(cx+Math.sin(H[i])*ew/2,cy-Math.cos(H[i])*ew/2);}
     if(Lp.length>6){const pts=Lp.slice();for(let i=Rp.length-2;i>=0;i-=2)pts.push(Rp[i],Rp[i+1]);sc.poly(pts,K.echoInk?'col':'acc',z-0.5,0);}}}
   // sprouts (with an optional mirrored partner on the other side: bilateral)
-  const lw=clip(K.depth-level);
+  const lw=KM.F.grown(level,K);
   if(lw>0){
-    const lp=Math.pow(K.falloff,level), NS=K.sprouts*lam*lp, N=Math.ceil(NS), fanU=K.span+K.reach*0.5, pp=level%2===1?1-2*K.pingpong:1;
+    const lp=Math.pow(K.falloff,level), NS=KM.F.sproutCount(level,K), N=Math.ceil(NS), pp=level%2===1?1-2*K.pingpong:1;
     for(let j=0;j<N;j++){
       const wj=clip(NS-j)*lw; if(wj<=0) continue;
       const KK=varied(K,1.3*j+2.9*(level+1)+K.varPhase+11,K.variation*lp);
-      const uj=lerp(K.span+K.reach*(j+0.5)/Math.max(1,NS),fanU,K.fan);
+      const uj=KM.F.place(j,NS,K);
       if(uj>=g) continue;
-      const alt=j%2?-1:1, vj=Q(1.3*j+2.9*level+K.varPhase)*lp;
-      const a1=pp*(K.angle*((1-Math.abs(K.side))*alt+K.side)*(1+K.vary*0.45*vj)+K.fan*0.34*j*clip(K.side*3+1,-1,1));
+      const vj=Q(1.3*j+2.9*level+K.varPhase)*lp;
+      const a1=pp*KM.F.sproutAngle(j,vj,K);
       const Q_=along(r,uj/g);
-      const rel0=K.scale/lam*(1-K.shrink*(uj-K.span)/Math.max(0.05,K.reach))*(1+K.vary*0.3*Q(2.1*j+1.7*level+K.varPhase+4.0))*wj*(0.25+0.75*Math.abs(pp));
+      const rel0=KM.F.sproutSize(uj,2.1*j+1.7*level+K.varPhase+4.0,K)*wj*(0.25+0.75*Math.abs(pp));
       for(const [aj,bw] of [[a1,1],[-a1,K.bilateral]]){
         if(bw<=0) continue;
         const edge=fl*clip(aj/0.3,-1,1)*(aj*fl>0?Q_.wl:Q_.wr)*0.76;
         const qx=Q_.X-Math.sin(Q_.H)*edge, qy=Q_.Y+Math.cos(Q_.H)*edge;
-        const up=Math.sin(Q_.H+fl*aj), sgn=clip(aj/0.25,-1,1), gcurl=1+KK.gravity*up;
-        const n1c=Math.max(Math.abs(p[4]),KK.childMin||0)*KK.childCurl*(1+KK.swirl)*sgn*gcurl*(1+KK.vary*0.25*vj);   // sprouts always curl into an eye
+        const sgn=clip(aj/0.25,-1,1);
+        const n1c=KM.F.sproutCurl(p[4],sgn,vj,KK);   // sprouts always curl into an eye
         const dg=KK.drift*(level+1)*lp, sS=clip(KK.sproutS+0.6*KK.drift*lp*Q(1.9*level+KK.varPhase+0.5));
         const cp=[KK.A*KK.childWave*sgn*(1+0.5*dg*Q(level*1.1+KK.varPhase+2)),KK.f,p[2]+1.3*dg,-sS*n1c*0.8,n1c*(1+0.35*KK.drift*Q(level*2.3+KK.varPhase+1)),0.3,Math.min(0.85,Math.max(KK.c1,KK.childEye||0)*(1+0.25*KK.swirl)),Math.min(0.92,p[7]+0.05*KK.swirl),(p[8]||0)*sgn,p[9]||0,KK.cornu*0.6*sgn,0,0,0,0,0,0];
         // self-similarity: blend the sprout toward a miniature of its parent (mirrored to curl away)
         if(KK.selfSim>0){const s2=sgn*Math.sign(p[4]||1), mp=p.slice(0,16).map((v,k)=>(k===0||k===3||k===4||k===8||k===10||k===12)?(v||0)*s2:(v||0));
           mp[2]=(p[2]||0)+1.3*dg; mp[4]=Math.sign(mp[4]||1)*Math.max(Math.abs(mp[4]),KK.childMin||0); mp[6]=Math.max(mp[6],KK.childEye||0);
-          for(let k=0;k<mp.length;k++) cp[k]=lerp(cp[k]||0,mp[k],KK.selfSim);}
+          for(let k=0;k<mp.length;k++) cp[k]=KM.F.mix(cp[k]||0,mp[k],KK.selfSim);}
         // low-pass: detail below the cutoff size fades away smoothly
-        const cs=size*rel0*bw, lpF=K.cutoff>0?clip((cs-K.cutoff)/K.cutoff):1;
+        const cs=size*rel0*bw;
         // a self-similar sprout is aimed by its whole body (chord), so the miniature visibly branches off
         let hC=Q_.Hd+aj;
         if(KK.selfSim>0){const [xf,yf]=fullChord(cp), hb=hC+theta(0,cp)-Math.atan2(yf,xf);
           hC=Math.atan2(lerp(Math.sin(hC),Math.sin(hb),KK.selfSim),lerp(Math.cos(hC),Math.cos(hb),KK.selfSim));}
-        if(lpF>0) branch(sc,KK,M,cp,qx,qy,hC,cs*lpF*lpF*(3-2*lpF),level+1,clip((g-uj)/0.4),z-1,0);
+        if(cs>K.cutoff) branch(sc,KK,M,cp,qx,qy,hC,KM.F.lowpass(cs,K),level+1,clip((g-uj)/0.4),z-1,0);
       }
     }
   }
@@ -703,20 +795,12 @@ function buildOnce(K0,grow){
 function bbox(items){let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const it of items){const p=it.pts;for(let i=0;i<p.length;i+=2){if(p[i]<x0)x0=p[i];if(p[i]>x1)x1=p[i];if(p[i+1]<y0)y0=p[i+1];if(p[i+1]>y1)y1=p[i+1];}}return{x0,x1,y0,y1};}
 
 /* ---------------- elegance: a smooth detail budget and an ink-density check ---------------- */
-function refine(K){
-  K=Object.assign({},K,{weight:lerp(1,0.4,clip(K.selfSim))});   // line weight follows fractalness (not a control)
-  const e=clip(K.elegance); if(e<=0) return K;
-  const load=0.28*K.sprouts*(1+K.bilateral)*(1+K.depth)+K.nest*0.7+clip((K.lobes-1.5)/2)*K.lobeDepth*0.7
-    +(K.stems-1)/5+(K.rows-1)/3+(K.copies-1)/5+K.chain/3+(K.repeat-1)/3+K.stripes/4+K.swirl*0.5;
-  const B=lerp(40,2.4,e), f=1/Math.pow(1+Math.pow(load/B,4),0.25);
-  const o=Object.assign({},K);
-  o.nest=K.nest*f; o.stripes=K.stripes*f;
-  o.sprouts=K.sprouts*lerp(1,f,0.55); o.depth=K.depth*lerp(1,Math.sqrt(f),0.6);
-  o.scale=lerp(K.scale,Math.min(K.scale,0.42),e); o.swirl=K.swirl*lerp(1,f,0.5);
-  o.thinning=K.thinning*lerp(1,0.9,e);
-  const gs=Math.sqrt(Math.abs(K.width*K.height));
-  o.fat=Math.min(K.fat,lerp(K.fat,0.05,e))*lerp(1,1/Math.sqrt(1+0.35*(K.stems-1)+0.25*(K.copies-1)+0.15*K.chain),e)/lerp(1,Math.sqrt(Math.max(1,gs)),e);
-  o.echo=K.echo*lerp(1,1/(1+0.4*(K.stems-1)+0.3*(K.copies-1)),e);
+function refine(K){                                     // the elegance budget: detail is trimmed so it never crowds
+  K=Object.assign({},K,{weight:KM.F.omega(clip(K.selfSim))});   // line weight follows fractalness
+  if(!(clip(K.elegance)>0)) return K;
+  const B=KM.F.budget(K.sprouts,K.depth,K), o=Object.assign({},K);
+  o.sprouts=KM.F.trimSprouts(K.sprouts,B,K); o.depth=KM.F.trimDepth(K.depth,B,K);
+  o.scale=KM.F.trimScale(K.scale,K); o.thinning=KM.F.trimThinning(K.thinning,K); o.fat=KM.F.trimFat(K.fat,K);
   return o;
 }
 function inkRatio(items){
@@ -826,51 +910,42 @@ const Compact=(G=>{
   function expand(C,phase=0){
     C=Object.assign({},DEFAULTS,C);
     const deg=C.rise*Math.PI/180, fr=clip(C.fractal), d=clip(C.detail);
-    const Y=KM.symbols({wave:C.wave,lean:C.lean,bend:C.bend,scroll:C.scroll,curl:C.curl,ell:C.eyeLen??1});   // settings → the stroke's symbols
+    const Y=KM.symbols({wave:C.wave,lean:C.lean,bend:C.bend,scroll:C.scroll,curl:C.curl,ell:C.eyeLen??1,loops:C.loops,weightSetting:C.weight,contrast:C.contrast,
+      length:C.length,at:C.at,straight:C.straight,selfSim:fr});   // settings → symbols
     return flourish({
       A:Y.A, f:0.6, phi:Y.phi, n0:Y.n_0, c0:Y.c_0, n1:Y.n_1, c1:Y.c_1, beta:Y.beta,
       cornu:Y.b, skew:0, flat:0,
-      loops:3.2*C.loops, loopTurn:1, loopWidth:0.045, loopAlt:0.5, loopDecay:0.8,
-      fat:0.018+0.055*C.weight, shade:C.contrast, hair:0.35-0.25*C.contrast, slant:0.25, pressure:0.5, echo:C.echo||0, nest:C.nest||0, nestScale:0.72, echoGap:0.9, echoInk:1,
-      sprouts:KM.F.sprouts(d), depth:KM.F.depth(d), scale:C.length+0.12*fr, angle:C.angle, childCurl:1.1*(1-C.straight), childWave:0.6*(1-C.straight), childMin:1.1, childEye:0.5, side:C.side, elegance:0.6,
-      fan:C.fan, span:C.at, reach:Math.min(0.9-C.at,0.6), counter:C.answer, counterAngle:C.answerAngle,
-      selfSim:fr, drift:0.6*fr, falloff:1-0.25*fr, cutoff:0.03+0.02*fr, thinning:0.85+0.15*fr,
+      loops:Y.m, loopTurn:1, loopWidth:0.045, loopAlt:0.5, loopDecay:0.8,
+      fat:Y.fat, shade:C.contrast, hair:Y.hair, slant:0.25, pressure:0.5, echo:C.echo||0, nest:C.nest||0, nestScale:0.72, echoGap:0.9, echoInk:1,
+      sprouts:KM.F.sprouts(d), depth:KM.F.depth(d), scale:Y.scale, angle:C.angle, childCurl:Y.childCurl, childWave:Y.childWave, childMin:1.1, childEye:0.5, side:C.side, elegance:0.6,
+      fan:C.fan, span:Y.span, reach:Y.reach, counter:C.answer, counterAngle:C.answerAngle,
+      selfSim:fr, drift:Y.drift, falloff:Y.falloff, cutoff:Y.cutoff, thinning:Y.thinning,
       variation:C.variation, varAngle:1.5, varTwist:0.7, varPhase:phase,
       mirror:C.mirror, level:1, tilt:deg, spin:deg, chain:0,
       width:C.aspect??1, height:1, aspect:0,
       turns:[0,1,2].flatMap(j=>[C['t'+j+'a'],C['t'+j+'p'],C['t'+j+'w']]),
       limbs:[0,1].map(j=>['u','a','s','b','c'].map(k=>C['l'+j+k])),
-    },clip(C.flourish||0),C.curl,clip(C.loopy||0),C.tail??0.8,C.loopSize??0.06,clip(C.plain||0));
+    },clip(C.flourish||0),C.curl);
   }
   /* flourish (fl): the end curl grows longer and winds further, and limb curls wind up.
      loops (lp): every sharp turn grows a full extra loop turning the same way, from zero size (no jump).
      The start curl keeps its size, and the body keeps its shape, size and direction: the stroke is lengthened by Λ
      for the longer tail and the loops' arc, and positions along it are remapped (turns stay the same absolute width). */
-  function flourish(K,fl,curl,lp,tail,lsz,pl=0){
-    if(!(fl>0)&&!(lp>0)&&!(pl>0)) return K;
+  /* growing curls: the start curl and tail lengthen (T_0, T_1) while the body keeps its exact shape. The stroke becomes
+     Λ times longer and the body is re-parametrised as u = δ + Λu'; every symbol of θ is rewritten for that substitution. */
+  function flourish(K,fl,curl){
+    if(!(fl>0)) return K;
     K.pRef=[K.A,K.f,K.phi,K.n0,K.n1,K.c0,K.c1,K.beta,K.skew,K.flat,K.cornu,K.loops,K.loopTurn,K.loopDecay,K.loopAlt,K.loopWidth,...K.turns];
-    const loops=[];let arc=0;
-    for(let j=0;j<3;j++){const a=K.turns[3*j],wt=lp*ss_(1.5,2.3,Math.abs(a))*ss_(0.11,0.06,K.turns[3*j+2]);   // sharp corners, not bowls
-      loops.push(wt>0?2*Math.PI*Math.sign(a):0,K.turns[3*j+1],lsz*wt); arc+=3.5*lsz*wt;}
-    // the tail's absolute length T (trunk = 1) grows toward `tail`
-    // absolute lengths (trunk = 1): start curl T0 and tail T grow; the body B (plus the loops' arc) is kept
-    const hasEnd=ss_(0,0.12,Math.abs(curl)), hasStart=ss_(0,0.12,Math.abs(K.n0));
-    const c0=K.c0,c1=K.c1,B=1-c0-c1, T=lerp(c1,Math.max(c1,tail),fl*hasEnd), T0=lerp(c0,Math.max(c0,0.15*tail),fl*hasStart);
-    const Lam=T0+B+arc+T, st=(B+arc)/B/Lam, c0n=T0/Lam;
-    const map=u=>c0n+(u-c0)*st,   // the body's own mapping, also for turns centred in the curls (their tails reach the body)
-      ac=Math.abs(curl), a0=Math.abs(K.n0), n0n=Math.sign(K.n0)*lerp(a0,Math.max(a0,1.6),fl*hasStart)*(1-pl);   // plain (detail below 0) unwinds the curls
-    K.bodyRef=[c0,c0n]; K.n0=n0n;
-    K.n1=2.2*Math.sign(curl||1)*lerp(ac,Math.max(ac,0.95),fl*hasEnd)*(1-pl); K.c0=c0n; K.c1=T/Lam;
-    K.phi+=2*Math.PI*K.f*(c0-c0n/st); K.f/=st;
-    // the Euler bend under the same remap u = α + βu': a smaller bend plus constant curvature (exact up to a rotation)
-    const al=c0-c0n/st, be=1/st, cu=K.cornu; K.cornu=cu*be*be; const lin=Math.PI*cu*(8*al*be-4*be)+4*Math.PI*K.cornu;
-    K.turns=K.turns.concat(loops).map((v,i)=>i%3===0?v:i%3===1?map(v):v*st); K.turns.push(lin);
-    K.fat/=Lam; K.scale/=Lam; K.lenMul=Lam;
+    const S=KM.run('grow',{c_0:K.c0,c_1:K.c1,n_0:K.n0,f:K.f,phi:K.phi,b:K.cornu,curl,fl});
+    K.bodyRef=[K.c0,S.c0N];
+    K.n0=S.n0N; K.n1=S.n1N; K.c0=S.c0N; K.c1=S.c1N; K.phi=S.phiN; K.f=S.fN; K.cornu=S.bN;
+    K.turns=K.turns.map((v,i)=>i%3===0?v:i%3===1?KM.F.muN(v,S):KM.F.sigmaN(v,S)).concat([0,0,0,0,0,0,0,0,0,S.kappa]);   // κ sits at p[34]
+    K.fat/=S.Lambda; K.scale/=S.Lambda; K.lenMul=S.Lambda;
     K.limbRef=K.limbs.map(L=>L[0]);
-    K.limbs=K.limbs.map(L=>{const Tl=0.7*tail, le=Math.min(0.62,Math.max(0.3,Tl/(Tl+0.7*Math.max(1e-3,L[2]))));
-      return [map(L[0]),L[1],L[2]/Lam,L[3],Math.sign(L[4]||1)*lerp(Math.abs(L[4]),Math.max(Math.abs(L[4]),1.6),fl)*(1-pl),lerp(0.3,le,fl)];});
+    K.limbs=K.limbs.map(L=>[KM.F.muN(L[0],S),L[1],L[2]/S.Lambda,L[3],KM.F.limbCurl(L[4],S),KM.F.limbEye(L[2],S)]);
     return K;
   }
+
   const EX=[['curl',0.35,0.8],['scroll',-1,1],['wave',-1.3,1.3],['bend',-0.7,0.7],['lean',-2,2],['loops',0,1,0.55],
     ['side',-1,1],['variation',0,0.9,0.3],
     ['mirror',0,1,0.25],['rise',-40,75],['angle',0.5,1.4],['length',0.3,0.6],['straight',0,1,0.6],['fan',0,1,0.6],['at',0.05,0.4],['answer',0,1,0.6],['answerAngle',0.6,2.4],
@@ -1045,10 +1120,14 @@ new ResizeObserver(()=>{dirty=true;}).observe(document.body);
 let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{drawThumbs();decorate();},200);});
 /* typeset the formula and its terms once KaTeX has loaded (the page works without it) */
 // every displayed formula is printed from the same parsed definition the engine runs (G.KM)
-function typeset(){if(typeof katex==='undefined')return false;
+var typeset=function(){if(typeof katex==='undefined')return false;
   document.querySelectorAll('[data-def]').forEach(el=>{const t=G.KM.tex(el.dataset.def,el.dataset.lines?el.dataset.lines.split(',').map(Number):undefined);
     try{katex.render(t,el,{displayMode:true,throwOnError:false});}catch(_){el.textContent=t;}});
   document.querySelectorAll('[data-tex]').forEach(el=>{try{katex.render(el.dataset.tex,el,{displayMode:el.classList.contains('eq'),throwOnError:false});}catch(_){el.textContent=el.dataset.tex;}});return true;}
+// a formula wider than its box is set smaller until it fits (phones)
+function fitEqs(){document.querySelectorAll('.math .eq').forEach(el=>{el.style.fontSize='';const w=el.scrollWidth,c=el.clientWidth;if(w>c+1)el.style.fontSize=Math.max(55,Math.floor(100*c/w))+'%';});}
+let fr_;addEventListener('resize',()=>{clearTimeout(fr_);fr_=setTimeout(fitEqs,150);});
+const typeset0=typeset;typeset=()=>{const ok=typeset0();if(ok){fitEqs();if(document.fonts)document.fonts.ready.then(fitEqs);}return ok;};
 if(!typeset())addEventListener('load',()=>{if(!typeset()){document.querySelectorAll('[data-tex]').forEach(el=>el.textContent=el.dataset.tex);document.querySelectorAll('[data-def]').forEach(el=>el.textContent=G.KM.tex(el.dataset.def));}});
 })();
 
