@@ -1,0 +1,19 @@
+{
+  "name": "kurbits",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kurbits Machine: a mathematical ornament generator (index.html) and its command line (cli/kurbits.mjs)",
+  "type": "module",
+  "bin": {
+    "kurbits": "cli/kurbits.mjs"
+  },
+  "scripts": {
+    "test": "node --test cli/"
+  },
+  "dependencies": {
+    "mathjs": "13.2.0"
+  },
+  "optionalDependencies": {
+    "@resvg/resvg-js": "^2.6.2"
+  }
+}
