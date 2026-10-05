@@ -2,13 +2,14 @@
   "name": "kurbits",
   "version": "1.0.0",
   "private": true,
-  "description": "Kurbits Machine: a mathematical ornament generator (index.html) and its command line (cli/kurbits.mjs)",
+  "description": "Kurbits Machine and Kurbits Leaves: mathematical ornament generators (index.html, leaves.js) and their command lines (cli/)",
   "type": "module",
   "bin": {
-    "kurbits": "cli/kurbits.mjs"
+    "kurbits": "cli/kurbits.mjs",
+    "kurbits-leaves": "cli/leaves.mjs"
   },
   "scripts": {
-    "test": "node --test cli/"
+    "test": "node --test 'cli/*.test.mjs'"
   },
   "dependencies": {
     "mathjs": "13.2.0"

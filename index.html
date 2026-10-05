@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="A purely mathematical ornament generator in the tradition of 18th-century pen flourishes, printers' dividers and Swedish kurbits scrolls.">
+<meta name="description" content="A purely mathematical ornament generator in the tradition of 18th-century pen flourishes, printers' dividers and Swedish kurbits scrolls, with a leafier second engine after Dalecarlian kurbits painting.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 24c0-9 8-16 16-16 5 0 8 3 8 7s-3 6-6 6-5-2-5-4 2-3 3-2' fill='none' stroke='%23173a58' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
 <title>Kurbits</title>
 <style>
@@ -25,10 +25,10 @@ img{max-width:100%}
   --panel:#c9ccc6; --panel-hi:#d3d6d0; --navy:#173a58; --ink:#1b3a56; --muted:#4f6477; --teal:#a9dcdb; --ivory:#efe7c6;
   --hair:2px; --label:"Fira Sans Extra Condensed","Arial Narrow",sans-serif; --text:"Fira Sans",system-ui,sans-serif; --mono:ui-monospace,Menlo,Consolas,monospace;}
 *{box-sizing:border-box}
-button,select,input,canvas,.json,.formula,.band{border-radius:0}   /* square everything; only the knob caps are round */
+button,select,input,canvas,.json,.formula,.band{border-radius:0}   /* square everything; only the slider handles are round */
 body{background:var(--panel);color:var(--ink);font:500 15px/1.5 var(--text);padding-inline:clamp(16px,4vw,44px);padding-block:18px 40px}
 .wrap{max-width:1180px;margin-inline:auto;display:grid;gap:24px}
-/* header: a fine flourish, then the name between two hairlines, like the panel's footer */
+/* header: a fine flourish, then the name between two hairlines */
 header{display:grid;justify-items:center;gap:6px}
 #flourish{width:min(640px,94%);height:58px;display:block}
 .name{width:100%;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:22px}
@@ -40,7 +40,7 @@ h1{margin:0;font:600 clamp(28px,4vw,40px)/1 var(--text);letter-spacing:.01em;col
 .canvas-box canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .stage>.canvas-box{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);max-height:calc(100vh - 24px);z-index:5}
 .side{display:grid;gap:22px}
-/* groups: a hairline above with a small tick at its start, like the panel's column brackets */
+/* groups: a hairline above with a small tick at its start */
 .box{position:relative;display:grid;gap:12px;padding-top:14px}
 .box::before{content:"";position:absolute;left:0;right:0;top:0;height:10px;border-top:var(--hair) solid var(--navy);border-left:var(--hair) solid var(--navy);pointer-events:none}   /* rule and tick: one element, one width */
 .label{font:800 15px/1 var(--label);letter-spacing:.04em;text-transform:uppercase;color:var(--navy)}
@@ -110,6 +110,24 @@ select{-webkit-appearance:none;appearance:none;padding-right:26px;background-ima
 .steps{margin:0;padding-left:1.4em;display:grid;gap:6px;font:500 14.5px/1.55 var(--text);color:var(--ink);max-width:78ch}
 .steps li::marker{font:800 15px var(--label);color:var(--navy)}
 .fn{font-family:KaTeX_Main,'Times New Roman',serif;font-weight:400;font-size:1.05em}
+/* two engines, one tab each, between two hairlines like the name */
+.tabs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:22px}
+.tabs::before,.tabs::after{content:"";height:var(--hair);background:var(--navy)}
+.tabs [role=tablist]{display:flex}
+.tabs [role=tab]{min-width:112px}
+.tabs [role=tab]+[role=tab]{border-left:0}
+.tabs [role=tab][aria-selected="true"]{background:var(--navy);color:var(--ivory)}
+.tabpanel{display:grid;gap:24px;min-width:0}
+/* Leaves: a wide border above its controls, in three columns (one on phones) */
+.lstage{display:grid;gap:24px}
+.lstage>.canvas-box{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);z-index:5;width:100%;aspect-ratio:4/1;max-height:40vh;min-height:96px;box-shadow:0 0 0 6px var(--panel)}   /* the surround hides rules passing under it */
+.lside{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px 28px;align-items:start}
+.lcol{display:grid;gap:22px;min-width:0}
+.lrows .row{grid-template-columns:78px 1fr 56px}
+.lgal{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.lgal .thumb canvas{aspect-ratio:3/1}
+@media (max-width:1040px){.lside{grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))}.lcol{display:contents}}
+@media (max-width:860px){.lstage>.canvas-box{top:env(safe-area-inset-top,0px)}}
 </style>
 
 <div class="wrap">
@@ -119,6 +137,12 @@ select{-webkit-appearance:none;appearance:none;padding-right:26px;background-ima
     <div class="sub">A mathematical ornament machine</div>
   </header>
 
+  <div class="tabs"><div role="tablist" aria-label="Engine">
+    <button type="button" role="tab" id="tab-machine" aria-controls="panel-machine" aria-selected="true">Machine</button>
+    <button type="button" role="tab" id="tab-leaves" aria-controls="panel-leaves" aria-selected="false" tabindex="-1">Leaves</button>
+  </div></div>
+
+  <div class="tabpanel" role="tabpanel" id="panel-machine" aria-labelledby="tab-machine">
   <div class="stage">
     <div class="canvas-box"><canvas id="main" aria-label="Generated ornament"></canvas></div>
     <div class="side">
@@ -213,9 +237,124 @@ select{-webkit-appearance:none;appearance:none;padding-right:26px;background-ima
       <p class="intro">A few things are done by the program rather than by a formula. A sprout attaches at the edge of its parent’s line, on the side it leans towards. Variation also moves each sprout’s settings a little in a fixed direction through the settings. The mirror image, an answering curve and up to two limbs grow from the same root as the main stroke. Aspect is met by adding chained scrolls: the program searches for the number of scrolls that gives the requested ratio of width to height. Finally, the line width is adjusted by measuring how much of the ornament’s area is ink, so that dense ornaments are drawn with a finer pen.</p>
     </div>
   </section>
+  </div>
+
+  <div class="tabpanel" role="tabpanel" id="panel-leaves" aria-labelledby="tab-leaves" hidden>
+  <div class="lstage">
+    <div class="canvas-box"><canvas id="lmain" aria-label="Generated border"></canvas></div>
+    <p class="hint" id="lnote" hidden>Leaves imports leaves.js, which a page opened as a file cannot do: serve the folder (python3 -m http.server) and open it from there.</p>
+    <div class="lside">
+      <div class="lcol">
+        <div class="box" style="order:1">
+          <div class="label">Motion</div>
+          <div class="seg" id="lmodes">
+            <button type="button" data-mode="still">Still</button>
+            <button type="button" data-mode="sweep">Sweep</button>
+            <select id="lsweepKey" aria-label="Parameter to sweep"></select>
+          </div>
+          <div class="label">Colour</div>
+          <div class="seg" id="lpals">
+            <button type="button" data-pal="panel">Panel</button>
+            <button type="button" data-pal="band">Band</button>
+            <button type="button" data-pal="slate">Slate</button>
+            <button type="button" data-pal="black">Black</button>
+          </div>
+          <div class="label">Style</div>
+          <div class="seg" id="lstyle">
+            <button type="button" data-style="line">Line art</button>
+            <button type="button" data-style="fill">Filled</button>
+          </div>
+          <div class="label">Form</div>
+          <div class="seg" id="lform">
+            <button type="button" data-form="centred">Centred</button>
+            <button type="button" data-form="mirrored">Mirrored</button>
+            <button type="button" data-form="running">Running</button>
+          </div>
+        </div>
+        <div class="box" style="order:5">
+          <div class="seg" style="justify-content:space-between"><div class="label">These numbers</div><div class="seg"><button type="button" id="lcopy">Copy numbers</button><button type="button" id="lsvg">Copy SVG</button><button type="button" id="ldownload">Download SVG</button></div></div>
+          <div class="json" id="ljson"></div>
+        </div>
+      </div>
+      <div class="lcol">
+        <div class="box" style="order:2">
+          <div class="seg" style="justify-content:space-between"><div class="label">Point in the space</div><button type="button" id="lrandom">Random</button></div>
+          <div class="rows lrows" id="lpoint"></div>
+          <div class="hint" id="lchose" aria-live="polite"></div>
+        </div>
+      </div>
+      <div class="lcol">
+        <div class="box" style="order:3">
+          <div class="label">Leaves</div>
+          <div class="rows lrows" id="lleaves"></div>
+        </div>
+        <div class="box" style="order:4">
+          <div class="label">Small prints</div>
+          <div class="rows lrows" id="lprint"></div>
+          <div class="hint">At zero, as on screen.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="band" aria-hidden="true"><canvas id="lband"></canvas></div>
+
+  <section class="box" style="gap:16px">
+    <h2>Presets</h2>
+    <div class="gallery lgal" id="lgallery"></div>
+  </section>
+
+  <section class="box" style="gap:18px">
+    <h2>How it is built</h2>
+    <p class="intro lead">Kurbits Leaves is a second engine, after Dalecarlian kurbits painting (dalmålning, about 1780 to 1850): broad curling plume leaves with painted lines and lobed edges, rosettes, tulips and the kurbits gourd itself on a winding stem. Seven numbers go in. x, y and z place the border in a space of designs, as in the Machine; detail decides how much grows on the stem, variation how much each leaf differs from its neighbours, and size how large the leaves are. Aspect only sets the proportions: a longer border grows a longer stem. Nothing is random: the same numbers always give the same border, and every number moves it smoothly, except the choices of motif, which change at fixed places.</p>
+    <div class="layer">
+      <h3><b>1</b>The stem</h3>
+      <p class="intro">The stem is one curve, described by its direction like every stroke of the Machine. Its heading swings to and fro about a line that hangs, lies level or rises (y), as deeply as x says, and winds into a spiral at its end. Variation lets the depth and rhythm of the swing drift along the stem, so that no two bends are alike. A gentle stem is a garland whose leaves are spaced by how far it advances; a deep one becomes a scroll with a leaf at every bend, on alternate sides.</p>
+    </div>
+    <div class="layer">
+      <h3><b>2</b>The leaves</h3>
+      <p class="intro">Every leaf is the same plume: a curve that bends and curls at its tip, with rounded lobes along its outer edge. Its length, width, bend, curl and lobes are read off slow waves through the space, so x and z make the leaves broad or feathered. Variation then moves each leaf away from its neighbours: a slow swell of larger and smaller leaves along the stem, now and then a smaller second leaf on the other side, or an acanthus leaf that rolls its tip into a spiral. Size trades many small leaves on a busy stem for fewer, larger ones that lie flatter on a calmer one.</p>
+    </div>
+    <div class="layer">
+      <h3><b>3</b>Flowers</h3>
+      <p class="intro">z chooses the centrepiece: a rosette (z below 4), the kurbits gourd (4 to 8), a tulip (8 to 12), an urn with a bouquet (12 to 16) or a fan of tulips (16 to 20), and whether small rosettes or bunches of grapes grow inside the bends. x chooses whether the stem ends in a tulip, a bud or a rosette. Detail adds leaves and painted lines, then the small flowers (above 0.3) and tendrils with berries (above 0.45).</p>
+    </div>
+    <div class="layer">
+      <h3><b>4</b>Form</h3>
+      <p class="intro"><i>Centred</i> sets the centrepiece between two mirrored halves. <i>Mirrored</i> joins the halves on one stem that runs through the middle, with a pair of leaves rising from the joint. <i>Running</i> is a single level garland from one end to the other, without a mirror.</p>
+    </div>
+    <div class="layer">
+      <h3><b>5</b>The pen</h3>
+      <p class="intro">In line art each shape first erases what lies behind it, with a narrow halo, and then a calligraphic pen runs round its edge, heavier on the lobed side. A midrib and a fan of engraved lines follow each leaf out to its lobes; a line starts only where its neighbours are far enough away, so the fan opens out of the midrib instead of merging into it. <i>Filled</i> paints solid shapes and cuts the painted lines out of them.</p>
+    </div>
+    <div class="layer">
+      <h3><b>6</b>Small prints</h3>
+      <p class="intro">For a print at a small size, such as an engraving, min line sets the narrowest line and gap the narrowest gap between overlapping shapes, both measured in border heights. Lines then keep at least that width, halos keep at least that gap, parallel lines stop before they would merge, and small flowers drop the detail they cannot hold.</p>
+    </div>
+  </section>
+  </div>
 
   <footer>Kurbits</footer>
 </div>
+
+<script>
+/* the two engines, one tab each. The hash picks the tab (#leaves), so a tab can be linked; the arrow keys, Home and End
+   move between tabs. Each tab keeps its own state and hears 'kurbits:tab' when it is shown. */
+(()=>{
+const tabs=[...document.querySelectorAll('[role=tab]')],names=tabs.map(t=>t.id.slice(4));
+function show(name,focus){if(!names.includes(name))name=names[0];
+  tabs.forEach((t,i)=>{const on=names[i]===name;t.setAttribute('aria-selected',String(on));t.tabIndex=on?0:-1;
+    document.getElementById(t.getAttribute('aria-controls')).hidden=!on;if(on&&focus)t.focus();});
+  document.title=name===names[0]?'Kurbits':'Kurbits '+name[0].toUpperCase()+name.slice(1);
+  dispatchEvent(new CustomEvent('kurbits:tab',{detail:name}));}
+function select(name,focus){history.replaceState(null,'',name===names[0]?location.pathname+location.search:'#'+name);show(name,focus);}
+tabs.forEach((t,i)=>{t.addEventListener('click',()=>select(names[i]));
+  t.addEventListener('keydown',e=>{const n=tabs.length,j={ArrowRight:(i+1)%n,ArrowLeft:(i+n-1)%n,Home:0,End:n-1}[e.key];
+    if(j===undefined)return;e.preventDefault();select(names[j],true);});});
+addEventListener('hashchange',()=>show(location.hash.slice(1)));
+show(location.hash.slice(1));
+})();
+</script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/13.2.0/math.min.js"></script>
 <script>
@@ -997,7 +1136,7 @@ let mode='still', sweepKey='x+y+z', pal='panel', dirty=true;
 const build=(grow=1,res)=>G.build(Cm.expand(F.at(ORN.x,ORN.y,ORN.z,ORN.detail,ORN.aspect).C),grow,res?{res}:undefined);
 
 /* ---- one registry for every slider: id → {lo,hi,get,set,label} ---- */
-const REG=new Map(), CAPS={x:'#e8505b',y:'#f08a3a',z:'#f2c93a',detail:'#35b27f',aspect:'#3cb6e3'};   // the panel's knob caps
+const REG=new Map(), CAPS={x:'#e8505b',y:'#f08a3a',z:'#f2c93a',detail:'#35b27f',aspect:'#3cb6e3'};   // slider handle colours
 function fmt(v,lo,hi){return (hi-lo)>=10?(+v).toFixed(1):(+v).toFixed(2);}
 function slider(parent,id,label,lo,hi,help,get,set){
   const row=document.createElement('div');row.className='row';const step=+((hi-lo)/400).toPrecision(6);
@@ -1054,10 +1193,10 @@ function showJSON(){const r3=v=>+(+v).toFixed(3);$('json').textContent=JSON.stri
 $('copy').addEventListener('click',async e=>{const b=e.currentTarget;try{await navigator.clipboard.writeText($('json').textContent);b.textContent='Copied';}catch(_){b.textContent='Select the text';}setTimeout(()=>b.textContent='Copy numbers',1600);});
 
 /* ---- colour and drawing ---- */
-/* the panel's own palettes: navy ink on grey aluminium, the teal scrollwork of the navy band, and the dark slate panel */
+/* palettes: navy ink on grey, teal scrollwork on a navy band, and a dark slate */
 const PALS={panel:{bg:'#c9ccc6',col:'#173a58',acc:'#6b7f90'},band:{bg:'#173a58',col:'#a9dcdb',acc:'#5f8fa0'},slate:{bg:'#232b35',col:'#dcded8',acc:'#6c7580'}};
 function palette(){return PALS[pal]||PALS.panel;}
-function applyPal(){const P=palette();document.querySelectorAll('.canvas-box,.thumb canvas').forEach(el=>el.style.background=P.bg);}
+function applyPal(){const P=palette();document.querySelectorAll('#panel-machine .canvas-box,#panel-machine .thumb canvas').forEach(el=>el.style.background=P.bg);}
 function fit(cv){const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1),Wd=Math.max(1,Math.round(r.width*d)),H=Math.max(1,Math.round(r.height*d));if(cv.width!==Wd||cv.height!==H){cv.width=Wd;cv.height=H;}return[Wd,H];}
 function draw(ctx,items,P,v,Wd,H,pad=0.9){
   ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=P.bg;ctx.fillRect(0,0,Wd,H);
@@ -1070,9 +1209,10 @@ function draw(ctx,items,P,v,Wd,H,pad=0.9){
     else{ctx.shadowBlur=it.c==='bg'?0:glow;ctx.strokeStyle=P[it.c]||P.col;ctx.lineWidth=Math.max(0.5,it.w*s);ctx.stroke();}}
 }
 function padB(b,f){const w=b.x1-b.x0,h=b.y1-b.y0,m=f*Math.max(w,h);return{x0:b.x0-m,x1:b.x1+m,y0:b.y0-m,y1:b.y1+m};}
-const main=$('main'),mctx=main.getContext('2d'),narrow=matchMedia('(max-width:860px)'),cbox=document.querySelector('.canvas-box');
+const main=$('main'),mctx=main.getContext('2d'),narrow=matchMedia('(max-width:860px)'),cbox=document.querySelector('#panel-machine .canvas-box'),mpanel=$('panel-machine');
 let view=null,boxAspect=1,shownAspect=1;
 function frame(now){
+  if(mpanel.hidden){last=null;requestAnimationFrame(frame);return;}   // the Leaves tab is shown: a sweep waits where it is
   if(mode==='sweep'){const dt=last===null?0:Math.min(0.1,Math.max(0,now-last)/1000);last=now;sweepStep(dt);syncAll();dirty=true;}
   if(!dirty){requestAnimationFrame(frame);return;}
   const items=build(1),target_=padB(G.bbox(items),0.03);
@@ -1118,6 +1258,7 @@ setPressed('pals','pal',pal);pointPanel();setMode(mode);markPreset();applyPal();
 requestAnimationFrame(()=>{drawThumbs();decorate();requestAnimationFrame(frame);});
 new ResizeObserver(()=>{dirty=true;}).observe(document.body);
 let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{drawThumbs();decorate();},200);});
+addEventListener('kurbits:tab',e=>{if(e.detail==='machine'){dirty=true;drawThumbs();decorate();fitEqs();}});   // drawn at their size once shown
 /* typeset the formula and its terms once KaTeX has loaded (the page works without it) */
 // every displayed formula is printed from the same parsed definition the engine runs (G.KM)
 var typeset=function(){if(typeof katex==='undefined')return false;
@@ -1131,6 +1272,152 @@ const typeset0=typeset;typeset=()=>{const ok=typeset0();if(ok){fitEqs();if(docum
 if(!typeset())addEventListener('load',()=>{if(!typeset()){document.querySelectorAll('[data-tex]').forEach(el=>el.textContent=el.dataset.tex);document.querySelectorAll('[data-def]').forEach(el=>el.textContent=G.KM.tex(el.dataset.def));}});
 })();
 
+</script>
+
+<script type="module">
+/* Kurbits Leaves: the second engine, leaves.js (which cli/leaves.mjs also runs), with the Machine's controls. This tab
+   keeps its own numbers, colours and motion, so switching tabs loses nothing. */
+const $=id=>document.getElementById(id), panel=$('panel-leaves'), reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let E;
+try{E=await import('./leaves.js');}catch(e){$('lnote').hidden=false;throw e;}
+const {build,bbox,settingsAt}=E;
+/* ---- presets: [x, y, z, detail, aspect, variation, size, style, form] ---- */
+const BORDERS={"Rosette":[2,3,3,0.5,6,0.7,0.3,"line","centred"],"Tulip":[9,4,9,0.6,6,0.7,0.3,"line","centred"],"Gourd":[5,10,6,0.7,6,0.7,0.3,"line","centred"],"Urn":[12,5,14,0.7,6,0.7,0.3,"line","centred"],"Bouquet":[2,16,13,0.9,6,0.7,0.6,"line","centred"],"Fan":[10,2,19,0.9,6,0.7,0.3,"line","centred"],"Garland":[12.5,8,2,0.4,8,0.7,0.3,"line","centred"],"Broad":[9,4,9,0.6,8,0.7,1,"line","centred"],"Lace":[15,15,17,1,10,1,0,"line","centred"],"Painted":[2,3,3,0.5,6,0.7,0.3,"fill","centred"],"Meander":[4,14,10,0.8,8,0.7,0.3,"line","mirrored"],"Running":[1.6,9,3,0.7,10,0.7,0.3,"line","running"]};
+const KEYS=['x','y','z','detail','aspect','variation','size'];
+const point=p=>Object.assign(Object.fromEntries(KEYS.map((k,i)=>[k,p[i]])),{style:p[7],form:p[8]});
+/* ---- the space: seven numbers, plus the narrowest line and gap for small prints (engine units, border heights) ---- */
+const RANGE={x:[0,20],y:[0,20],z:[0,20],detail:[0,1],aspect:[2,24],variation:[0,1],size:[0,1],min:[0,0.05],gap:[0,0.05]};
+const HELP={x:'how deeply the stem winds; broad or feathered leaves',y:'ends that hang, lie level or rise',z:'the centrepiece, the small flowers, the leaf shape',
+  detail:'more leaves, then flowers, then tendrils',aspect:'width over height: a longer stem, never stretched',
+  variation:'how much each leaf and bend differs from its neighbours',size:'a fine, busy garland or fewer, larger leaves',
+  min:'the narrowest line, in border heights',gap:'the narrowest gap between overlapping shapes'};
+const LABEL={min:'min line'}, DIGITS={detail:2,variation:2,size:2,min:3,gap:3};
+const CAPS={x:'#e8505b',y:'#f08a3a',z:'#f2c93a',detail:'#35b27f',aspect:'#3cb6e3',variation:'#8f7bd6',size:'#e47fae'};   // the Machine's slider handle colours, and two more
+const S=Object.assign(point(Object.values(BORDERS)[0]),{min:0,gap:0});   // this tab's state
+let current=Object.keys(BORDERS)[0], mode='still', sweepKey='x+y+z', pal='panel', dirty=true;
+const make=(o=S)=>build(o,{min:o.min||0,gap:o.gap||0});
+
+/* ---- sliders ---- */
+const REG=new Map();
+function slider(parent,k){
+  const[lo,hi]=RANGE[k],step=DIGITS[k]===3?0.0005:+((hi-lo)/400).toPrecision(6),row=document.createElement('div');row.className='row';
+  row.innerHTML=`<label for="ls-${k}">${LABEL[k]||k}</label><input type="range" id="ls-${k}" min="${lo}" max="${hi}" step="${step}"><output></output><small>${HELP[k]}</small>`;
+  parent.appendChild(row);const inp=row.querySelector('input'),out=row.querySelector('output');if(CAPS[k])inp.style.setProperty('--cap',CAPS[k]);
+  const r={held:false,sync(){if(!this.held)inp.value=S[k];out.textContent=(+S[k]).toFixed(DIGITS[k]??1);}};REG.set(k,r);r.sync();
+  const hold=on=>{r.held=on;if(!on)rephase=true;};
+  inp.addEventListener('pointerdown',()=>hold(true));inp.addEventListener('touchstart',()=>hold(true),{passive:true});
+  for(const ev of['pointerup','pointercancel','touchend','touchcancel','change','blur'])inp.addEventListener(ev,()=>hold(false));
+  inp.addEventListener('input',()=>{S[k]=parseFloat(inp.value);changed();r.sync();});
+}
+['x','y','z','detail','aspect'].forEach(k=>slider($('lpoint'),k));['variation','size'].forEach(k=>slider($('lleaves'),k));['min','gap'].forEach(k=>slider($('lprint'),k));
+function changed(){current=null;markPreset();rephase=true;dirty=true;showNumbers();}
+function setPressed(id,attr,val){document.querySelectorAll(`#${id} button`).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset[attr]===val)));}
+function syncAll(){for(const r of REG.values())r.sync();setPressed('lstyle','style',S.style);setPressed('lform','form',S.form);showNumbers();}
+function choose(id,attr,set){$(id).addEventListener('click',e=>{const b=e.target.closest('button');if(b)set(b.dataset[attr]);});}
+choose('lstyle','style',v=>{S.style=v;changed();syncAll();});
+choose('lform','form',v=>{S.form=v;changed();syncAll();});
+$('lrandom').addEventListener('click',()=>{const R=(a,b)=>a+(b-a)*Math.random();
+  S.x=R(0,20);S.y=R(0,20);S.z=R(0,20);S.detail=R(0.1,0.9);current=null;markPreset();rephase=true;syncAll();dirty=true;view=null;});
+/* what the point chose: the motifs change at fixed places */
+const CENTRE={rosette:'a rosette',gourd:'the gourd',tulip:'a tulip',urn:'an urn of flowers',fan:'a fan of tulips'};
+const ENDS={tulip:['a tulip','tulips'],bud:['a bud','buds'],rosette:['a rosette','rosettes']}, SMALL={rosette:'small rosettes',grapes:'grapes'};
+function showNumbers(){const r3=v=>+(+v).toFixed(3),o=Object.fromEntries(KEYS.map(k=>[k,r3(S[k])]));o.style=S.style;o.form=S.form;
+  if(S.min||S.gap){o.min=r3(S.min);o.gap=r3(S.gap);}$('ljson').textContent=JSON.stringify(o,null,1);
+  const K=settingsAt(S),one=S.form==='running',parts=[],bends=[];
+  if(S.form==='centred')parts.push(CENTRE[K.motif]+' in the centre');parts.push(ENDS[K.end][one?0:1]+(one?' at the end':' at the ends'));
+  if(K.flowers)bends.push(SMALL[K.small]);if(K.tendrils)bends.push('tendrils');if(bends.length)parts.push(bends.join(' and ')+' in the bends');
+  const t=parts.join(', ');$('lchose').textContent=t[0].toUpperCase()+t.slice(1);}
+$('lcopy').addEventListener('click',async e=>{const b=e.currentTarget;try{await navigator.clipboard.writeText($('ljson').textContent);b.textContent='Copied';}catch(_){b.textContent='Select the text';}setTimeout(()=>b.textContent='Copy numbers',1600);});
+
+/* ---- motion: still, or the Machine's smooth back-and-forth sweep ---- */
+const sel_=$('lsweepKey'),GOLD=0.6180339887;
+for(const[v,l] of[['x+y+z','x + y + z'],...KEYS.map(k=>[k,k])]){const o=document.createElement('option');o.value=v;o.textContent=l;sel_.appendChild(o);}
+sel_.value=sweepKey;sel_.addEventListener('change',()=>{sweepKey=sel_.value;rephase=true;setMode('sweep');});
+const keysOf=k=>k==='x+y+z'?['x','y','z']:[k];
+function setMode(m){mode=m;rephase=true;last=null;setPressed('lmodes','mode',m);sel_.hidden=m!=='sweep';dirty=true;}
+choose('lmodes','mode',setMode);
+const SPEED={x:0.075,y:0.075,z:0.075,detail:0.015,aspect:0.2,variation:0.015,size:0.015};   // units per second
+let PH={},rephase=true,last=null;
+function phaseOf(k,v,prev){const[lo,hi]=RANGE[k],f=Math.max(0,Math.min(1,(v-lo)/(hi-lo)));return prev!==undefined&&(((prev%2)+2)%2)>1?2-f:f;}
+const tri=p=>{const q=((p%2)+2)%2;return q<=1?q:2-q;};
+function sweepStep(dt){const ks=keysOf(sweepKey);
+  if(rephase){const P={};for(const k of ks)P[k]=phaseOf(k,S[k],PH[k]);PH=P;rephase=false;}
+  ks.forEach((k,i)=>{if(REG.get(k).held)return;const[lo,hi]=RANGE[k],span=hi-lo,rate=ks.length>1?[1,GOLD,GOLD*GOLD][i]:1;
+    PH[k]+=SPEED[k]/span*rate*dt;S[k]=lo+span*tri(PH[k]);});}
+
+/* ---- colour and drawing: a filled shape first clears a halo round itself, a cut erases what lies under it ---- */
+/* the Machine's palettes, and black with pale grey ink (the command line's default) */
+const PALS={panel:{bg:'#c9ccc6',col:'#173a58'},band:{bg:'#173a58',col:'#a9dcdb'},slate:{bg:'#232b35',col:'#dcded8'},black:{bg:'#101012',col:'#d6d9de'}};
+const palette=()=>PALS[pal];
+function applyPal(){const P=palette();panel.querySelectorAll('.canvas-box,.thumb canvas').forEach(el=>el.style.background=P.bg);}
+choose('lpals','pal',v=>{pal=v;setPressed('lpals','pal',pal);applyPal();dirty=true;drawThumbs();});
+function fit(cv){const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1),Wd=Math.max(1,Math.round(r.width*d)),H=Math.max(1,Math.round(r.height*d));if(cv.width!==Wd||cv.height!==H){cv.width=Wd;cv.height=H;}return[Wd,H];}
+function draw(ctx,items,P,v,Wd,H,pad){
+  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=P.bg;ctx.fillRect(0,0,Wd,H);
+  if(!(v.x1>v.x0))return;
+  const s=Math.min(Wd*pad/(v.x1-v.x0),H*pad/Math.max(1e-6,v.y1-v.y0)),tx=Wd/2-s*(v.x0+v.x1)/2,ty=H/2+s*(v.y0+v.y1)/2;
+  ctx.lineJoin='round';
+  for(const it of items){const p=it.pts;ctx.beginPath();ctx.moveTo(tx+s*p[0],ty-s*p[1]);for(let i=2;i<p.length;i+=2)ctx.lineTo(tx+s*p[i],ty-s*p[i+1]);ctx.closePath();
+    if(it.t==='x'){ctx.fillStyle=P.bg;ctx.fill();continue;}
+    if(it.h>0){ctx.strokeStyle=P.bg;ctx.lineWidth=it.h*s;ctx.stroke();}
+    ctx.fillStyle=P.col;ctx.fill();}
+}
+function padB(b,f){const w=b.x1-b.x0,h=b.y1-b.y0,m=f*Math.max(w,h);return{x0:b.x0-m,x1:b.x1+m,y0:b.y0-m,y1:b.y1+m};}
+const main=$('lmain'),mctx=main.getContext('2d'),box=main.parentNode;
+let view=null,boxAspect=4,shownAspect=0;
+function frame(now){
+  if(panel.hidden){last=null;requestAnimationFrame(frame);return;}   // the Machine tab is shown: a sweep waits where it is
+  if(mode==='sweep'){const dt=last===null?0:Math.min(0.1,Math.max(0,now-last)/1000);last=now;sweepStep(dt);syncAll();dirty=true;}
+  if(!dirty){requestAnimationFrame(frame);return;}
+  const items=make(),t=padB(bbox(items),0.03);
+  // the box takes the border's proportions, from 1.6 to 8 wide, easing while it sweeps
+  const a=Math.min(8,Math.max(1.6,(t.x1-t.x0)/Math.max(1e-6,t.y1-t.y0)));boxAspect+=(a-boxAspect)*(mode==='sweep'?0.08:1);
+  if(Math.abs(boxAspect-shownAspect)>0.01){shownAspect=boxAspect;box.style.aspectRatio=boxAspect.toFixed(3)+' / 1';}
+  if(!view||mode!=='sweep')view=Object.assign({},t);
+  else{for(const k of['x0','x1','y0','y1'])view[k]+=(t[k]-view[k])*0.12;
+    view.x0=Math.min(view.x0,t.x0);view.y0=Math.min(view.y0,t.y0);view.x1=Math.max(view.x1,t.x1);view.y1=Math.max(view.y1,t.y1);}
+  const[Wd,H]=fit(main);draw(mctx,items,palette(),view,Wd,H,0.94);
+  dirty=false;requestAnimationFrame(frame);
+}
+
+/* ---- SVG, as the Machine's Copy SVG: engine units, y down ---- */
+function toSVG(){const items=make(),P=palette(),b=bbox(items),pd=0.03*Math.max(b.x1-b.x0,b.y1-b.y0);
+  const f=v=>(+v).toFixed(4),X=v=>f(v-b.x0+pd),Y=v=>f(b.y1-v+pd);
+  let out=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${f(b.x1-b.x0+2*pd)} ${f(b.y1-b.y0+2*pd)}"><rect width="100%" height="100%" fill="${P.bg}"/>`;
+  for(const it of items){const p=it.pts;let d='M'+X(p[0])+' '+Y(p[1]);for(let i=2;i<p.length;i+=2)d+='L'+X(p[i])+' '+Y(p[i+1]);
+    if(it.t==='x'){out+=`<path d="${d}Z" fill="${P.bg}"/>`;continue;}
+    if(it.h>0)out+=`<path d="${d}Z" fill="none" stroke="${P.bg}" stroke-width="${f(it.h)}" stroke-linejoin="round"/>`;
+    out+=`<path d="${d}Z" fill="${P.col}"/>`;}
+  return out+'</svg>';}
+$('lsvg').addEventListener('click',async e=>{const b=e.currentTarget,s=toSVG();
+  try{await navigator.clipboard.writeText(s);b.textContent='SVG copied';}catch(_){$('ljson').textContent=s;b.textContent='SVG shown below';}
+  setTimeout(()=>b.textContent='Copy SVG',1800);});
+$('ldownload').addEventListener('click',()=>{const a=document.createElement('a'),name=current?current.toLowerCase():KEYS.slice(0,4).map(k=>+(+S[k]).toFixed(2)).join('-');
+  a.href=URL.createObjectURL(new Blob([toSVG()],{type:'image/svg+xml'}));a.download=`kurbits-leaves-${name}.svg`;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);});
+
+/* ---- presets ---- */
+const gal=$('lgallery'),thumbs=[];
+Object.keys(BORDERS).forEach(name=>{
+  const b=document.createElement('button');b.type='button';b.className='thumb';b.setAttribute('aria-pressed','false');
+  b.innerHTML=`<canvas aria-hidden="true"></canvas><span>${name}</span>`;
+  b.addEventListener('click',()=>{Object.assign(S,point(BORDERS[name]));current=name;rephase=true;
+    syncAll();markPreset();dirty=true;view=null;main.scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'});});
+  gal.appendChild(b);thumbs.push({b,name,items:null});
+});
+function markPreset(){thumbs.forEach(({b,name})=>b.setAttribute('aria-pressed',String(name===current)));}
+function drawThumbs(){if(panel.hidden)return;const P=palette();
+  for(const t of thumbs){const cv=t.b.querySelector('canvas');t.items=t.items||build(point(BORDERS[t.name]));const[Wd,H]=fit(cv);draw(cv.getContext('2d'),t.items,P,bbox(t.items),Wd,H,0.9);}}
+/* the navy band: one running garland, its aspect found in three steps so that it fills the band */
+function decorate(){if(panel.hidden)return;const cv=$('lband'),[Wd,H]=fit(cv),want=Wd/H;let a=2.3*want,it,b;
+  for(let i=0;i<3;i++){it=build({x:4,y:14,z:10,detail:0.35,aspect:Math.max(2,a),size:1,form:'running'});b=bbox(it);a*=0.97*want/((b.x1-b.x0)/(b.y1-b.y0));}
+  draw(cv.getContext('2d'),it,PALS.band,b,Wd,H,0.86);}
+
+setPressed('lpals','pal',pal);syncAll();setMode(mode);markPreset();applyPal();
+addEventListener('kurbits:tab',e=>{if(e.detail==='leaves'){dirty=true;drawThumbs();decorate();}});   // drawn at their size once shown
+new ResizeObserver(()=>{dirty=true;}).observe(box);
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{drawThumbs();decorate();},200);});
+requestAnimationFrame(()=>{drawThumbs();decorate();requestAnimationFrame(frame);});
 </script>
 
 </body>
