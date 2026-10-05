@@ -1,43 +1,40 @@
 #!/usr/bin/env node
-// Kurbits Leaves on the command line: the leafier, dalmålning-style engine in ../leaves.js.
+// Kurbits Leaves on the command line: the line-drawn, dalmålning-style engine in ../leaves.js.
 //
-//   leaves svg   --at X,Y,Z[,DETAIL[,ASPECT[,VARIATION[,SIZE]]]] [options] [-o FILE]
-//   leaves json  --at ... [-o FILE]          raw geometry, engine units, y up: {params, bbox, items: [{kind: fill|cut,
-//                                            halo, points: [[x, y], ...]}]}; a cut erases what was painted before it
+//   leaves svg   --at X,Y,Z[,DETAIL[,ASPECT[,VARIATION[,SIZE[,MIRROR]]]]] [options] [-o FILE]
+//   leaves json  --at ... [-o FILE]          raw geometry, engine units, y up: {params, bbox, items: [{kind: 'line',
+//                                            width, points: [[x, y], ...]}]}; hidden lines are already removed
 //   leaves sheet --points "X,Y,Z,D,A;..." [--cols N] [options] -o FILE
 //
 // x, y and z run from 0 to 20, detail from 0 to 1, aspect from 2 up (a border's width over its height), variation from
-// 0 (every leaf alike) to 1 (each leaf, flower and bend differs from its neighbours; default 0.7), size from 0 (a fine,
-// busy garland) to 1 (fewer, larger leaves that read from afar; default 0.3).
+// 0 (every leaf alike) to 1 (each leaf and bend differs from its neighbours; default 0.5), size from 0 (fine, busy
+// leaves) to 1 (fewer, larger ones; default 0.4), mirror from 0 (a running garland, every leaf pointing one way) to
+// 1 (mirrored about the centre, the default). Every number is continuous: any point draws a border.
 // Options: --bg COLOUR (default #101012), --col COLOUR (default #d6d9de), --px WIDTH for .png (default 1600),
-// --min M: the smallest cut or dot kept, --gap G: the smallest gap between overlapping shapes, both in engine
-// units (roughly 1 unit per ornament height), for small physical prints such as an engraving.
-// --style line|fill: line art (outlines and engraved lines, the default) or filled shapes with cut lines.
-// --form centred|mirrored|running: a centrepiece between two mirrored garlands (default), two mirrored garlands
-// joined in the middle without one, or one garland running from end to end.
+// --min M: the narrowest line, --gap G: the narrowest gap between lines, both in engine units (roughly 1 unit per
+// border height), for small physical prints such as an engraving.
 // An -o FILE ending in .png is rendered with resvg; anything else is written as SVG.
 import fs from 'node:fs';
-import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { build, bbox } from '../leaves.js';
 
 const require = createRequire(import.meta.url);
 const f4 = v => (+v).toFixed(4);
+export const KEYS = ['x', 'y', 'z', 'detail', 'aspect', 'variation', 'size', 'mirror'];
 
 export function toJSON(items, params) {
   const pairs = p => { const o = []; for (let i = 0; i < p.length; i += 2) o.push([p[i], p[i + 1]]); return o; };
-  return { params, bbox: bbox(items), items: items.map(it => ({ kind: it.t === 'x' ? 'cut' : 'fill', halo: it.h || 0, points: pairs(it.pts) })) };
+  return { params, bbox: bbox(items), items: items.map(it => ({ kind: 'line', width: it.w, points: pairs(it.pts) })) };
 }
 
+// every item is a pen line: an SVG path stroked in the ink colour (a closed line ends where it starts)
 function paths(items, P, X, Y, s) {
   let out = '';
   for (const it of items) {
     const p = it.pts; let d = 'M' + f4(X(p[0])) + ' ' + f4(Y(p[1]));
     for (let i = 2; i < p.length; i += 2) d += 'L' + f4(X(p[i])) + ' ' + f4(Y(p[i + 1]));
-    if (it.t === 'x') { out += `<path d="${d}Z" fill="${P.bg}"/>`; continue; }
-    if (it.h > 0) out += `<path d="${d}Z" fill="none" stroke="${P.bg}" stroke-width="${f4(it.h * s)}" stroke-linejoin="round"/>`;
-    out += `<path d="${d}Z" fill="${P.col}"/>`;
+    out += `<path d="${d}" fill="none" stroke="${P.col}" stroke-width="${f4(it.w * s)}" stroke-linecap="round" stroke-linejoin="round"/>`;
   }
   return out;
 }
@@ -58,7 +55,7 @@ function sheetSVG(points, P, cols, cell = 600, opt = {}) {
   cells.forEach((c, i) => {
     const gx = (i % cols) * cell, gy = Math.floor(i / cols) * ch, w = c.b.x1 - c.b.x0, s = cell * 0.94 / w;
     const X = x => gx + cell * 0.03 + (x - c.b.x0) * s, Y = y => gy + lab + (c.b.y1 - y) * s;
-    body += `<text x="${gx + 8}" y="${gy + 20}" fill="#9aa0a8" font-family="Helvetica" font-size="17">${i + 1}  ${[c.p.x, c.p.y, c.p.z, c.p.detail, c.p.aspect, c.p.variation, c.p.size].join(', ')}</text>`;
+    body += `<text x="${gx + 8}" y="${gy + 20}" fill="#9aa0a8" font-family="Helvetica" font-size="17">${i + 1}  ${KEYS.map(k => +(+c.p[k]).toFixed(3)).join(', ')}</text>`;
     body += paths(c.items, P, X, Y, s);
   });
   const W = cols * cell, H = rows * ch;
@@ -72,9 +69,9 @@ function write(file, svg, px) {
   } else if (file) fs.writeFileSync(file, svg); else process.stdout.write(svg);
 }
 
-function parsePoint(s) {
-  const [x, y, z, detail = 0.5, aspect = 6, variation = 0.7, size = 0.3] = s.split(',').map(Number);
-  return { x, y, z, detail, aspect, variation, size };
+export function parsePoint(s) {
+  const [x, y, z, detail = 0.5, aspect = 6, variation = 0.5, size = 0.4, mirror = 1] = s.split(',').map(Number);
+  return { x, y, z, detail, aspect, variation, size, mirror };
 }
 
 if (process.argv[1] && fs.realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -82,11 +79,11 @@ if (process.argv[1] && fs.realpathSync(process.argv[1]) === fileURLToPath(import
   const [cmd, ...rest] = process.argv.slice(2), o = {};
   for (let i = 0; i < rest.length; i++) { const k = rest[i].replace(/^-+/, ''); o[k] = rest[i + 1]; i++; }
   const P = { bg: o.bg || '#101012', col: o.col || '#d6d9de' }, px = +(o.px || 1600), out = o.o;
-  const opt = { min: +(o.min || 0), gap: +(o.gap || 0) }, style = o.style || 'line', form = o.form || 'centred';
-  if (cmd === 'svg') write(out, toSVG(build({ ...parsePoint(o.at || '5,5,5'), style, form }, opt), P), px);
+  const opt = { min: +(o.min || 0), gap: +(o.gap || 0) };
+  if (cmd === 'svg') write(out, toSVG(build(parsePoint(o.at || '5,5,5'), opt), P), px);
   else if (cmd === 'json') {
-    const p = { ...parsePoint(o.at || '5,5,5'), style, form }, j = JSON.stringify(toJSON(build(p, opt), p));
+    const p = parsePoint(o.at || '5,5,5'), j = JSON.stringify(toJSON(build(p, opt), p));
     if (out) fs.writeFileSync(out, j); else process.stdout.write(j);
-  } else if (cmd === 'sheet') write(out, sheetSVG((o.points || '').split(';').filter(Boolean).map(s => ({ ...parsePoint(s), style, form })), P, +(o.cols || 2), 600, opt), px);
+  } else if (cmd === 'sheet') write(out, sheetSVG((o.points || '').split(';').filter(Boolean).map(parsePoint), P, +(o.cols || 2), 600, opt), px);
   else { console.error('usage: leaves svg|json|sheet ... (see the header of cli/leaves.mjs)'); process.exit(1); }
 }

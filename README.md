@@ -28,35 +28,42 @@ aspect 0.25 to 6). An output name ending in `.png` is rendered with resvg
 
 ## Kurbits Leaves
 
-`leaves.js` is a second, leafier engine after Dalecarlian kurbits painting (dalmålning, about 1780-1850): broad
-curling plume leaves with painted lines and scalloped edges, rosettes, tulips and the kurbits gourd on a winding stem,
-mirrored into a border. Like the Machine it is generated, not drawn, and deterministic: the same x, y, z (0 to 20),
-detail (0 to 1) and aspect (width over height) always give the same border. x sets how deeply the stem winds (a
-gentle garland to a leaf scroll with a leaf at every bend) and, with z, broad or feathered leaves; y sets whether the
-ends hang, stay level or rise; z picks the centre (rosette, gourd, tulip, urn bouquet, tulip fan) and small rosettes
-or grapes; detail adds leaves, flowers and tendrils. A sixth number, variation (0 to 1, default 0.7), sets how much
-each leaf, flower and bend differs from its neighbours, like the Machine's variation term: leaf size (with a slow
-swell along the stem), width, curl, bend, lobes and angle, paired leaves, rolled acanthus tips, mixed flowers and a
-drifting meander. A seventh, size (0 to 1, default 0.3), trades a fine, busy garland for fewer, larger leaves
-that lie flatter along a calmer stem and read as leaves from further away. Everything is drawn as line art by default:
-each shape's silhouette erases what lies behind it and a calligraphic pen line runs round its edge, with a midrib
-and engraved lines in each leaf (`style: 'fill'`, `--style fill`, gives the earlier filled shapes). `form` sets the
-layout: `centred` (a centrepiece between two mirrored garlands), `mirrored` (two garlands joined in the middle on
-one stem, no centrepiece) or `running` (one garland from end to end). The shapes move smoothly; the choices of motif change at fixed places. `settingsAt(point)` reports
-what a point chose.
+`leaves.js` is a second engine of line-drawn leaves after Dalecarlian kurbits painting (dalmålning, about 1780-1850)
+and acanthus scrollwork: curling, lobed, feathered and toothed leaves on a winding stem that ends in spirals, with
+scrolls, buds and tendrils in its bends. Like the Machine it is a point in a continuous space, and every number is
+continuous: x, y and z (0 to 20), detail, variation, size and mirror (0 to 1) and aspect (width over height). Every
+point draws a border, and a small step in any number changes it only a little. Nothing is picked from a list: a leaf,
+a lobe, a vein, a tooth or a scroll grows from nothing, and the same numbers always give the same border.
 
-Try it in the page's Leaves tab (`index.html#leaves`), which has the Machine's controls for every number, the style,
-the form and the print limits below, twelve presets, a sweep, and Copy or Download SVG. The tab imports `leaves.js`, so
-locally serve the folder (e.g. `python3 -m http.server`) rather than opening the file. On the command line:
+- x sets the leaf's edge: smooth, scalloped, lobed, feathered, then divided into leaflets (lobes are one bump
+  repeated a fractional number of times along the leaf, so they grow in one by one; deep enough, the notches reach
+  the midrib).
+- z mostly sets slender or broad leaves, calm or curling; y the stem, from a gentle garland to deep scrolls, and
+  whether its ends hang or rise. Both are read off slow waves through the space, as in the Machine.
+- detail grows the veins, then scrolls inside the bends, second leaves and tendrils; variation makes each leaf and
+  bend differ from its neighbours; size trades many small leaves for fewer, larger ones.
+- mirror blends a running garland (0, every leaf pointing one way) into a border mirrored about its centre (1, with
+  a crown of leaves rising there): the left half's leaves turn through the upright and their curl reverses.
+
+Each leaf grows along a spine given by its curvature (an even bend and a tip curl that tightens like a logarithmic
+spiral); its edge is a width envelope times lobes times teeth, its veins pinnate or striate like painted strokes.
+The stem is a meander described by its heading, ending in logarithmic spirals. Everything is a pen line with hidden
+lines removed, so the SVG is ready for a plotter or an engraver. `settingsAt(point)` reports the continuous settings
+a point gives. The page's "How it is built" has the formulas.
+
+Try it in the page's Leaves tab (`index.html#leaves`), which has the Machine's controls for every number, the print
+limits below, twelve presets, a sweep, and Copy or Download SVG. The tab imports `leaves.js`, so locally serve the
+folder (e.g. `python3 -m http.server`) rather than opening the file. On the command line:
 
 ```
-node cli/leaves.mjs svg --at 2,3,3,0.5,6 -o border.svg
-node cli/leaves.mjs sheet --points "2,3,3,0.5,6;9,4,9,0.6,6" --cols 1 -o sheet.png
-node cli/leaves.mjs json --at 9,4,9,0.6,8 --min 0.015 --gap 0.015 -o print.json
+node cli/leaves.mjs svg --at 6,17,13,0.9,6 -o border.svg               # X,Y,Z,DETAIL,ASPECT[,VARIATION,SIZE,MIRROR]
+node cli/leaves.mjs sheet --points "0.3,0.5,3;12,14,16;20,8,2" --cols 1 -o sheet.png
+node cli/leaves.mjs json --at 15,8,10,0.8,8,0.5,0.4,0 --min 0.015 --gap 0.015 -o print.json
 ```
 
-Items are filled shapes (with a halo that clears what lies under them) and cuts (painted lines that erase what lies
-under them). For small physical prints such as an engraving, `--min` sets the narrowest painted line and `--gap` the narrowest
-gap between overlapping shapes, both in engine units (about one unit per border height): lines then run as smooth
-parallel strokes that stop before their neighbours merge, and small flowers lose detail they cannot hold.
-`npm test` runs the tests in `cli/`.
+Items are pen lines (`{t: 'l', pts, w}`, width w, round ends). For small physical prints such as an engraving,
+`--min` sets the narrowest line and `--gap` the narrowest gap between lines, both in engine units (about one unit
+per border height): lines keep at least that width, halos and the spaces between veins at least that gap, and veins
+that no longer fit give way. `npm test` runs the tests in `cli/`, including a continuity test: from random points,
+each number is stepped by 1/400 of its range, and every step must move the drawing's ink only a little, with no
+step much larger than its neighbours.
