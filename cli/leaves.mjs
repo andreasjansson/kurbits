@@ -8,10 +8,12 @@
 //   leaves sheet --leaf --points "PLUMP,LOBES,CURL;..." [--cols N] -o FILE    single leaves, for close-ups of the leaf
 //
 // x, y and z (0 to 20) choose the composition, detail (0 to 1) the depth: how many generations of shoots grow from
-// the main ones. Aspect (0.25 to 8, default 1) is relative to the design's own proportions: wider adds repeats along
-// a runner (a frieze), taller stacks smaller tiers. Plump, lobes and curl (0 to 1, default 0.5) shape the leaf:
-// slender to plump, a smooth to a billowed edge, calm to tightly curled; variation (0 to 1, default 0.4) is how much
-// each leaf differs from the next. Every number is continuous: any point draws a design.
+// the main ones. Aspect (0.25 to 48, default 1) is relative to the design's own proportions: wider adds repeats along
+// a runner (a frieze; at 48 typically 30 to 80 times as wide as it is tall), taller stacks smaller tiers. Each repeat
+// wanders from the motif with its place, so the plants change gradually along the length; x, y and z set how far.
+// Plump, lobes and curl (0 to 1, default 0.5) shape the leaf: slender to plump, a smooth to a billowed edge, calm to
+// tightly curled; variation (0 to 1, default 0.4) is how much each leaf, and each repeat, differs from the next.
+// Every number is continuous: any point draws a design.
 // Options: --bg COLOUR (default #101012), --col COLOUR (default #d6d9de), --px WIDTH for .png (default 1600),
 // --min M: the narrowest line, --gap G: the narrowest gap between lines, both in engine units (about 1 unit per main
 // shoot), for small physical prints such as an engraving.
@@ -43,7 +45,9 @@ function paths(items, P, X, Y, s) {
 }
 
 export function toSVG(items, P, pad = 0.04, widthPx = 1200) {
-  const b = bbox(items), w = b.x1 - b.x0, h = b.y1 - b.y0, m = pad * Math.max(w, h);
+  // the margin: pad times the larger side, but no more than three times the smaller (so a long divider is not lost
+  // in its margins)
+  const b = bbox(items), w = b.x1 - b.x0, h = b.y1 - b.y0, m = pad * Math.min(Math.max(w, h), 3 * Math.min(w, h));
   const s = widthPx / (w + 2 * m), H = (h + 2 * m) * s;
   const X = x => (x - b.x0 + m) * s, Y = y => (b.y1 - y + m) * s;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${f4(widthPx)}" height="${f4(H)}" viewBox="0 0 ${f4(widthPx)} ${f4(H)}">` +

@@ -7,9 +7,11 @@
 // a shoot (a stalk, then a leaf, then a curl) grows smaller shoots from behind itself, which grow smaller ones, down to
 // the depth that detail sets. x, y and z choose the composition (how many shoots spring from the root and where they
 // head, how they bend, branch and rise, and whether the design is mirrored), detail the depth, plump, lobes and curl
-// the leaf, variation how much the leaves differ, aspect the proportions. Every number is continuous, every point
-// draws a design, and a small step in any number changes it only a little: whatever appears, a generation, a shoot,
-// a lobe, a stripe or a repeat, grows from nothing. No dependencies; used by the Leaves tab of index.html and by
+// the leaf, variation how much the leaves differ, aspect the proportions: wider, a frieze of repeats along a runner,
+// taller, a tower of tiers. Each repeat wanders from the motif with its place along the frieze, so the plants change
+// gradually along its length; x, y, z and variation set how far. Every number is continuous, every point draws a
+// design, and a small step in any number changes it only a little: whatever appears, a generation, a shoot, a lobe,
+// a stripe or a repeat, grows from nothing. No dependencies; used by the Leaves tab of index.html and by
 // cli/leaves.mjs.
 //
 // Output: pen lines, in drawing order, engine units (about one unit per main shoot), y up:
@@ -87,9 +89,11 @@ function hide(sc) {
   for (const s of S) { s.sil = s.halo > 0 ? offset(s.poly, s.halo) : s.poly; prep(s); }
   let gx0 = 1e9, gy0 = 1e9, gx1 = -1e9, gy1 = -1e9;
   for (const s of S) { gx0 = Math.min(gx0, s.x0); gy0 = Math.min(gy0, s.y0); gx1 = Math.max(gx1, s.x1); gy1 = Math.max(gy1, s.y1); }
-  const GN = 64, cw = Math.max(1e-6, (gx1 - gx0) / GN), ch = Math.max(1e-6, (gy1 - gy0) / GN), grid = Array.from({ length: GN * GN }, () => []);
-  const cell = (v, o, c) => clamp(Math.floor((v - o) / c), 0, GN - 1);
-  for (const s of S) for (let i = cell(s.x0, gx0, cw); i <= cell(s.x1, gx0, cw); i++) for (let j = cell(s.y0, gy0, ch); j <= cell(s.y1, gy0, ch); j++) grid[i * GN + j].push(s);
+  // about 64 x 64 cells, nearly square however long the design
+  const ra = Math.sqrt(Math.max(1e-6, gx1 - gx0) / Math.max(1e-6, gy1 - gy0)), GX = clamp(Math.round(64 * ra), 8, 1024), GY = clamp(Math.round(64 / ra), 8, 1024);
+  const cw = Math.max(1e-6, (gx1 - gx0) / GX), ch = Math.max(1e-6, (gy1 - gy0) / GY), grid = Array.from({ length: GX * GY }, () => []);
+  const cell = (v, o, c, G) => clamp(Math.floor((v - o) / c), 0, G - 1);
+  for (const s of S) for (let i = cell(s.x0, gx0, cw, GX); i <= cell(s.x1, gx0, cw, GX); i++) for (let j = cell(s.y0, gy0, ch, GY); j <= cell(s.y1, gy0, ch, GY); j++) grid[i * GY + j].push(s);
   const out = [], len = r => { let l = 0; for (let i = 2; i < r.length; i += 2) l += Math.hypot(r[i] - r[i - 2], r[i + 1] - r[i - 1]); return l; };
   const keep = (r, w) => { const l = len(r); if (MIN ? l > w : l > 0.04 * w) out.push({ t: 'l', pts: r, w: MIN ? w : w * Math.min(1, l / (5 * w)) }); };
   for (const L of sc.lines) {
@@ -97,7 +101,7 @@ function hide(sc) {
     // hidden: inside a nearer silhouette among those in the grid cell under the point
     const hid = (x, y) => {
       if (x < gx0 || x > gx1 || y < gy0 || y > gy1) return false;
-      const C = grid[cell(x, gx0, cw) * GN + cell(y, gy0, ch)];
+      const C = grid[cell(x, gx0, cw, GX) * GY + cell(y, gy0, ch, GY)];
       for (let c = 0; c < C.length; c++) if (C[c].z > z && inside(C[c], x, y)) return true;
       return false;
     };
@@ -264,7 +268,7 @@ function leaf(sc, x0, y0, h0, L, F, c, zs, zb, zt) {
   // is a line and a gap clear of the edge and of its neighbour, so the stripes run together into the base and the
   // tip; a fractional count grows the last stripe back from the tip.
   const step = 0.17, need = vw + gap;
-  for (const Sd of [Lf, Rt]) {
+  if (!F.quick) for (const Sd of [Lf, Rt]) {
     const ns = F.stripes * lerp(0.2, 1, Sd.o);
     for (let j = 1; j <= Math.ceil(ns - 1e-9); j++) {
       const wt = clamp(ns - j + 1), f = j * step; if (wt <= 0) continue;
@@ -291,7 +295,7 @@ function leaf(sc, x0, y0, h0, L, F, c, zs, zb, zt) {
   }
   // hooks: at each notch a short stroke turns in from the edge towards the base, so the billows read as overlapping;
   // its size follows the billows' depth on that side, so the shallow notches of the concave side mostly have none
-  if (F.N > 0 && F.D > 0) {
+  if (F.N > 0 && F.D > 0 && !F.quick) {
     for (const S of [Lf, Rt]) {
       const depth = S.D;
       for (let j = 1; j < F.N; j++) {
@@ -319,16 +323,17 @@ function leaf(sc, x0, y0, h0, L, F, c, zs, zb, zt) {
 // ------------------------------------------------------------------ settings
 // The composition is read off slow waves through the space, as in the Machine: setting k is lo + (hi - lo) times a
 // wave osc(x, y, z, k) between 0 and 1 (beyond a threshold t, so that some settings rest at lo in parts of the space).
-const osc = (x, y, z, k) => 0.5 + 0.5 * Math.sin(0.28 * Math.cos(k * GOLD) * x + 0.28 * Math.sin(1.31 * k * GOLD + 0.4) * y + 0.24 * Math.cos(1.77 * k + 1.1) * z + 1.618 * k);
-const SETTINGS = [                                 // [name, lo, hi, threshold]
-  ['turn', 0.05, 2.55],      // where the main shoot heads, from straight up (0) through sideways (pi/2) to hanging
+// The repeats of a frieze or a tower read the same waves with their phases shifted (wander, below).
+const osc = (x, y, z, k, ph = 0) => 0.5 + 0.5 * Math.sin(0.28 * Math.cos(k * GOLD) * x + 0.28 * Math.sin(1.31 * k * GOLD + 0.4) * y + 0.24 * Math.cos(1.77 * k + 1.1) * z + 1.618 * k + ph);
+const SETTINGS = [                                 // [name, lo, hi, threshold, drift: how far it wanders (1 if unset)]
+  ['turn', 0.05, 2.55, 0, 0.45],  // where the main shoot heads, from straight up (0) through sideways (pi/2) to hanging
   ['shoots', 1, 3.4],        // how many shoots spring from the root
   ['spread', 0.32, 0.85],    // the angle between neighbouring shoots
   ['bend', 0.15, 1],         // how far the shoots curl outwards, away from the axis
   ['ess', 0, 0.9, 0.45],     // an S: the base bends the other way
   ['sway', 0, 0.75, 0.45],   // a meander along the main shoots
-  ['stalk', 0.25, 0.72],     // how much of a main shoot is bare stalk
-  ['mirror', 0, 1],          // a mirror image grows from the root
+  ['stalk', 0.25, 0.72, 0, 0.6],  // how much of a main shoot is bare stalk
+  ['mirror', 0, 1, 0, 0],    // a mirror image grows from the root
   ['sprouts', 1, 3.3],       // shoots along each shoot
   ['angle', 0.75, 1.4],      // how far they lean out
   ['scale', 0.62, 0.85],     // their size
@@ -338,13 +343,26 @@ const SETTINGS = [                                 // [name, lo, hi, threshold]
   ['rise', 0, 0.9, 0.35],    // shoots turn upwards
   ['away', 0.45, 1],         // how strongly sprouts curl the way they lean
   ['leafy', 0.38, 0.78],     // how leafy each generation stays: deeper shoots are slimmer
-  ['gap', 0.72, 1.02],       // the spacing of repeats
+  ['gap', 0.72, 1.02, 0, 0], // the spacing of repeats
   ['crown', 0, 1, 0.3],      // an upright shoot on the mirror's axis
-  ['arch', -0.7, 0.9],       // shoots heading sideways bend up (an arch, a wreath) or down (a swag)
+  ['arch', -0.7, 0.9, 0, 0.8],    // shoots heading sideways bend up (an arch, a wreath) or down (a swag)
+  ['wander', 0.7, 1.5, 0, 0],     // how far the repeats of a frieze or a tower wander from the motif
 ];
-function settings(x, y, z, d, plump, lobes, curl, V) {
-  const S = {};
-  SETTINGS.forEach(([k, lo, hi, t = 0], i) => { S[k] = lo + (hi - lo) * Math.max(0, (osc(x, y, z, i) - t) / (1 - t)); });
+// Wander: repeat j of a frieze (j = 0 the motif, 1, 2, ... to the right, -1, -2, ... to the left) or tier j of a tower
+// reads wave k with its phase shifted by a * drift_k * walk(j, k), and its leaf numbers moved likewise. walk is a
+// smooth, never-repeating walk along the repeats (three incommensurate sines, as Q), 0 at the motif, its own for each
+// setting and for each part of the space; a, the amount, is the setting wander times (0.6 + 0.8 variation). So
+// neighbouring repeats are alike and the plants change gradually along the length, and a repeat depends only on its
+// own place, never on how many repeats there are. The mirror and the gap do not wander: every repeat is as symmetric
+// as the motif, and they keep its spacing.
+const PACE = 0.4;                                  // how quickly the walk turns, per repeat
+const walk = (j, k, seed) => { const p = 2.39 * k + 0.35 * seed; return Q(PACE * j + p) - Q(p); };
+const fold = v => v < 0 ? -v : v > 1 ? 2 - v : v;  // back into 0..1, as a mirror folds
+function settings(x, y, z, d, plump, lobes, curl, V, j = 0) {
+  const S = {}, seed = 0.29 * x + 0.53 * y + 0.41 * z;
+  const [, wlo, whi] = SETTINGS[20], a = (wlo + (whi - wlo) * osc(x, y, z, 20)) * (0.7 + 0.7 * clamp(V));
+  SETTINGS.forEach(([k, lo, hi, t = 0, dr = 1], i) => { S[k] = lo + (hi - lo) * Math.max(0, (osc(x, y, z, i, j && dr ? a * dr * walk(j, i, seed) : 0) - t) / (1 - t)); });
+  if (j) { plump = fold(plump + 0.15 * a * walk(j, 21, seed)); lobes = fold(lobes + 0.15 * a * walk(j, 22, seed)); curl = fold(curl + 0.15 * a * walk(j, 23, seed)); }
   S.mirror = clamp((1 - osc(x, y, z, 7) - 0.25) * 4);   // the mirror's wave turned over, steep but continuous: mostly mirrored
   // the budget: about how many shoots the design would have, R (1 + m + m^2 + m^3) with m sprouts per shoot, each
   // generation weighted by how far it has grown; beyond about 100 the sprouts are trimmed (smoothly, so that the count
@@ -358,7 +376,8 @@ function settings(x, y, z, d, plump, lobes, curl, V) {
   return {
     ...S, detail: d, plump, lobes, curl, variation: V,
     depth,                                         // generations below the main shoots; a fraction grows the last in
-    seed: 0.29 * x + 0.53 * y + 0.41 * z,
+    amount: a, repeat: j,                          // how far the repeats wander, and which repeat this is
+    seed: seed + 1.37 * j,                         // each repeat's leaves vary in their own way
     F: {                                           // the leaf
       b: lerp(0.085, 0.27, plump),                 // the blade's half-width over its length
       vs: lerp(0.32, 0.44, plump),                 // where it is widest
@@ -396,7 +415,8 @@ function grow(sc, K, x, y, h, L, c, k, t, cut, half = false, side = c < 0 ? -1 :
     N: F0.N * (1 + 0.3 * V * q(5)),
     stripes: F0.stripes * smooth(0.3, 0.9, leafy),
     stem: root ? 0.0095 : 0,
-    n: k === 0 ? 140 : k === 1 ? 100 : 64,          // samples along the shoot (fixed for a shoot)
+    n: (k === 0 ? 140 : k === 1 ? 100 : 64) / (K.quick ? 4 : 1),   // samples along the shoot (fixed for a shoot)
+    quick: K.quick,                                 // only measuring: a quarter of the samples, no stripes or hooks
     sway: root && K.sway > 0 ? (u => K.sway * TAU * 1.3 * Math.cos(TAU * 1.3 * u + 0.6) * smooth(0, 0.15, u)) : () => 0,
   };
   const zt = sc.next(k), zb = sc.next(k), zs = sc.next(k);
@@ -467,23 +487,24 @@ function sceneBox(sc) {
   return { x0, x1, y0, y1 };
 }
 
-// The settings a point gives (all continuous), for pages and tools that describe a design.
-export function settingsAt({ x = 5, y = 5, z = 5, detail = 0.5, plump = 0.5, lobes = 0.5, curl = 0.5, variation = 0.4 } = {}) {
-  return settings(x, y, z, detail, plump, lobes, curl, variation);
+// The settings a point gives (all continuous), for pages and tools that describe a design; repeat j gives the
+// settings of the j-th repeat of a frieze (negative: to the left) or the j-th tier of a tower.
+export function settingsAt({ x = 5, y = 5, z = 5, detail = 0.5, plump = 0.5, lobes = 0.5, curl = 0.5, variation = 0.4 } = {}, repeat = 0) {
+  return settings(x, y, z, detail, plump, lobes, curl, variation, repeat);
 }
 
-// A runner: a stem along y = a P sin(pi x / P) from -xe to xe, through the roots of a frieze's repeats (a full repeat
-// sits on a node, every P), winding into a curl of length ext past each end; its heading there follows the swing, so
+// A runner: a stem through the roots of a frieze's repeats, y = yA(x) from xa to xb, winding into a curl of length
+// ext past each end (the left curl the mirror image of the right one); its heading at an end follows the stem's, so
 // the curls turn smoothly as the runner grows.
-function runner(sc, xe, Pp, amp, ext, w) {
-  if (!(xe > 0)) return;
-  const yA = x => amp * Pp * Math.sin(Math.PI * x / Pp), m = Math.max(8, Math.ceil(40 * xe / Pp));
-  const r0 = 0.12, C = TAU * 1.1 / Math.log((1 + r0) / r0), hE = Math.atan(amp * Math.PI * Math.cos(Math.PI * xe / Pp));
-  const R = curve(xe, yA(xe), hE, ext, u => -C * smooth(0.25, 0.6, u) / (1 - u + r0), 48);
+function runner(sc, xa, xb, yA, Pp, ext, w) {
+  if (!(xb - xa > 0)) return;
+  const m = Math.max(16, Math.ceil(80 * (xb - xa) / Pp)), dx = 1e-4 * Pp, hd = x => Math.atan((yA(x + dx) - yA(x - dx)) / (2 * dx));
+  const r0 = 0.12, C = TAU * 1.1 / Math.log((1 + r0) / r0), kc = u => C * smooth(0.25, 0.6, u) / (1 - u + r0);
+  const Rr = curve(xb, yA(xb), hd(xb), ext, u => -kc(u), 48), Rl = curve(xa, yA(xa), Math.PI + hd(xa), ext, kc, 48);
   const pts = [];
-  for (let i = R.n; i >= 1; i--) pts.push(-R.X[i], R.Y[i]);   // the left curl is the right one mirrored
-  for (let i = 0; i <= 2 * m; i++) { const x = -xe + xe * i / m; pts.push(x, yA(x)); }
-  for (let i = 1; i <= R.n; i++) pts.push(R.X[i], R.Y[i]);
+  for (let i = Rl.n; i >= 1; i--) pts.push(Rl.X[i], Rl.Y[i]);
+  for (let i = 0; i <= m; i++) { const x = lerp(xa, xb, i / m); pts.push(x, yA(x)); }
+  for (let i = 1; i <= Rr.n; i++) pts.push(Rr.X[i], Rr.Y[i]);
   // as a band whose width tapers into both curls
   const c = { X: [], Y: [], H: [], n: pts.length / 2 - 1 };
   for (let i = 0; i <= c.n; i++) {
@@ -492,61 +513,102 @@ function runner(sc, xe, Pp, amp, ext, w) {
     c.H.push(Math.atan2(pts[2 * b + 1] - pts[2 * a + 1], pts[2 * b] - pts[2 * a]));
   }
   for (let i = 1; i <= c.n; i++) c.H[i] -= TAU * Math.round((c.H[i] - c.H[i - 1]) / TAU);   // no jumps of 2 pi
-  const k0 = R.n / c.n, k1 = 1 - k0, z = -1e12;
+  const k0 = Rl.n / c.n, k1 = 1 - Rr.n / c.n, z = -1e12;
   const B = band(c, u => w * (0.35 + 0.65 * smooth(0, k0, u) * (1 - smooth(k1, 1, u))));
   sc.shape(B, PEN / 2 + Math.max(GAP, 0.9 * PEN), z); sc.line(B.concat(B.slice(0, 2)), Math.max(MIN, PEN), z);
 }
 
 // The whole design. Aspect is relative to the motif's own proportions, as in the Machine: at 1 the motif stands
-// alone; wider, repeats of it bud out on both sides along a runner, K.gap times its width apart (a frieze); taller,
-// smaller repeats bud out of its top, each 0.84 times the last (telescoping, as in a tall panel). A fractional repeat
-// grows in, budding from its neighbour's edge. Repeats are drawn behind the ones before them.
+// alone; wider, repeats bud out on both sides along a runner (a frieze); taller, smaller repeats bud out of its top
+// (telescoping, as in a tall panel). Each repeat is drawn from its own settings, which wander from the motif's with
+// its place (settings, above), and is scaled towards the motif's height. A fractional repeat grows in, budding from
+// its neighbour's edge. Repeats are drawn behind the ones before them.
 export function build({ x = 5, y = 5, z = 5, detail = 0.5, aspect = 1, plump = 0.5, lobes = 0.5, curl = 0.5, variation = 0.4 } = {}, opt = {}) {
   MIN = opt.min || 0; GAP = opt.gap || 0; PEN = PEN0; VEIN = VEIN0;
-  const K = settings(x, y, z, detail, plump, lobes, curl, variation), A = clamp(aspect, 0.2, 16);
+  const A = clamp(aspect, 0.2, 48), kAt = j => settings(x, y, z, detail, plump, lobes, curl, variation, j), K = kAt(0);
   // the motif's own size, then how large the whole design will be: a design g times larger keeps its smallest shoots
   // g^0.6 times larger, and its pens g^0.4 times bolder, so that a long frieze or a tall tower is not lost in fuzz
-  let M = motif(K, 0.03), b = sceneBox(M);
-  const W0 = b.x1 - b.x0, H0 = b.y1 - b.y0, S0 = Math.max(W0, H0);
+  let cut = 0.03, M = motif(K, cut);
+  const b0 = sceneBox(M), W0 = b0.x1 - b0.x0, H0 = b0.y1 - b0.y0, S0 = Math.max(W0, H0);
   const g = Math.max(1, A > 1 ? Math.max(A * W0, H0) / S0 : Math.max(W0, H0 / A) / S0);
-  if (g > 1) { PEN = PEN0 * Math.pow(g, 0.4); VEIN = VEIN0 * Math.pow(g, 0.4); M = motif(K, 0.03 * Math.pow(g, 0.6)); b = sceneBox(M); }
-  const reps = [];                                 // [x, y, scale] of each repeat after the first
+  if (g > 1) { PEN = PEN0 * Math.pow(g, 0.4); VEIN = VEIN0 * Math.pow(g, 0.4); cut = 0.03 * Math.pow(g, 0.6); M = motif(K, cut); }
+  // repeat j: its motif, drawn as finely as the whole design allows; its box, measured on the same repeat drawn at a
+  // fixed coarse cut (0.27) and stretched to the motif's own size, so that where the repeats stand does not depend on
+  // the aspect; and its scale s = (the motif's height / its height)^0.7, kept within 0.6 to 1.6
+  const R = new Map(), CB = 0.27, box = j => sceneBox(motif({ ...kAt(j), quick: true }, CB));
+  let c0, kx, ky;
+  const rep = j => {
+    if (!c0) { c0 = box(0); kx = W0 / (c0.x1 - c0.x0); ky = H0 / (c0.y1 - c0.y0); }
+    if (!R.has(j)) {
+      const c = j ? box(j) : c0;
+      R.set(j, {
+        M: j ? motif(kAt(j), cut) : M, b: { x0: kx * c.x0, x1: kx * c.x1, y0: ky * c.y0, y1: ky * c.y1 },
+        s: j ? clamp(Math.pow((c0.y1 - c0.y0) / Math.max(1e-6, c.y1 - c.y0), 0.7), 0.6, 1.6) : 1,
+      });
+    }
+    return R.get(j);
+  };
+  const reps = [];                                 // [x, y, scale, repeat, depth] of each repeat after the first
   const sc = new Scene();
   if (A > 1) {
-    const P = K.gap * W0, c = (A - 1) / K.gap / 2, amp = 0.07;   // c repeats on each side
-    // a growing repeat buds from its neighbour's outer edge (b.x1 right of its root, -b.x0 left of it) and moves out
-    // to its place while it grows, so the frieze widens at an even rate
-    let d = 0, xe = 0;
-    for (let i = 1; i < Math.ceil(c) + 1; i++) {
-      const w0 = clamp(c - i + 1); if (w0 <= 0) break;
-      const w = smooth(0, 1, w0);                 // eased, so a repeat starts and stops growing gently
-      const xr = d + b.x1 + w * (P - b.x1), xl = -(d - b.x0 + w * (P + b.x0)), y = x => amp * P * Math.sin(Math.PI * x / P);
-      reps.push([xr, y(xr), w], [xl, y(xl), w]);
-      xe = d + (Math.max(xr, -xl) - d) * smooth(0, 0.3, w);   // the runner reaches out to the bud while it starts
-      d += P * (w0 >= 1 ? 1 : 0);
+    // on each side, repeats K.gap times the sum of their facing half-widths apart, until the frieze is A times as
+    // wide as the motif. A growing repeat buds from its neighbour's outer edge and moves out to its place while it
+    // grows (eased, so it starts and stops gently), so the frieze widens at an even rate.
+    const need = (A - 1) * W0 / 2, P0 = K.gap * W0, nodes = new Map([[0, 0]]), end = {};
+    for (const sd of [1, -1]) {
+      let X0 = 0, got = 0, prev = rep(0);
+      end[sd] = 0;
+      for (let i = 1; ; i++) {
+        const r = rep(sd * i), out = sd > 0 ? prev.s * prev.b.x1 : -prev.s * prev.b.x0, inn = sd > 0 ? -r.s * r.b.x0 : r.s * r.b.x1;
+        const P = Math.max(0.05 * P0, K.gap * (out + inn)), w0 = clamp((need - got) / P); if (w0 <= 0) break;
+        const w = smooth(0, 1, w0), X = X0 + sd * (out + w * (P - out));
+        nodes.set(sd * i, X0 + sd * P);           // where its root will be: a node of the runner
+        reps.push([X, 0, r.s * w, r, i]);
+        end[sd] = X0 + (X - X0) * smooth(0, 0.3, w);   // the runner reaches out to the bud while it starts
+        if (w0 < 1) break;
+        X0 += sd * P; got += P; prev = r;
+      }
     }
-    runner(sc, xe, P, amp, 0.3 * Math.min(P, W0) * Math.min(1, 2 * c), 0.0045 * Math.pow(g, 0.4));
+    // the runner: between neighbouring nodes a half sine whose height is amp times its length, up and down in turn,
+    // so it passes through every root at the same slope; its amp wanders a little along the length
+    const lo = Math.min(...nodes.keys()), N = [];
+    for (let j = lo; nodes.has(j); j++) N.push(nodes.get(j));
+    const amp = u => 0.07 * (1 + 0.4 * Math.tanh(0.8 * K.amount * walk(u, 24, K.seed)));
+    const yA = x => {
+      let k = 0; while (k < N.length - 2 && x > N[k + 1]) k++;   // beyond the end nodes, the end segments carry on
+      const L = N[k + 1] - N[k];
+      return ((lo + k) % 2 ? -1 : 1) * amp(x / P0) * L * Math.sin(Math.PI * (x - N[k]) / L);
+    };
+    for (const r of reps) r[1] = yA(r[0]);
+    runner(sc, end[-1], end[1], yA, P0, 0.3 * Math.min(P0, W0) * Math.min(1, (A - 1) / K.gap), 0.0045 * Math.pow(g, 0.4));
   } else if (A < 1) {
-    // tiers 0.84 times the last, each overlapping the one below by a quarter; up to eight
-    const r = 0.84, ov = 0.25, need = H0 * (1 / A - 1);
-    // a growing tier buds from the top of the one below and rises to its place while it grows
-    let Y = 0, sPrev = 1, got = 0;
+    // tiers 0.84 times the last (and scaled towards the motif's height), each overlapping the one below by a quarter;
+    // up to eight. A growing tier buds from the top of the one below and rises to its place while it grows.
+    const ov = 0.25, need = H0 * (1 / A - 1);
+    let Y = 0, below = rep(0), sb = 1, got = 0;
     for (let i = 1; i <= 8 && got < need; i++) {
-      const s = Math.pow(r, i), add = H0 * s * (1 - ov), w0 = clamp((need - got) / add), w = smooth(0, 1, w0);
+      const r = rep(i), s = Math.pow(0.84, i) * r.s, add = s * (r.b.y1 - r.b.y0) * (1 - ov), w0 = clamp((need - got) / add), w = smooth(0, 1, w0);
       got += add;
-      const Yi = Y + sPrev * b.y1 - s * w * b.y0 - ov * H0 * sPrev * w;
-      reps.push([0, Yi, s * w]); Y = Yi; sPrev = s;
+      const Yi = Y + sb * below.b.y1 - s * w * r.b.y0 - ov * sb * (below.b.y1 - below.b.y0) * w;
+      reps.push([0, Yi, s * w, r, i]); Y = Yi; below = r; sb = s;
       if (w0 < 1) break;
     }
   }
-  const put = (X, Y, s, dz) => {
+  const put = (X, Y, s, Mj, dz) => {
     const sw = Math.sqrt(s);
-    for (const t of M.shapes) sc.shapes.push({ poly: t.poly.map((v, j) => (j % 2 ? Y : X) + s * v), halo: t.halo * sw, z: t.z + dz });
-    for (const l of M.lines) sc.lines.push({ pts: l.pts.map((v, j) => (j % 2 ? Y : X) + s * v), w: l.w * sw, z: l.z + dz });
+    for (const t of Mj.shapes) sc.shapes.push({ poly: t.poly.map((v, j) => (j % 2 ? Y : X) + s * v), halo: t.halo * sw, z: t.z + dz });
+    for (const l of Mj.lines) sc.lines.push({ pts: l.pts.map((v, j) => (j % 2 ? Y : X) + s * v), w: l.w * sw, z: l.z + dz });
   };
-  put(0, 0, 1, 0);
-  reps.forEach(([X, Y, s], i) => put(X, Y, s, -1e8 * (1 + (i >> (A > 1 ? 1 : 0)))));
+  put(0, 0, 1, M, 0);
+  for (const [X, Y, s, r, i] of reps) put(X, Y, s, r.M, -1e8 * i);
   return hide(sc);
+}
+
+// Repeat j of a frieze (or tier j of a tower) on its own, as the motif would stand alone with those settings.
+export function buildRepeat(point = {}, j = 0) {
+  const { x = 5, y = 5, z = 5, detail = 0.5, plump = 0.5, lobes = 0.5, curl = 0.5, variation = 0.4 } = point;
+  MIN = 0; GAP = 0; PEN = PEN0; VEIN = VEIN0;
+  return hide(motif(settings(x, y, z, detail, plump, lobes, curl, variation, j), 0.03));
 }
 
 // One leaf on its own (a main shoot without sprouts), for close-ups of the leaf's form.

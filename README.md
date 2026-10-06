@@ -42,27 +42,36 @@ same numbers always give the same design.
   candelabra, lyres and arches, garlands, fountains, sprays and single sweeping stems.
 - detail (0 to 1) is the depth: each third of it grows one more generation of shoots in from nothing, first as
   hair-thin curls that then fill out into leaves.
-- aspect (0.25 to 8) is relative to the motif's own proportions: wider, repeats bud out along a runner (a frieze);
-  taller, smaller tiers bud out of the top (telescoping, as in a tall panel).
+- aspect (0.25 to 48) is relative to the motif's own proportions: wider, repeats bud out along a runner (a frieze,
+  up to dividers typically 30 to 80 times as wide as they are tall); taller, smaller tiers bud out of the top
+  (telescoping, as in a tall panel). The repeats are not copies: repeat j reads the motif's waves with their phases
+  shifted by a smooth walk along the repeats, zero at the motif, so neighbours are alike and the plants change
+  gradually along the length (their shoots, sprouts, bends and arches, and the leaf's plumpness, billows and curl).
+  How far they wander is a setting of x, y and z like any other, times variation, and never zero; a repeat depends
+  only on its own place, so a longer frieze only adds repeats at its ends.
 - plump, lobes and curl (0 to 1) shape the leaf: slender to plump; a smooth edge to rounded billows, each notch
-  marked by a hook; a calm tip to one rolled into a spiral. variation is how much each leaf differs from the next.
+  marked by a hook; a calm tip to one rolled into a spiral. variation is how much each leaf, and each repeat,
+  differs from the next.
 
 Each shoot grows along a spine given by its curvature (a bend that may reverse into an S, then a tip curl that tightens
 like a logarithmic spiral). The blade's edge is a width envelope times the billows, the convex side swelling more; it
 is banded with stripes that follow the outline and run together into the base and the tip. Everything is a pen line
 with hidden lines removed (sprouts lie behind their parents, so small leaves peek out from behind big ones), so the SVG
-is ready for a plotter or an engraver. `settingsAt(point)` reports the continuous settings a point gives, and
+is ready for a plotter or an engraver. `settingsAt(point, j)` reports the continuous settings a point gives (for
+repeat j of a frieze, or tier j of a tower), `buildRepeat(point, j)` draws repeat j on its own, and
 `buildLeaf({plump, lobes, curl})` draws one leaf on its own. The page's "How it is built" has the formulas.
 
 Try it in the page's Leaves tab (`index.html#leaves`), which has the Machine's controls for every number, the print
-limits below, twelve presets, a sweep, and Copy or Download SVG. The tab imports `leaves.js`, so locally serve the
-folder (e.g. `python3 -m http.server`) rather than opening the file. On the command line:
+limits below, fourteen presets (two of them long dividers), a sweep, and Copy or Download SVG. The tab imports
+`leaves.js`, so locally serve the folder (e.g. `python3 -m http.server`) rather than opening the file. On the command
+line:
 
 ```
 node cli/leaves.mjs svg --at 16,1,2,0.8 -o crown.svg                    # X,Y,Z,DETAIL[,ASPECT,PLUMP,LOBES,CURL,VARIATION]
 node cli/leaves.mjs sheet --points "16,1,2,0;16,1,2,0.5;16,1,2,1" --cols 3 -o depth.png
 node cli/leaves.mjs sheet --leaf --points "0.2,0,0.3;0.8,1,0.9" --cols 2 -o leaves.png   # PLUMP,LOBES,CURL
 node cli/leaves.mjs json --at 2,9.5,13,0.6,3.5 --min 0.015 --gap 0.015 -o print.json
+node cli/leaves.mjs svg --at 6.96,17.72,15.52,0.87,32,0.41,0.42,0.78,0.57 --px 3000 -o border.png   # a long divider
 ```
 
 Items are pen lines (`{t: 'l', pts, w}`, width w, round ends). For small physical prints such as an engraving,
@@ -70,4 +79,6 @@ Items are pen lines (`{t: 'l', pts, w}`, width w, round ends). For small physica
 per main shoot): lines keep at least that width, halos and the spaces between stripes at least that gap, and stripes
 that no longer fit give way. `npm test` runs the tests in `cli/`, including a continuity test: from random points,
 each number is stepped by 1/400 of its range (aspect by 1/400 of its range in proportion), and every step must move
-the drawing's ink only a little, with no step much larger than its neighbours.
+the drawing's ink only a little, with no step much larger than its neighbours, also on friezes up to the longest.
+Further tests check that a longer frieze keeps the repeats it had (only adding new ones at its ends), and that
+neighbouring repeats differ, gradually, for nearly every point of the space.
