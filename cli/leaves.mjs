@@ -8,15 +8,18 @@
 //   leaves sheet --leaf --points "PLUMP,LOBES,CURL[,BLOOM[,CUP]];..." [--cols N] -o FILE    single heads, for
 //                                            close-ups of the leaf and of its morph into a flower
 //
-// x, y and z (0 to 20) choose the composition, among it where sprouts come out and how far the heads open into
-// flowers; detail (0 to 1) the depth: how many generations of shoots grow from the main ones. Aspect (0.25 to 48,
-// default 1) is relative to the design's own proportions: wider adds repeats along a runner (a frieze; at 48
-// typically 30 to 80 times as wide as it is tall), taller stacks smaller tiers. Each repeat wanders from the motif
-// with its place, so the plants change gradually along the length; x, y and z set how far. Plump, lobes and curl (0
-// to 1, default 0.5) shape the leaf, a brush stroke: slender to fat; a horn, a cluster of hooked fingers or a fan; a
-// gentle arch or a strong hook. Variation (0 to 1, default 0.4) is how much each leaf, and each repeat, differs from
-// the next. For a single head, bloom (0 to 1) opens it from leaf to flower and cup (0 to 1) runs the flower from a
-// rosette to a tulip. Every number is continuous: any point draws a design.
+// x, y and z (0 to 20) choose the composition, among it where sprouts come out (on both sides of their shoots, in
+// most of the space equally), how far the heads open into flowers, and whether the design is mirrored and how exactly
+// its twin mirrors it; detail (0 to 1) the depth: how many generations of shoots grow from the main ones. Aspect (0.25
+// to 48, default 1) is relative to the design's own proportions: wider grows a frieze out of it to both sides, a
+// scroll that swings up and down, winding into a volute at the end of each half-wave, with plants standing and
+// hanging in its bays, feature motifs among small sprigs, lush stretches and open ground, mirror-symmetric about the
+// motif in most of the space (at 48 typically 25 to 55 times as wide as it is tall); taller stacks smaller tiers. The
+// plants change gradually outwards from the centre; x, y and z set how far. Plump, lobes and curl (0 to 1, default
+// 0.5) shape the leaf, a brush stroke: slender to fat; a horn, a cluster of hooked fingers or a fan; a gentle arch or
+// a strong hook. Variation (0 to 1, default 0.4) is how much each leaf, each stroke of a head and each repeat differs
+// from the next: every one is an instance of its own. For a single head, bloom (0 to 1) opens it from leaf to flower
+// and cup (0 to 1) runs the flower from a rosette to a tulip. Every number is continuous: any point draws a design.
 // Options: --bg COLOUR (default #101012), --col COLOUR (default #d6d9de), --px WIDTH for .png (default 1600),
 // --min M: the narrowest line, --gap G: the narrowest gap between lines, both in engine units (about 1 unit per main
 // shoot), for small physical prints such as an engraving.

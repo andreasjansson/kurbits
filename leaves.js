@@ -8,14 +8,17 @@
 // Like the Kurbits Machine (index.html) a design is a point in a continuous space, and is built by one recursive rule:
 // a shoot (a stalk, then a head of strokes) grows smaller shoots from behind itself, along its length and from behind
 // its head, which grow smaller ones, down to the depth that detail sets. x, y and z choose the composition (how many
-// shoots spring from the root and where they head, how they bend, where along them their sprouts come out, how many
-// of the heads are flowers, and whether the design is mirrored), detail the depth, plump, lobes and curl the leaf
-// (slender to fat; a horn, a cluster of fingers or a fan; gentle to hooked), variation how much the leaves differ,
-// aspect the proportions: wider, a frieze of repeats along a runner, taller, a tower of tiers. Each repeat wanders
-// from the motif with its place along the frieze, so the plants change gradually along its length; x, y, z and
-// variation set how far. Every number is continuous, every point draws a design, and a small step in any number
-// changes it only a little: whatever appears, a generation, a shoot, a finger, a petal, a stripe or a repeat, grows
-// from nothing. No dependencies; used by the Leaves tab of index.html and by cli/leaves.mjs.
+// shoots spring from the root and where they head, how they bend, where along them their sprouts come out, on which
+// side, how many of the heads are flowers, whether the design is mirrored and how exactly its twin mirrors it), detail
+// the depth, plump, lobes and curl the leaf (slender to fat; a horn, a cluster of fingers or a fan; gentle to hooked),
+// variation how much the leaves differ: every shoot and every stroke of a head is an instance of its own, moved
+// through the shape numbers, so no two are alike. Aspect sets the proportions: wider, a frieze, a scroll that swings
+// out to both sides of the motif, mirrored about it, with plants standing and hanging in its bays, feature motifs
+// among small sprigs, lush stretches and open ground; taller, a tower of tiers. Each repeat wanders from the motif with
+// its distance from the centre, so the plants change gradually along the length; x, y, z and variation set how far.
+// Every number is continuous, every point draws a design, and a small step in any number changes it only a little:
+// whatever appears, a generation, a shoot, a finger, a petal, a stripe or a repeat, grows from nothing. No
+// dependencies; used by the Leaves tab of index.html and by cli/leaves.mjs.
 //
 // Output: pen lines, in drawing order, engine units (about one unit per main shoot), y up:
 //   {t: 'l', pts: [x0, y0, x1, y1, ...], w}   a line of width w with round ends and joins (closed if it ends
@@ -34,6 +37,7 @@ let PEN = PEN0, VEIN = VEIN0;                      // the pens for this design (
 let MIN = 0;                                       // the narrowest line kept for small prints, from build()
 let GAP = 0;                                       // the narrowest gap between lines for small prints
 let TRACE = null;                                  // where sprouts come out, if build() was asked to record it
+let HEADS = null;                                  // the strokes of every head, likewise
 
 // ------------------------------------------------------------------ lines and what hides them
 // A scene collects pen lines and silhouettes, each at a depth z (larger is nearer). At the end every line is cut where
@@ -341,30 +345,38 @@ function stroke(sc, x0, y0, h0, l, P, c, zb, zt, pen) {
 // alternating left and right of the first (a = 1: a palmette seen from the front, a tulip, a rosette). A centred
 // stroke curls by dir away from the middle (outwards; inwards, cupping, for a tulip). Behind the outer ring a
 // rosette has inner rings, each smaller and turned half a step, and a centre in front of them. On the axis of a
-// mirrored design (half) only the strokes on the right are drawn; the mirror completes them.
-function head(sc, x, y, h, l, H, c, k, half, pen, n, quick, sway, ess, neck) {
+// mirrored design (half) only the strokes on the right are drawn; the mirror completes them. Each stroke is its own
+// instance: its angle, length, width, arch and hook move a little, and each inner ring its size and turn, by the
+// amount va times Q at its place in the head (tv, the shoot's own number), so no two strokes are alike; the first
+// stroke (the shoot's spine, which its sprouts follow) and a crown's middle stroke keep their line.
+function head(sc, x, y, h, l, H, c, k, half, pen, n, quick, sway, ess, neck, tv = 0, va = 0) {
   // a straight shoot (c near 0) has no concave side, so its fan is centred
   const M = H.m, nM = Math.ceil(M - 1e-9), W = H.whorls, nW = Math.ceil(W - 1e-9), a = Math.max(H.a, 1 - Math.abs(clamp(4 * c, -1, 1)));
   // depths, front to back: the centre, the inner rings (the innermost first), the outer ring
   const zc = sc.next(k), Z = [];
   for (let r = nW; r >= 0; r--) { Z[r] = []; for (let i = 0; i < nM; i++) Z[r][i] = [sc.next(k), sc.next(k)]; }
   const sg = clamp(4 * c, -1, 1), del = H.fan / Math.max(1, M - 1 + H.fan / TAU);
+  const e = (i, r, j) => va * Q(tv + 1.93 * i + 4.31 * r + 2.71 * j), rec = HEADS && !quick ? [] : null;
   let first = null;
   for (let r = 0; r <= (quick ? 0 : nW); r++) {                 // measuring needs only the outer ring
-    const wr = r ? clamp(W - r + 1) * (1 - 0.3 * r) : 1; if (wr <= 0) continue;
+    const wr = r ? clamp(W - r + 1) * (1 - 0.3 * r) * (1 + 0.2 * e(0, r, 7)) : 1; if (wr <= 0) continue;
+    const tr = r ? 0.4 * del * e(0, r, 8) : 0;
     for (let i = 0; i < nM; i++) {
       const wi = i ? clamp(M - i) : 1; if (wi <= 0) continue;
       // centred places: 0, +1, -1, +2, -2, ... (an inner ring, turned half a step: +1/2, -1/2, +3/2, -3/2, ...)
       const alt = r % 2 ? (i % 2 ? -1 : 1) * (Math.floor(i / 2) + 0.5) : i ? (i % 2 ? 1 : -1) * Math.ceil(i / 2) : 0;
       if (half && alt > 1e-9) continue;
-      const th = del * lerp(sg * (i + r / 2), alt, a), rank = lerp(i, Math.ceil(i / 2), a);
+      const axis = (half && Math.abs(alt) < 1e-9) || (!i && !r);   // the crown's middle stroke and the shoot's own first stroke keep their line
+      const th = del * lerp(sg * (i + r / 2), alt, a) + (axis ? 0 : tr + 0.4 * del * e(i, r, 1)), rank = lerp(i, Math.ceil(i / 2), a);
       const ci = lerp(c, clamp(th / 0.3, -1, 1) * H.dir, a);
-      const li = l * H.len * wr * Math.pow(H.rho, rank) * wi;
-      const P = { n: i || r ? Math.max(12, Math.round(0.4 * n)) : n, quick, turn: H.turn, hook: H.hook, tail: H.tail, wid: H.wid, vs: H.vs, base: H.base, round: H.round, p: H.p, asym: H.asym, stripes: H.stripes, neck, ess: i || r ? 0 : ess, sway: i || r ? null : sway };
+      const li = l * H.len * wr * Math.pow(H.rho, rank) * wi * (1 + 0.28 * e(i, r, 2));
+      const P = { n: i || r ? Math.max(12, Math.round(0.4 * n)) : n, quick, turn: H.turn * (1 + 0.25 * e(i, r, 3)), hook: H.hook * (1 + 0.5 * e(i, r, 4)), tail: H.tail, wid: H.wid * (1 + 0.3 * e(i, r, 5)), vs: H.vs, base: H.base, round: H.round, p: H.p, asym: H.asym, stripes: H.stripes, neck, ess: i || r ? 0 : ess, sway: i || r ? null : sway };
       const s = stroke(sc, x, y, h + th, li, P, ci, Z[r][i][1], Z[r][i][0], pen);
       if (!i && !r) first = s;
+      if (rec && s) rec.push({ ring: r, i, len: li / Math.max(1e-9, l * H.len), turn: P.turn, hook: P.hook, wid: P.wid, th });
     }
   }
+  if (rec) HEADS.push({ gen: k, shoot: tv, strokes: rec });
   // the centre: a round boss with a ring inside it
   const rc = l * H.len * H.centre;
   if (rc > 1e-5 && !quick) {
@@ -410,8 +422,8 @@ const SETTINGS = [                                 // [name, lo, hi, threshold, 
   ['angle', 0.35, 1.35],     // how far they lean out
   ['scale', 0.55, 0.85],     // their size
   ['from', 0, 0.65],         // where along the shoot they begin
-  ['side', -0.4, 1],         // on the convex side (1), alternating (0), on the concave side
-  ['pair', 0, 1, 0.5],       // a mirrored partner on the other side
+  ['side', -1, 1],           // a bias towards the convex side (> 0) or the concave side (< 0): mostly none (below)
+  ['pair', 0, 1, 0.5],       // a partner on the other side, at the same node
   ['rise', 0, 0.9, 0.35],    // shoots turn upwards
   ['away', 0.45, 1],         // how strongly sprouts curl the way they lean
   ['leafy', 0.42, 0.8],      // how leafy each generation stays: deeper shoots are slimmer
@@ -431,25 +443,103 @@ const SETTINGS = [                                 // [name, lo, hi, threshold, 
   ['stripes', 0, 1],         // few to many stripes in a leaf
   ['which', 0, 1],           // which sprouts flower
   ['nest', 0, 1],            // sprouts curl the way their parent does (nested, a plume) rather than the way they lean
-  ['swing', 0, 1, 0.3, 0],   // a frieze's runner swings in big waves, as a painted border's scroll does
+  ['swing', 0, 1, 0, 0],     // how far a frieze's scroll swings
+  ['symmetry', 0, 1, 0, 0],  // how exactly a twin mirrors (below): exactly in most of the space
+  ['asymPhase', 0, TAU, 0, 0],    // the way a twin drifts from the mirror image
+  ['vary', 0, 1, 0.08, 0],   // how far every instance (shoot, stroke, ring, repeat) moves from the others
+  ['varAngle', 0, TAU, 0, 0],     // the plane of shape numbers it moves in
+  ['varTwist', 0, TAU, 0, 0],
+  ['hier', 0.15, 1, 0, 0],   // feature motifs and small sprigs along a frieze
+  ['lush', 0.3, 1, 0, 0],    // lush clusters and sparse stretches of open ground along a frieze
+  ['lean', 0, 0.9],          // a frieze's plants lean with its scroll
 ];
-const IW = SETTINGS.findIndex(s => s[0] === 'wander');
-// Wander: repeat j of a frieze (j = 0 the motif, 1, 2, ... to the right, -1, -2, ... to the left) or tier j of a tower
-// reads wave k with its phase shifted by a * drift_k * walk(j, k), and its leaf numbers moved likewise. walk is a
-// smooth, never-repeating walk along the repeats (three incommensurate sines, as Q), 0 at the motif, its own for each
-// setting and for each part of the space; a, the amount, is the setting wander times (0.6 + 0.8 variation). So
-// neighbouring repeats are alike and the plants change gradually along the length, and a repeat depends only on its
-// own place, never on how many repeats there are. The mirror, the gap and the runner's swing do not wander: every
-// repeat is as symmetric as the motif, and they keep its spacing along one runner.
+const IW = SETTINGS.findIndex(s => s[0] === 'wander'), IS = SETTINGS.findIndex(s => s[0] === 'symmetry');
+// Wander: repeat j of a frieze (j = 0 the motif, 1, 2, ... outwards to the right, -1, -2, ... to the left) or tier j of a
+// tower reads wave k with its phase shifted by a * drift_k * walk(|j|, k), and its leaf numbers moved likewise. walk is
+// a smooth, never-repeating walk along the repeats (three incommensurate sines, as Q), 0 at the motif, its own for each
+// setting and for each part of the space; a, the amount, is the setting wander times (0.7 + 0.7 variation). So
+// neighbouring repeats are alike and the plants change gradually outwards from the centre, the same way on both
+// sides, and a repeat depends only on its own place, never on how many repeats there are. The mirror, the gap and the
+// runner's swing do not wander: every repeat is as symmetric as the motif, and they keep its spacing.
 const PACE = 0.4;                                  // how quickly the walk turns, per repeat
 const walk = (j, k, seed) => { const p = 2.39 * k + 0.35 * seed; return Q(PACE * j + p) - Q(p); };
 const fold = v => v < 0 ? -v : v > 1 ? 2 - v : v;  // back into 0..1, as a mirror folds
-function settings(x, y, z, d, plump, lobes, curl, V, j = 0) {
-  const S = {}, seed = 0.29 * x + 0.53 * y + 0.41 * z;
+
+// The leaf, from plump, lobes and curl (and the setting stripes): the numbers of a head's strokes, before it opens.
+function leafForm(plump, lobes, curl, stripes) {
+  lobes = clamp(lobes); plump = clamp(plump); curl = clamp(curl);
+  return {
+    m: 1 + 5 * Math.pow(lobes, 1.2),               // strokes in a head: one (a horn) to six (a fan)
+    fan: 1.9 * smooth(0, 0.8, lobes),              // the angle they fan through
+    rho: lerp(0.92, 0.8, lobes),                   // each further stroke shorter by rho
+    len: lerp(1, 0.66, smooth(0.25, 1, lobes)),    // the first stroke's length, as a share of the shoot past its stalk
+    wid: lerp(0.075, 0.155, plump) * lerp(1, 1.3, lobes), // half-width over length
+    round: 0.92 * smooth(0.45, 1, lobes),          // a pointed tip, or the round end of a fan's lobe
+    turn: lerp(2, 3.1, curl) * lerp(1, 0.65, lobes),      // the arch, radians
+    hook: lerp(0.05, 1, curl),                     // turns of the hook at the tip
+    tail: lerp(0, 0.16, curl),                     // the hairline past the band
+    vs: lerp(0.3, 0.45, plump),                    // where the band is widest
+    base: lerp(0.6, 0.85, plump),                  // how broad it comes out
+    p: lerp(1.4, 1, plump),                        // the taper to the tip
+    asym: lerp(0.1, 0.35, plump),                  // the convex side's extra swell
+    stripes: lerp(3, 6, stripes) * lerp(0.8, 1.1, plump),
+  };
+}
+
+// Instance variation, as in the Machine: two directions D1, D2 through the shape numbers below (set by varAngle and
+// varTwist) span a plane, and each instance, a shoot, the strokes of its head, a repeat, sits at its own quasi-periodic
+// point (s1, s2) = amt (Q(t), Q(0.77 t + 5.3)) of it, t its own number: value = base + range (s1 D1 + s2 D2). Every
+// shoot thus has its own lean, size, curl, sprouts and leaf, and nothing is copied; the same numbers always give the
+// same shoots. The amount (vamt) rises with variation and with vary, a setting of x, y and z, and is small only where
+// both are near zero; it is less for each generation.
+const VK = [                                       // [shape number, range, lo, hi]
+  ['angle', 0.3, 0.2, 1.6], ['scale', 0.1, 0.4, 1], ['away', 0.2, 0.3, 1], ['rise', 0.25, 0, 0.9], ['sprouts', 0.6, 0, 4],
+  ['from', 0.15, 0, 0.7], ['to', 0.3, 0.2, 1.2], ['alt', 0.5, 0, 1], ['side', 0.2, -1, 1], ['nest', 0.4, 0, 1],
+  ['cluster', 0.5, 0, 2], ['cup', 0.4, 0, 1], ['which', 0.35, 0, 1], ['stripes', 0.4, 0, 1], ['hair', 0.25, 0, 1],
+  ['stalk', 0.08, 0.1, 0.55], ['plump', 0.25, 0, 1], ['lobes', 0.2, 0, 1], ['curl', 0.25, 0, 1],
+];
+const dirv = (a, b, k) => Math.sin(a + b * Math.cos(k * GOLD) + 2.1 * k);
+const vamt = (V, vary) => (0.2 + 0.5 * clamp(V) + 0.55 * vary) * smooth(0, 0.35, clamp(V) + vary);
+// a setting moved by d, kept within lo..hi (or within its own value, if that lies outside), so it never jumps
+const within = (v, d, lo, hi) => clamp(v + d, Math.min(lo, v), Math.max(hi, v));
+function varied(K, t, amt) {
+  if (!(amt > 0)) return K;
+  const u = 0.9 * t + 0.7 * K.seed + 3.1, s1 = amt * Q(u), s2 = amt * Q(0.77 * u + 5.3), o = Object.create(K);
+  VK.forEach(([k, r, lo, hi], i) => { o[k] = within(K[k], r * (s1 * K.D1[i] + s2 * K.D2[i]), lo, hi); });
+  o.F = leafForm(o.plump, o.lobes, o.curl, o.stripes);
+  return o;
+}
+
+// Symmetry, as in the Machine: a mirrored twin (the mirror image in a motif, the left half of a frieze) is exact at
+// symmetry 1 and below that drifts continuously away from the mirror image: each of these numbers moves by
+// (1 - symmetry) amplitude sin(asymPhase + i g), and its small variations (the seed) move too.
+const ASYM = [['turn', 0.35], ['spread', 0.15], ['bend', 0.3], ['arch', 0.35], ['sprouts', 0.7], ['angle', 0.25], ['scale', 0.08],
+  ['from', 0.2], ['to', 0.25], ['side', 0.4], ['rise', 0.25], ['away', 0.2], ['stalk', 0.1], ['sway', 0.25], ['bloom', 0.4],
+  ['alt', 0.4], ['cup', 0.3], ['plump', 0.15], ['lobes', 0.15], ['curl', 0.2]];
+const ALIM = { sprouts: [0, 9], scale: [0.3, 1], from: [0, 0.7], side: [-1, 1], bloom: [0, 9], alt: [0, 1], cup: [0, 1], plump: [0, 1], lobes: [0, 1], curl: [0, 1], stalk: [0.05, 0.6], away: [0.2, 1], sway: [0, 9], rise: [0, 9] };
+function drift(K, d, seed = true) {
+  if (!(d > 0)) return K;
+  const T = { ...K };
+  ASYM.forEach(([k, a], i) => { const [lo, hi] = ALIM[k] || [-9, 9]; T[k] = within(K[k], d * a * Math.sin(K.asymPhase + i * GOLD), lo, hi); });
+  if (seed) T.seed = K.seed + 1.7 * d;
+  T.F = leafForm(T.plump, T.lobes, T.curl, T.stripes);
+  return T;
+}
+const twinOf = K => drift(K, 1 - K.symmetry);
+
+function settings(x, y, z, d, plump, lobes, curl, V, j = 0, set = null) {
+  const S = {}, J = Math.abs(j);
+  // the symmetry: 1 in most of the space, down to 0.55 (as in the Machine); the left half of a frieze (j < 0) is the
+  // twin of the right half, so its walk and its numbers drift by 1 - symmetry. set: settings put in place of these.
+  const sym = set && set.symmetry !== undefined ? set.symmetry : 1 - 0.45 * clamp((0.3 - osc(x, y, z, IS)) * 3.3), dt = j < 0 ? 1 - sym : 0;
+  const seed = 0.29 * x + 0.53 * y + 0.41 * z + 1.7 * dt;
   const [, wlo, whi] = SETTINGS[IW], a = (wlo + (whi - wlo) * osc(x, y, z, IW)) * (0.7 + 0.7 * clamp(V));
-  SETTINGS.forEach(([k, lo, hi, t = 0, dr = 1], i) => { S[k] = lo + (hi - lo) * Math.max(0, (osc(x, y, z, i, j && dr ? a * dr * walk(j, i, seed) : 0) - t) / (1 - t)); });
-  if (j) { plump = fold(plump + 0.15 * a * walk(j, 41, seed)); lobes = fold(lobes + 0.15 * a * walk(j, 42, seed)); curl = fold(curl + 0.15 * a * walk(j, 43, seed)); }
+  SETTINGS.forEach(([k, lo, hi, t = 0, dr = 1], i) => { S[k] = lo + (hi - lo) * Math.max(0, (osc(x, y, z, i, J && dr ? a * dr * walk(J, i, seed) : 0) - t) / (1 - t)); });
+  if (J) { plump = fold(plump + 0.15 * a * walk(J, 41, seed)); lobes = fold(lobes + 0.15 * a * walk(J, 42, seed)); curl = fold(curl + 0.15 * a * walk(J, 43, seed)); }
   S.mirror = clamp((1 - osc(x, y, z, 7) - 0.25) * 4);   // the mirror's wave turned over, steep but continuous: mostly mirrored
+  S.symmetry = sym;
+  // the side bias: none in most of the space, rising smoothly towards either end of its wave
+  S.side = Math.sign(S.side) * 0.75 * smooth(0.97, 1, Math.abs(S.side));
   // the budget: about how many shoots the design would have, R (1 + m + m^2 + m^3) with m sprouts per shoot (and
   // their partners, whorls and clusters), each generation weighted by how far it has grown; beyond about 45 the
   // sprouts are trimmed (smoothly, so that the count levels off) so that a design never crowds
@@ -459,28 +549,18 @@ function settings(x, y, z, d, plump, lobes, curl, V, j = 0) {
   let lo = 0, hi = S.sprouts;
   for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (count(m) < want) lo = m; else hi = m; }
   S.sprouts = (lo + hi) / 2;
-  return {
+  const K = {
     ...S, detail: d, plump, lobes, curl, variation: V,
     depth,                                         // generations below the main shoots; a fraction grows the last in
     amount: a, repeat: j,                          // how far the repeats wander, and which repeat this is
-    seed: seed + 1.37 * j,                         // each repeat's leaves vary in their own way
-    F: {                                           // the leaf
-      m: 1 + 5 * Math.pow(lobes, 1.2),             // strokes in a head: one (a horn) to six (a fan)
-      fan: 1.9 * smooth(0, 0.8, lobes),            // the angle they fan through
-      rho: lerp(0.92, 0.8, lobes),                 // each further stroke shorter by rho
-      len: lerp(1, 0.66, smooth(0.25, 1, lobes)),  // the first stroke's length, as a share of the shoot past its stalk
-      wid: lerp(0.075, 0.155, plump) * lerp(1, 1.3, lobes), // half-width over length
-      round: 0.92 * smooth(0.45, 1, lobes),        // a pointed tip, or the round end of a fan's lobe
-      turn: lerp(2, 3.1, curl) * lerp(1, 0.65, lobes),      // the arch, radians
-      hook: lerp(0.05, 1, curl),                   // turns of the hook at the tip
-      tail: lerp(0, 0.16, curl),                   // the hairline past the band
-      vs: lerp(0.3, 0.45, plump),                  // where the band is widest
-      base: lerp(0.6, 0.85, plump),                // how broad it comes out
-      p: lerp(1.4, 1, plump),                      // the taper to the tip
-      asym: lerp(0.1, 0.35, plump),                // the convex side's extra swell
-      stripes: lerp(3, 6, S.stripes) * lerp(0.8, 1.1, plump),
-    },
+    seed0: seed,                                   // the design's (or the twin half's) seed
+    seed: seed + 1.37 * J,                         // each repeat's leaves vary in their own way, the same on both sides
+    vamt: vamt(V, S.vary),                         // the instance variation
+    D1: VK.map((_, i) => dirv(S.varAngle, S.varTwist, i)), D2: VK.map((_, i) => dirv(S.varAngle + 1.9, S.varTwist + 2.7, i)),
+    F: leafForm(plump, lobes, curl, S.stripes),    // the leaf
   };
+  if (set) { Object.assign(K, set); K.F = leafForm(K.plump, K.lobes, K.curl, K.stripes); if (set.vamt === undefined) K.vamt = vamt(V, K.vary); }
+  return dt > 0 ? drift(K, dt, false) : K;
 }
 
 // The head's numbers for a shoot that has opened by b (0 a leaf, 1 a flower) in generation k: the leaf's (from plump,
@@ -514,10 +594,13 @@ function form(K, b0, leafy, k, q, half) {
 // ------------------------------------------------------------------ the recursive rule
 // A shoot of generation k, L long, opened by b (0 a leaf, 1 a flower): a stalk (a share sig of it, on main shoots and
 // under flowers), then its head, then its sprouts. Generation k grows in as the depth passes k - 1: first as tendrils
-// (hair-thin curls) growing from nothing, which then fill out into leaves.
-function grow(sc, K, x, y, h, L, c, k, t, cut, half = false, b = 0, e0 = 1) {
+// (hair-thin curls) growing from nothing, which then fill out into leaves. Each shoot is an instance of its own: its
+// settings are the design's K0 moved by the instance variation at its own number t (varied(), above), and its sprouts
+// vary from K0 in their own ways.
+function grow(sc, K0, x, y, h, L, c, k, t, cut, half = false, b = 0, e0 = 1, fs = 1) {
   if (L < cut) return;
   L *= smooth(cut, 2 * cut, L);                     // small shoots shrink away instead of vanishing
+  const va = K0.vamt * Math.pow(0.85, k), K = varied(K0, t, va);
   const V = K.variation, q = j => Q(1.618 * t + 2.39 * j + K.seed), root = k === 0;
   const leafy = root ? 1 : Math.pow(K.leafy, k) * smooth(0.15, 1.15, K.depth - k + 1);
   const H = form(K, b, leafy, k, q, half), cc = Math.sign(c) * Math.pow(Math.min(1, 1.6 * Math.abs(c)), 0.6);
@@ -531,22 +614,36 @@ function grow(sc, K, x, y, h, L, c, k, t, cut, half = false, b = 0, e0 = 1) {
   const n = (k === 0 ? 96 : k === 1 ? 72 : 48) / (K.quick ? 4 : 1);   // samples along the first stroke (fixed for a shoot)
   const Ls = sig * L, st = Ls > 1e-5 ? curve(x, y, h, Ls, u => sig * kshoot(sig * u), (root ? 40 : 24) / (K.quick ? 4 : 1)) : null;
   const [hx, hy, hh] = st ? at(st, 1) : [x, y, h], lh = (1 - sig) * L;
-  const f0 = head(sc, hx, hy, hh, lh, H, c, k, half, pen, n, K.quick, root ? (u => (1 - sig) * sway(sig + (1 - sig) * u)) : null, ess, Math.max(smooth(0, 0.15, sig), 1 - smooth(0.4, 1.2, e0 / Math.max(1e-9, lh * H.len * H.wid * H.base))));
-  // the stalk, behind the head: a band that swells a little in its middle and narrows into the head
-  const zs = sc.next(k), sw = (root ? 0.0095 : 0.0065) * Math.sqrt(Math.min(1, L)), swf = u => sw * (0.85 + 0.35 * Math.sin(Math.PI * u)) * lerp(1, 0.75, u);
+  const f0 = head(sc, hx, hy, hh, lh, H, c, k, half, pen, n, K.quick, root ? (u => (1 - sig) * sway(sig + (1 - sig) * u)) : null, ess, Math.max(smooth(0, 0.15, sig), 1 - smooth(0.4, 1.2, e0 / Math.max(1e-9, lh * H.len * H.wid * H.base))), 0.61 * t + K.seed, va);
+  // the stalk, behind the head: a band that swells a little in its middle and narrows into the head, as broad as
+  // the pens (so a large design's stalks stay bands), and thinner while it is short, so it grows in from nothing
+  const sgr = smooth(0, 1, Ls / (0.4 * L)), zs = sc.next(k), sw = (root ? 0.0095 : 0.0065) * Math.sqrt(Math.min(1, L)) * Math.pow(PEN / PEN0, 0.8) * sgr, swf = u => sw * (0.85 + 0.35 * Math.sin(Math.PI * u)) * lerp(1, 0.75, u);
   if (st) { const B = band(st, swf); sc.shape(B, pen.pw / 2 + pen.gap, zs); sc.line(B.concat(B.slice(0, 2)), pen.pw, zs); }
   if (!f0) return;
-  // the shoot's spine: the stalk (u up to us), then the head's first stroke; and its half-width on each side
+  // the shoot's spine: the stalk (u up to us), then the head's first stroke; and its half-width on each side (along a
+  // stalk still growing in, the first stroke's base width gives way to the stalk's)
   const l0 = lh * H.len, us = st ? Ls / (Ls + l0) : 0;
   const spine = u => u < us ? at(st, u / us) : at(f0.sp, (u - us) / (1 - us));
   const halfAt = (s, u) => {
-    if (u < us) return swf(u / us);
+    if (u < us) return Math.max(swf(u / us), (1 - sgr) * (s > 0 ? f0.wl[0] : f0.wr[0]));
     const v = clamp((u - us) / (1 - us)) * f0.sp.n, i = Math.min(f0.sp.n - 1, Math.floor(v)), W = s > 0 ? f0.wl : f0.wr;
     return lerp(W[i], W[i + 1], v - i);
   };
-  // the shoot's convex side, away from its curl: sides(wv, wc) weighs a sprout on the convex side by wv and one on the
-  // concave side by wc, [[left, its weight], [right, its weight]], blended where the shoot is nearly straight
-  const sg = clamp(4 * c, -1, 1), sides = (wv, wc) => half ? [[-1, Math.max(wv, wc)]] : [[1, lerp(wv, wc, (1 + sg) / 2)], [-1, lerp(wv, wc, (1 - sg) / 2)]];
+  // The sides (s = +1 the left): sprouts alternate along the shoot, the first on the side fs, which its parent hands
+  // down (its own side, or the other, in turn along the parent and from one generation to the next, so that as many
+  // shoots begin on their convex side as on their concave side), or come in pairs at nodes (pair). The bias side moves
+  // them towards the convex side, away from the shoot's curl (side > 0), or the concave side (side < 0); in most of the
+  // space there is none, and each shoot's own variation of it makes some shoots run on one side for a stretch.
+  // conv(s) is 1 on the convex side, blended where the shoot is nearly straight. A crown (half) has only its
+  // right-hand sprouts, which the mirror completes.
+  const sg = clamp(4 * c, -1, 1), first = fs, bias = K.side, ab = Math.abs(bias), conv = s => (1 - s * sg) / 2;
+  const sideW = (j, s) => {
+    if (half) return 1;
+    const own = (j % 2 ? -first : first) === s, here = Math.max(own ? 1 : 0, K.pair), there = Math.max(own ? 0 : 1, K.pair);
+    const fav = bias > 0 ? conv(s) : 1 - conv(s);
+    return here * (1 - ab * (1 - fav)) + there * ab * fav;
+  };
+  const SIDES = half ? [-1] : [1, -1];
   // a sprout on side s curls the way it leans (s), or, nested, the way its parent curls (sg): on the convex side the
   // two differ, and the sprout is drawn as both, weighted (blending by weight rather than by curl, no sprout is ever
   // straight): [[curl, weight], ...]
@@ -566,8 +663,8 @@ function grow(sc, K, x, y, h, L, c, k, t, cut, half = false, b = 0, e0 = 1) {
   // which sprouts flower: a smooth choice along the sprouts, set by `which`
   const pick = (j, s) => smooth(0.3, 0.8, 0.5 + 0.5 * Math.cos(2.4 * j + TAU * K.which + (s > 0 ? 1.9 : 0)));
   // sprouts along the shoot, the next generation, with weight clip(depth - k): sprout j sits at u_j, from ua to ue
-  // (each shoot's own: from and to, moved by its own Q), slid along by its own phase and staggered by alt; on the convex side, the concave side or
-  // both (side, pair); with a whorl, a second, rising sprout at the same node. It comes out from under the edge there,
+  // (each shoot's own: from and to, moved by its own Q), slid along by its own phase and staggered by alt; on its side
+  // (sideW, above); with a whorl, a second, rising sprout at the same node. It comes out from under the edge there,
   // leaning out at the angle alpha, curls the way it leans, and is the shoot's length times the scale, smaller
   // towards the tip. The last, fractional sprout grows in.
   const ns = K.sprouts * (1 + 0.25 * V * q(6)), vary = 0.2 + 0.15 * V;
@@ -575,35 +672,40 @@ function grow(sc, K, x, y, h, L, c, k, t, cut, half = false, b = 0, e0 = 1) {
   for (let j = 0; j < Math.ceil(ns); j++) {
     const wj = clamp(ns - j) * gw; if (wj <= 0) continue;
     const ev = j % 2 === 0, fj = clamp((j + 0.5 + ph0 + (ev ? -0.25 : 0.25) * K.alt) / Math.max(1, ns)), uj = lerp(ua, ue, fj);
-    const wv = Math.max(ev ? clamp(1 + K.side) : clamp(K.side), K.pair), wc = Math.max(ev ? clamp(-K.side) : clamp(1 - K.side), K.pair);
     const [px, py, ph] = spine(uj), al = K.angle * (1 + 0.3 * V * q(7 + j)) * lerp(1.1, 0.75, fj);
-    for (const [s, bw] of sides(wv, wc)) {
-      if (bw <= 0) continue;
-      const e = halfAt(s, uj);
+    for (const s of SIDES) {
+      const bw = sideW(j, s); if (bw <= 0) continue;
+      const e = halfAt(s, uj), L1 = L * K.scale * (1 - 0.3 * fj) * (1 + 0.25 * V * q(11 + j)) * wj * bw;
+      // recorded once for each side it comes out on, however it is drawn (with a whorl, and as two curls on the convex side)
+      if (TRACE && L1 >= cut) TRACE.push({ gen: k, shoot: t, u: uj, side: s, convex: half ? 0.5 : conv(s), x: px, y: py, h: ph, weight: wj * bw });
       for (const [wh0, af, lf, dt0] of [[1, 1, 1, 0], [K.whorl, 0.45, 0.72, 5.3]]) for (const [cj, wc0, dt] of curls(s).map(([a, b], i) => [a, b, dt0 + 3.7 * i])) {
         const wh = wh0 * wc0; if (wh <= 0) continue;
         let hj = ph + s * al * af;
         hj += K.rise * Math.sin(Math.PI / 2 - hj) * 0.8;
-        const Lj = L * K.scale * lf * (1 - 0.3 * fj) * (1 + 0.25 * V * q(11 + j)) * wj * bw * wh;
-        if (TRACE && Lj >= cut) TRACE.push({ gen: k, shoot: t, u: uj, side: s, x: px, y: py, h: ph, weight: wj * bw * wh });
-        grow(sc, K, px - s * e * Math.sin(ph), py + s * e * Math.cos(ph), hj, Lj, cj, k + 1, 1.3 * t + 2.9 * (j + 1) + (s > 0 ? 0.7 : 0) + dt, cut, false, clamp(K.bloom * K.buds * pick(j, s) * (root ? 1 : 0.7)), e);
+        const Lj = L1 * lf * wh;
+        grow(sc, K0, px - s * e * Math.sin(ph), py + s * e * Math.cos(ph), hj, Lj, cj, k + 1, 1.3 * t + 2.9 * (j + 1) + (s > 0 ? 0.7 : 0) + dt, cut, false, clamp(K.bloom * K.buds * pick(j, s) * (root ? 1 : 0.7)), e, (j + k) % 2 ? -s : s);
       }
     }
   }
-  // a cluster: sprouts fanning out from behind the head, from leaning out to hanging, the convex side first, so a
-  // flower or a leaf at the end of a stalk is ringed with leaves that arch outwards and down (a fountain). They come
+  // a cluster: sprouts fanning out from behind the head, from leaning out to hanging, alternating sides (beginning
+  // opposite the shoot's first sprout), so a flower or a leaf at the end of a stalk is ringed with leaves that arch
+  // outwards and down (a fountain). They come
   // out from behind the flower, or from behind the base of the head's first stroke; behind a flower they are longer,
   // so big horns sweep out from behind it as in the 1799 plants.
   const bf = smooth(0.2, 0.9, b), ncl = (K.cluster + 2 * smooth(0.3, 0.9, b)) * smooth(0, 0.12, sig) * (root ? 1 : 0.5);
   const uc = us + 0.12 * (1 - us) * (1 - bf), [cx, cy, ch] = spine(uc);
   for (let j = 0; j < Math.ceil(ncl); j++) {
     const wj = clamp(ncl - j) * gw; if (wj <= 0) continue;
-    const fj = clamp((j + 0.5) / Math.max(1, ncl)), ev = j % 2 === 0, al = lerp(0.8, 2.1, fj) * (1 + 0.2 * V * q(41 + j));
-    for (const [s, bw0] of sides(ev ? 1 : K.pair, ev ? K.pair : 1)) for (const [cj, wc0, i] of curls(s).map(([a, b], i) => [a, b, i])) {
-      const bw = bw0 * wc0; if (bw <= 0) continue;
-      const Lj = L * K.scale * lerp(0.95, 0.65, fj) * lerp(1, 1.35, bf) * (1 + 0.2 * V * q(45 + j)) * wj * bw, e = lerp(halfAt(s, uc), 0, bf);   // behind a flower, big horns
-      if (TRACE && Lj >= cut) TRACE.push({ gen: k, shoot: t, u: uc, side: s, x: cx, y: cy, h: ch, weight: wj * bw, cluster: true });
-      grow(sc, K, cx - s * e * Math.sin(ch), cy + s * e * Math.cos(ch), ch + s * al, Lj, cj, k + 1, 1.7 * t + 3.1 * (j + 1) + (s > 0 ? 0.7 : 0) + 9.1 + 3.7 * i, cut, false, clamp(K.bloom * K.buds * 0.35 * pick(j + 3, s)), Math.max(halfAt(s, uc), 0.8 * l0 * bf));
+    const fj = clamp((j + 0.5) / Math.max(1, ncl)), al = lerp(0.8, 2.1, fj) * (1 + 0.2 * V * q(41 + j));
+    for (const s of SIDES) {
+      const bs = sideW(j + 1, s); if (bs <= 0) continue;
+      const L1 = L * K.scale * lerp(0.95, 0.65, fj) * lerp(1, 1.35, bf) * (1 + 0.2 * V * q(45 + j)) * wj * bs, e = lerp(halfAt(s, uc), 0, bf);   // behind a flower, big horns
+      if (TRACE && L1 >= cut) TRACE.push({ gen: k, shoot: t, u: uc, side: s, convex: half ? 0.5 : conv(s), x: cx, y: cy, h: ch, weight: wj * bs, cluster: true });
+      for (const [cj, wc0, i] of curls(s).map(([a, b], i) => [a, b, i])) {
+      if (wc0 <= 0) continue;
+      const Lj = L1 * wc0;
+      grow(sc, K0, cx - s * e * Math.sin(ch), cy + s * e * Math.cos(ch), ch + s * al, Lj, cj, k + 1, 1.7 * t + 3.1 * (j + 1) + (s > 0 ? 0.7 : 0) + 9.1 + 3.7 * i, cut, false, clamp(K.bloom * K.buds * 0.35 * pick(j + 3, s)), Math.max(halfAt(s, uc), 0.8 * l0 * bf), (j + k) % 2 ? s : -s);
+      }
     }
   }
 }
@@ -613,27 +715,45 @@ function grow(sc, K, x, y, h, L, c, k, t, cut, half = false, b = 0, e0 = 1) {
 // straight down (a smooth minimum), so that a mirrored design never crosses its axis. A shoot curls outwards, away
 // from the axis, by K.bend times the cosine of its heading (so a shoot heading down curls the other way round, and
 // one heading sideways not at all), and by K.arch times its sine: up into an arch or down into a swag. Its head opens
-// by bloom times tips. A mirror image (x -> -x), K.mirror times the size, grows from the same root.
+// by bloom times tips. A mirror image (x -> -x), K.mirror times the size, grows from the same root: the mirror image
+// of the same shoots where the symmetry is 1, and where it is lower, of their twin, whose numbers drift away
+// (twinOf, above); an upright crown on the axis stays exactly symmetric.
 const smin = (a, b, k) => -k * Math.log(Math.exp(-a / k) + Math.exp(-b / k));
-function motif(K, cut) {
-  const sc = new Scene();
+const heading = (K, i) => smin(K.turn + K.spread * i, Math.PI - 0.12, 0.25);
+function mains(sc, K, cut) {
   const N = K.shoots;
   for (let i = 0; i < Math.ceil(N); i++) {
     const w = clamp(N - i); if (w <= 0) continue;
-    const a = smin(K.turn + K.spread * i, Math.PI - 0.12, 0.25);
-    const c = clamp(-K.bend * Math.cos(a) + K.arch * Math.sin(a), -1, 1);
-    grow(sc, K, 0, 0, Math.PI / 2 - a, w * (1 - 0.12 * i), c, 0, 3.7 * i + 1, cut, false, clamp(K.bloom * K.tips * (i ? 0.7 : 1)));
+    const a = heading(K, i), c = clamp(-K.bend * Math.cos(a) + K.arch * Math.sin(a), -1, 1);
+    grow(sc, K, 0, 0, Math.PI / 2 - a, w * (1 - 0.12 * i), c, 0, 3.7 * i + 1, cut, false, clamp(K.bloom * K.tips * (i ? 0.7 : 1)), 1, i % 2 ? -1 : 1);
   }
+}
+function motif(K, cut) {
+  const sc = new Scene();
+  mains(sc, K, cut);
   // on the axis of a mirrored design, an upright crown: a straight, symmetric shoot (c = 0) with its right-hand
   // strokes and sprouts, which the mirror completes; its head opens by bloom
-  const m = K.mirror, cw = K.crown * m * m;
+  const S0 = sc.shapes.length, L0 = sc.lines.length, m = K.mirror, cw = K.crown * m * m;
   if (cw > 0) grow(sc, K, 0, 0, Math.PI / 2, 0.85 * cw, 0, 0, 0.5, cut, true, clamp(1.3 * K.bloom));
   if (m > 0) {
-    const S = sc.shapes.length, Ln = sc.lines.length;
-    for (let i = 0; i < S; i++) { const s = sc.shapes[i]; sc.shapes.push({ poly: s.poly.map((v, j) => (j % 2 ? v : -v) * m), halo: s.halo * m, z: s.z - 0.5 }); }
-    for (let i = 0; i < Ln; i++) { const l = sc.lines[i]; sc.lines.push({ ...l, pts: l.pts.map((v, j) => (j % 2 ? v : -v) * m), w: l.w * m, z: l.z - 0.5 }); }
+    let shapes = sc.shapes.slice(), lines = sc.lines.slice();
+    if (K.symmetry < 1) {
+      const T = new Scene(), tr = TRACE, hd = HEADS; TRACE = HEADS = null;
+      mains(T, twinOf(K), cut); TRACE = tr; HEADS = hd;
+      shapes = T.shapes.concat(shapes.slice(S0)); lines = T.lines.concat(lines.slice(L0));
+    }
+    for (const s of shapes) sc.shapes.push({ poly: s.poly.map((v, j) => (j % 2 ? v : -v) * m), halo: s.halo * m, z: s.z - 0.5 });
+    for (const l of lines) sc.lines.push({ ...l, pts: l.pts.map((v, j) => (j % 2 ? v : -v) * m), w: l.w * m, z: l.z - 0.5 });
   }
   return sc;
+}
+// How upright a motif stands: the cosine of the mean heading of its main shoots (and its crown), 1 straight up, -1
+// hanging
+function upright(K) {
+  let s = 0, w = 0;
+  for (let i = 0; i < Math.ceil(K.shoots); i++) { const wi = clamp(K.shoots - i) * (1 - 0.12 * i); s += wi * Math.cos(heading(K, i)); w += wi; }
+  const cw = 0.85 * K.crown * K.mirror * K.mirror;
+  return (s + cw) / Math.max(1e-9, w + cw);
 }
 
 function sceneBox(sc) {
@@ -643,26 +763,60 @@ function sceneBox(sc) {
   }
   return { x0, x1, y0, y1 };
 }
+// The parts of scene M, turned by rot, scaled by s (its pens by the square root of s), moved to (X, Y), mirrored
+// (x -> -x) if flip, and put dz further back, into the scene sc; returns the largest x of its lines
+function put(sc, M, X, Y, s, rot, flip, dz) {
+  if (!X && !Y && s === 1 && !rot && !flip && !dz) { sc.shapes.push(...M.shapes); sc.lines.push(...M.lines); return sceneBox(M).x1; }
+  const c = Math.cos(rot) * s, n = Math.sin(rot) * s, sw = Math.sqrt(s), fx = flip ? -1 : 1;
+  let x1 = -1e9;
+  const tf = P => { const o = new Array(P.length); for (let i = 0; i < P.length; i += 2) { const x = P[i], y = P[i + 1]; o[i] = fx * (X + c * x - n * y); o[i + 1] = Y + n * x + c * y; if (o[i] > x1) x1 = o[i]; } return o; };
+  for (const t of M.shapes) sc.shapes.push({ poly: tf(t.poly), halo: t.halo * sw, z: t.z + dz });
+  x1 = -1e9;
+  for (const l of M.lines) sc.lines.push({ ...l, pts: tf(l.pts), w: l.w * sw, z: l.z + dz });
+  return x1;
+}
 
 // The settings a point gives (all continuous), for pages and tools that describe a design; repeat j gives the
-// settings of the j-th repeat of a frieze (negative: to the left) or the j-th tier of a tower.
+// settings of the j-th repeat of a frieze (negative: to the left, the twin of the right) or the j-th tier of a tower.
 export function settingsAt({ x = 5, y = 5, z = 5, detail = 0.5, plump = 0.5, lobes = 0.5, curl = 0.5, variation = 0.4 } = {}, repeat = 0) {
   return settings(x, y, z, detail, plump, lobes, curl, variation, repeat);
 }
 
-// A runner: a stem through the roots of a frieze's repeats, y = yA(x) from xa to xb, winding into a curl of length
-// ext past each end (the left curl the mirror image of the right one); its heading at an end follows the stem's, so
-// the curls turn smoothly as the runner grows. It is a brush stroke of its own: it swells to w in the middle of each
-// half-wave (between the nodes N) and thins at the nodes and into the curls.
-function runner(sc, xa, xb, yA, Pp, ext, w, N) {
-  if (!(xb - xa > 0)) return;
-  const m = Math.max(16, Math.ceil(80 * (xb - xa) / Pp)), dx = 1e-4 * Pp, hd = x => Math.atan((yA(x + dx) - yA(x - dx)) / (2 * dx));
-  const r0 = 0.12, C = TAU * 1.1 / Math.log((1 + r0) / r0), kc = u => C * smooth(0.25, 0.6, u) / (1 - u + r0);
-  const Rr = curve(xb, yA(xb), hd(xb), ext, u => -kc(u), 48), Rl = curve(xa, yA(xa), Math.PI + hd(xa), ext, kc, 48);
-  const pts = [], X = [];
-  for (let i = Rl.n; i >= 1; i--) { pts.push(Rl.X[i], Rl.Y[i]); X.push(xa); }
-  for (let i = 0; i <= m; i++) { const x = lerp(xa, xb, i / m); pts.push(x, yA(x)); X.push(x); }
-  for (let i = 1; i <= Rr.n; i++) { pts.push(Rr.X[i], Rr.Y[i]); X.push(xb); }
+// The rhythm of a frieze, read at each repeat's distance i from the centre (so both halves share it): feature motifs
+// (larger, opened into flowers ringed with horns, or into large fans) among medium plants and small sprigs, by
+// Q(1.13 i); and slow swells of lush clusters (closer, larger, more sprouts) and sparse stretches of open ground (wide
+// spacing), by Q(0.29 i); and the spacing itself breathes from one repeat to the next, by Q(1.71 i). hier and lush,
+// settings of x, y and z, set how strongly; seed0 is the half's own seed.
+function rhythm(K, seed0) {
+  return i => {
+    const h = Q(1.13 * i + 2.3 * seed0 + 0.7), l = clamp(1.6 * Q(0.29 * i + 1.7 * seed0 + 3.1), -1, 1);
+    const feat = K.hier * smooth(0.2, 0.55, h), sprig = K.hier * smooth(-0.05, -0.45, h), lush = K.lush * l;
+    return { feat, sprig, lush, kind: smooth(-0.4, 0.4, Q(2.71 * i + seed0 + 1.2)), size: 0.85 * Math.exp(0.35 * feat - 0.8 * sprig + 0.4 * lush), dens: Math.exp(-0.5 * lush + 0.3 * K.hier * Q(1.71 * i + 1.3 * seed0 + 2.2)), open: K.lush * smooth(-0.3, -0.8, l) };
+  };
+}
+// a repeat's settings with its place in the rhythm: a feature opens into a flower ringed with horns (kind 1) or into a
+// large fan (kind 0); a sprig has fewer generations and more hairlines; a lush stretch more sprouts
+function withRhythm(Kj, r) {
+  const o = { ...Kj }, f = r.feat;
+  o.bloom = Kj.bloom + 1.1 * f * r.kind; o.tips = lerp(Kj.tips, 1, f); o.cluster = Kj.cluster + 1.6 * f * r.kind;
+  o.lobes = clamp(Kj.lobes + 0.5 * f * (1 - r.kind)); o.plump = clamp(Kj.plump + 0.2 * f * (1 - r.kind));
+  o.depth = Kj.depth * (1 - 0.4 * r.sprig); o.hair = lerp(Kj.hair, 1, r.sprig); o.sprouts = Kj.sprouts * (1 + 0.45 * r.lush);
+  o.F = leafForm(o.plump, o.lobes, o.curl, o.stripes);
+  return o;
+}
+const smax = (a, b, e) => (a + b + Math.sqrt((a - b) * (a - b) + e * e)) / 2;   // a smooth maximum
+
+// One stroke of a frieze's scroll: the points P (x, y pairs) with half-widths W, then a volute that winds on from its
+// end, curling the same way as the scroll there (sg, its curvature k0 at the join), tightening like a logarithmic
+// spiral through about 1.3 turns over the length ext while it thins to a point. A band with a halo, at depth z.
+function scrollStroke(sc, P, W, sg, ext, k0, z) {
+  const m = P.length / 2 - 1; if (m < 1) return;
+  const x1 = P[2 * m], y1 = P[2 * m + 1], h1 = Math.atan2(y1 - P[2 * m - 1], x1 - P[2 * m - 2]), pts = P.slice(), ws = W.slice();
+  if (ext > 1e-6) {
+    const r0 = 0.1, C = TAU * 1.3 / Math.log((1 + r0) / r0);
+    const V = curve(x1, y1, h1, ext, u => sg * C * smooth(0, 0.45, u) / (1 - u + r0) + k0 * ext * (1 - smooth(0, 0.35, u)), 40);
+    for (let i = 1; i <= V.n; i++) { pts.push(V.X[i], V.Y[i]); ws.push(W[m] * lerp(1, 0.12, smooth(0, 1, i / V.n))); }
+  }
   const c = { X: [], Y: [], H: [], n: pts.length / 2 - 1 };
   for (let i = 0; i <= c.n; i++) {
     c.X.push(pts[2 * i]); c.Y.push(pts[2 * i + 1]);
@@ -670,125 +824,162 @@ function runner(sc, xa, xb, yA, Pp, ext, w, N) {
     c.H.push(Math.atan2(pts[2 * b + 1] - pts[2 * a + 1], pts[2 * b] - pts[2 * a]));
   }
   for (let i = 1; i <= c.n; i++) c.H[i] -= TAU * Math.round((c.H[i] - c.H[i - 1]) / TAU);   // no jumps of 2 pi
-  const swell = x => { let k = 0; while (k < N.length - 2 && x > N[k + 1]) k++; const s = Math.sin(Math.PI * clamp((x - N[k]) / (N[k + 1] - N[k]))); return 0.55 + 0.45 * s * s; };
-  const k0 = Rl.n / c.n, k1 = 1 - Rr.n / c.n, z = -1e12;
-  const B = band(c, u => { const i = Math.round(u * c.n); return w * swell(X[i]) * (0.35 + 0.65 * smooth(0, k0, u) * (1 - smooth(k1, 1, u))); });
+  const B = band(c, u => ws[Math.round(u * c.n)]);
   sc.shape(B, PEN / 2 + Math.max(GAP, 0.9 * PEN), z); sc.line(B.concat(B.slice(0, 2)), Math.max(MIN, PEN), z);
 }
 
 // The whole design. Aspect is relative to the motif's own proportions, as in the Machine: at 1 the motif stands
-// alone; wider, repeats bud out on both sides along a runner (a frieze); taller, smaller repeats bud out of its top
-// (telescoping, as in a tall panel). Each repeat is drawn from its own settings, which wander from the motif's with
-// its place (settings, above), and is scaled towards the motif's height. A fractional repeat grows in, budding from
-// its neighbour's edge. Repeats are drawn behind the ones before them. Options: min and gap, for small prints; trace,
-// an array that receives where each of the motif's sprouts comes out ({gen, shoot, u, side, x, y, h, weight}, u its
-// share of the way along its parent); set, settings to put in place of the ones x, y and z give (for studies and
-// tests, e.g. {bloom: 1}).
+// alone; wider, a frieze grows out of it to both sides (below); taller, smaller repeats bud out of its top
+// (telescoping, as in a tall panel). Options: min and gap, for small prints; trace, an array that receives where each
+// of the motif's sprouts comes out ({gen, shoot, u, side, convex, x, y, h, weight}, u its share of the way along its
+// parent, convex its weight on the parent's convex side); heads, an array that receives the strokes of each of the
+// motif's heads; layout, an object that receives where a frieze's motifs stand and how its scroll swings; set,
+// settings to put in place of the ones x, y and z give (for studies and tests, e.g. {bloom: 1}).
 export function build({ x = 5, y = 5, z = 5, detail = 0.5, aspect = 1, plump = 0.5, lobes = 0.5, curl = 0.5, variation = 0.4 } = {}, opt = {}) {
-  MIN = opt.min || 0; GAP = opt.gap || 0; PEN = PEN0; VEIN = VEIN0; TRACE = null;
-  const A = clamp(aspect, 0.2, 48), kAt = j => Object.assign(settings(x, y, z, detail, plump, lobes, curl, variation, j), opt.set), K = kAt(0);
+  MIN = opt.min || 0; GAP = opt.gap || 0; PEN = PEN0; VEIN = VEIN0; TRACE = null; HEADS = null;
+  const A = clamp(aspect, 0.2, 48), KS = new Map(), kAt = j => KS.get(j) || KS.set(j, settings(x, y, z, detail, plump, lobes, curl, variation, j, opt.set)).get(j), K = kAt(0);
   // the motif's own size, then how large the whole design will be: a design g times larger keeps its smallest shoots
   // g^0.6 times larger, and its pens g^0.4 times bolder, so that a long frieze or a tall tower is not lost in fuzz
   let cut = 0.03, M = motif(K, cut);
   const b0 = sceneBox(M), W0 = b0.x1 - b0.x0, H0 = b0.y1 - b0.y0, S0 = Math.max(W0, H0);
   const g = Math.max(1, A > 1 ? Math.max(A * W0, H0) / S0 : Math.max(W0, H0 / A) / S0);
   if (g > 1) { PEN = PEN0 * Math.pow(g, 0.4); VEIN = VEIN0 * Math.pow(g, 0.4); cut = 0.03 * Math.pow(g, 0.6); M = motif(K, cut); }
-  // repeat j: its motif, drawn as finely as the whole design allows; its box, measured on the same repeat drawn at a
-  // fixed coarse cut (0.27) and stretched to the motif's own size, so that where the repeats stand does not depend on
-  // the aspect; and its scale s = (the motif's height / its height)^0.7, kept within 0.6 to 1.6
-  const R = new Map(), CB = 0.1, box = j => sceneBox(motif({ ...kAt(j), quick: true }, CB));
-  let c0, kx, ky;
-  const rep = j => {
-    if (!c0) { c0 = box(0); kx = W0 / (c0.x1 - c0.x0); ky = H0 / (c0.y1 - c0.y0); }
-    if (!R.has(j)) {
-      const c = j ? box(j) : c0;
-      R.set(j, {
-        M: j ? motif(kAt(j), cut) : M, b: { x0: kx * c.x0, x1: kx * c.x1, y0: ky * c.y0, y1: ky * c.y1 },
-        s: j ? clamp(Math.pow((c0.y1 - c0.y0) / Math.max(1e-6, c.y1 - c.y0), 0.7), 0.6, 1.6) : 1,
-      });
-    }
-    return R.get(j);
-  };
-  const reps = [];                                 // [x, y, scale, repeat, depth] of each repeat after the first
+  // a repeat's box, measured on the repeat drawn at a fixed coarse cut and stretched to the motif's own size, so that
+  // where the repeats stand does not depend on the aspect
+  const CB = 0.1, quick = Kq => sceneBox(motif({ ...Kq, quick: true }, CB)), c0 = quick(K), kx = W0 / (c0.x1 - c0.x0), ky = H0 / (c0.y1 - c0.y0);
+  const box = Kq => { const c = quick(Kq); return { x0: kx * c.x0, x1: kx * c.x1, y0: ky * c.y0, y1: ky * c.y1, h: c.y1 - c.y0 }; };
   const sc = new Scene();
   if (A > 1) {
-    // on each side, repeats K.gap times the sum of their facing half-widths apart, until the frieze is A times as
-    // wide as the motif. A growing repeat buds from its neighbour's outer edge and moves out to its place while it
-    // grows (eased, so it starts and stops gently), so the frieze widens at an even rate.
-    const need = (A - 1) * W0 / 2, P0 = K.gap * W0, nodes = new Map([[0, 0]]), grown = new Map([[0, 1]]), roots = new Map([[0, 0]]), end = {};
-    for (const sd of [1, -1]) {
-      let X0 = 0, got = 0, prev = rep(0);
-      end[sd] = 0;
-      for (let i = 1; ; i++) {
-        const r = rep(sd * i), out = sd > 0 ? prev.s * prev.b.x1 : -prev.s * prev.b.x0, inn = sd > 0 ? -r.s * r.b.x0 : r.s * r.b.x1;
-        const P = Math.max(0.05 * P0, K.gap * (out + inn)), w0 = clamp((need - got) / P); if (w0 <= 0) break;
-        const w = smooth(0, 1, w0), X = X0 + sd * (out + w * (P - out));
-        nodes.set(sd * i, X0 + sd * P); grown.set(sd * i, w); roots.set(sd * i, X);   // where its root will be (a node of the runner), how far it has grown, where it is
-        reps.push([X, 0, r.s * w, r, i]);
-        end[sd] = X0 + (X - X0) * smooth(0, 0.3, w);   // the runner reaches out to the bud while it starts
+    // A frieze. In the middle stands the motif, mirrored (its mirror image grows in as the frieze does), and from
+    // behind it a scroll runs out to each side, carrying repeats in its bays. The left half is the mirror image of the
+    // right half, exactly where the symmetry is 1; where it is lower, of the right half's twin (settings(-j)).
+    const need = (A - 1) * W0 / 2, K0 = K.mirror < 1 ? { ...K, mirror: lerp(K.mirror, 1, smooth(1, 2.5, A)) } : K, M0 = K0 === K ? M : motif(K0, cut);
+    const half = sd => {
+      // Repeat i of this half (i = 1, 2, ... outwards), drawn as if facing right: its settings, with its place in the
+      // rhythm; its scale (towards the motif's height, times its size in the rhythm); turned over (by pi) if i is odd,
+      // so the plants stand and hang in turn; and its root, where the scroll will pass, gap times the sum of the
+      // facing reaches, and a quarter more, so that the plants sit in the scroll's bays (or wider, in open ground),
+      // beyond the last. Repeats are added until the half is (A - 1) / 2 times
+      // the motif's width; the last is weighted by the width still wanted, and one more, not yet begun, gives the
+      // scroll its way on. Root i lies at the scroll's phase i pi + theta_i, theta_i = -0.425 pi times how upright the
+      // repeat stands, so an upright plant stands in a trough, a hanging one hangs from a crest, and one reaching
+      // sideways sits where the scroll crosses its axis.
+      const Ks = sd > 0 ? K : kAt(-1), ry = rhythm(K, Ks.seed0), RK = new Map();
+      const repK = i => RK.get(i) || RK.set(i, withRhythm(kAt(sd * i), ry(i))).get(i);
+      const R = [{ K: K0, s: 1, b: box(K0), rot: 0, Nd: 0, ph: -0.425 * Math.PI * upright(K0), w: 1 }];
+      let got = 0;
+      for (let i = 1; i < 1000; i++) {
+        const Ki = repK(i), b = box(Ki), odd = i % 2 === 1, prev = R[i - 1], r = ry(i);
+        const s = clamp(Math.pow((c0.y1 - c0.y0) / Math.max(1e-6, b.h), 0.7), 0.6, 1.6) * r.size;
+        const out = prev.s * (prev.rot ? -prev.b.x0 : prev.b.x1), inn = s * (odd ? b.x1 : -b.x0);
+        const P = Math.max(0.05 * W0, smax(1.25 * K.gap * r.dens * (out + inn), r.open * W0, 0.1 * W0)), w0 = clamp((need - got) / P);
+        R.push({ K: Ki, s, b, rot: odd ? Math.PI : 0, Nd: prev.Nd + P, ph: i * Math.PI - 0.425 * Math.PI * upright(Ki), w: smooth(0, 1, w0) });
+        if (w0 <= 0) break;
+        got += P;
+      }
+      // The scroll: x(phase) runs smoothly through the roots (a cubic between neighbouring roots, its slope at each
+      // root the secant from the root before), y = A(phase) sin(phase). Its height A at a root is a share of the
+      // half-wave's length, or of the plants' height there if that is less (a smooth minimum), the share set by swing,
+      // wandering along the length and swinging wider in open ground.
+      const N = R.length, L = N - 2, ht = r => r.s * (r.b.y1 - r.b.y0);
+      const T = R.map((r, i) => i ? (r.Nd - R[i - 1].Nd) / (r.ph - R[i - 1].ph) : (R[1].Nd - r.Nd) / (R[1].ph - r.ph));
+      const am = lerp(0.2, 0.45, K.swing), Aa = R.map((r, i) => am * Math.exp(0.7 * Q(0.41 * i + 1.9 * Ks.seed0 + 2) - 0.3 * ry(i).lush) * -smax(-(i ? r.Nd - R[i - 1].Nd : R[1].Nd), -0.6 * (ht(r) + ht(R[i ? i - 1 : 1])), 0.1 * W0));
+      const seg = ph => { let i = 0; while (i < N - 2 && ph > R[i + 1].ph) i++; return i; };
+      const X = ph => {
+        const i = seg(ph), a = R[i], b = R[i + 1], d = b.ph - a.ph, t = (ph - a.ph) / d;
+        if (t > 1) return b.Nd + T[i + 1] * (ph - b.ph);
+        const m = (b.Nd - a.Nd) / d, t0 = Math.min(T[i], 3 * m) * d, t1 = Math.min(T[i + 1], 3 * m) * d, t2 = t * t, t3 = t2 * t;
+        return (2 * t3 - 3 * t2 + 1) * a.Nd + (t3 - 2 * t2 + t) * t0 + (3 * t2 - 2 * t3) * b.Nd + (t3 - t2) * t1;
+      };
+      const Am = ph => { const i = seg(ph), t = clamp((ph - R[i].ph) / (R[i + 1].ph - R[i].ph)); return lerp(Aa[i], Aa[i + 1], t * t * (3 - 2 * t)); };
+      const y0 = Aa[0] * Math.sin(R[0].ph), Y = ph => Am(ph) * Math.sin(ph) - y0;
+      const at = ph => { const e = 1e-3; return [X(ph), Y(ph), Math.atan2(Y(ph + e) - Y(ph - e), X(ph + e) - X(ph - e))]; };
+      // How far the scroll has grown: while repeat i grows (w from 0 to 1), the scroll's end runs on from where it
+      // ended before to a quarter wave beyond the root, and the repeat buds from the outer edge of the one before (as
+      // drawn) and moves out to its root along the scroll (eased, so it starts and stops gently), so the frieze widens
+      // at an even rate.
+      const Er = i => i <= 1 ? R[0].ph : R[i - 1].ph + Math.PI / 2;
+      const end = L ? Er(L) + R[L].w * (R[L].ph + Math.PI / 2 - Er(L)) : R[0].ph;
+      const inv = x => { let lo = R[0].ph, hi = R[N - 1].ph + Math.PI; for (let k = 0; k < 40; k++) { const m = (lo + hi) / 2; if (X(m) < x) lo = m; else hi = m; } return (lo + hi) / 2; };
+      const S = new Scene(), motifs = [], waves = [];
+      let edge = sceneBox(M0).x1;
+      for (let i = 1; i <= L; i++) {
+        const r = R[i], s = r.s * r.w, [rx, rY, tau] = at(r.w < 1 ? inv(edge + r.w * (r.Nd - edge)) : r.ph);
+        // it leans with the scroll, and a little of its own way, by its setting lean
+        const rot = r.rot + r.K.lean * (tau + 0.35 * Q(0.93 * i + 1.3 * Ks.seed0 + 0.4));
+        if (s > 0) edge = put(S, motif(r.K, cut), rx, rY, s, rot, false, -1e8 * i);
+        const cy = 0.5 * (r.b.y0 + r.b.y1) * (r.rot ? -1 : 1);
+        motifs.push({ j: sd * i, x: rx, y: rY, ry: rY, s, w: r.w, h: s * (r.b.y1 - r.b.y0), cy: rY + s * cy, rot });
+      }
+      // The scroll's strokes, one for each half-wave (between the nodes n pi, where it crosses its axis): each springs
+      // from behind the one before, a little before the node, runs through its crest or trough and past the next node
+      // winds into a volute in its own bay, as in a painted border (its length 2.2 times the scroll's height there, and
+      // at least 15 times the stroke's half-width, so it always spirals). A stroke swells in the middle of its half-wave
+      // and thins at the nodes; it grows in as the scroll's end passes its node.
+      const rw = lerp(0.007, 0.014, K.swing) * Math.pow(g, 0.4), DEL = 0.3 * Math.PI, ST = Math.PI / 48, n0 = Math.floor(R[0].ph / Math.PI);
+      for (let n = n0; n * Math.PI < end; n++) {
+        const a = Math.max(R[0].ph, n * Math.PI - DEL * clamp((end - n * Math.PI) / DEL)), b = Math.min(end, (n + 1) * Math.PI);
+        if (!(b - a > 1e-6)) continue;
+        const P = [], W = [], add = ph => { const sn = Math.sin(ph); P.push(X(ph), Y(ph)); W.push(rw * (0.55 + 0.45 * sn * sn) * lerp(0.35, 1, smooth(a, a + 0.35 * Math.PI, ph))); };
+        add(a); for (let q = Math.floor(a / ST) + 1; q * ST < b - 1e-9; q++) add(q * ST); add(b);
+        const m = P.length / 2 - 1, gv = clamp((b - Math.max(a, n * Math.PI)) / (0.5 * Math.PI)), sg = ((n % 2) + 2) % 2 ? 1 : -1;
+        let k0 = 0;
+        if (m >= 2) { const h0 = Math.atan2(P[2 * m - 1] - P[2 * m - 3], P[2 * m - 2] - P[2 * m - 4]), h1 = Math.atan2(P[2 * m + 1] - P[2 * m - 1], P[2 * m] - P[2 * m - 2]); k0 = (h1 - h0) / Math.max(1e-9, Math.hypot(P[2 * m] - P[2 * m - 4], P[2 * m + 1] - P[2 * m - 3]) / 2); }
+        scrollStroke(S, P, W, sg, smax(2.2 * Am(b), 15 * rw, 2 * rw) * gv, k0, -1e12 - 10 * (n - n0));
+        waves.push({ n, x0: X(n * Math.PI), x1: X((n + 1) * Math.PI), amp: Am((n + 0.5) * Math.PI) });
+      }
+      // At each node, as in the 1808 border, what springs from the stroke that goes on: a fan of hairlines flicked from
+      // its outer (convex) side, and a short curling sprout into its bay (the concave side), ending in a flower where
+      // the repeat's flowers have opened (a leaf where they have not). Both grow in as the scroll passes the node, and
+      // lie behind the plants, in front of the scroll.
+      const bay = new Scene(), pen = { pw: Math.max(MIN, PEN), vw: Math.max(MIN, 1.3 * VEIN), gap: 0 };
+      for (let n = n0 + 1; n * Math.PI < end; n++) {
+        const wJ = clamp((end - n * Math.PI) / (0.5 * Math.PI)) * smooth(0, 0.5, detail); if (!(wJ > 0)) continue;
+        const Kj = repK(Math.max(1, n + 1)), s = ((n % 2) + 2) % 2 ? 1 : -1, Lh = X((n + 1) * Math.PI) - X(n * Math.PI);
+        const edge = (ph, sd) => { const [px, py, ph_] = at(ph), sn = Math.sin(ph), e = rw * (0.55 + 0.45 * sn * sn); return [px - sd * e * Math.sin(ph_), py + sd * e * Math.cos(ph_), ph_]; };
+        const hl = 0.3 * Lh * wJ * (0.45 + 0.55 * Kj.hair);
+        if (hl > 0) { const [hx, hy, hh] = edge(n * Math.PI + 0.22 * Math.PI * wJ, -s); hairs(bay, hx, hy, hh, -s, hl, 3 + 2 * Kj.hair, pen, bay.next(0), false); }
+        const Lb = 0.4 * Lh * wJ * smooth(0, 0.6, detail);
+        if (Lb > cut) { const [ex, ey, eh] = edge(n * Math.PI + 0.1 * Math.PI * wJ, s); grow(bay, Kj, ex, ey, eh + s * 0.85, Lb, 0.8 * s, 1, 7.7 + 1.3 * n, cut, false, clamp(1.2 * Kj.bloom), 1); }
+      }
+      put(S, bay, 0, 0, 1, 0, false, -1e11);
+      return { S, motifs, waves };
+    };
+    const right = half(1), left = K.symmetry < 1 ? half(-1) : right;
+    put(sc, M0, 0, 0, 1, 0, false, 0);
+    put(sc, right.S, 0, 0, 1, 0, false, 0); put(sc, left.S, 0, 0, 1, 0, true, 0);
+    if (opt.layout) {
+      const b = box(K0), fl = o => ({ ...o, j: -o.j, x: -o.x, rot: -o.rot });
+      opt.layout.motifs = [{ j: 0, x: 0, y: 0, ry: 0, s: 1, w: 1, h: b.y1 - b.y0, cy: 0.5 * (b.y0 + b.y1), rot: 0 }, ...right.motifs, ...left.motifs.map(fl)];
+      opt.layout.waves = [...right.waves, ...left.waves.map(w => ({ ...w, x0: -w.x1, x1: -w.x0 }))];
+    }
+  } else {
+    put(sc, M, 0, 0, 1, 0, false, 0);
+    if (A < 1) {
+      // tiers 0.84 times the last (and scaled towards the motif's height), each overlapping the one below by a
+      // quarter; up to eight. A growing tier buds from the top of the one below and rises to its place while it grows.
+      const ov = 0.25, need = H0 * (1 / A - 1), s0 = c0.y1 - c0.y0;
+      let Y = 0, below = { b: box(K) }, sb = 1, got = 0;
+      for (let i = 1; i <= 8 && got < need; i++) {
+        const Ki = kAt(i), b = box(Ki), s = Math.pow(0.84, i) * clamp(Math.pow(s0 / Math.max(1e-6, b.h), 0.7), 0.6, 1.6), add = s * (b.y1 - b.y0) * (1 - ov), w0 = clamp((need - got) / add), w = smooth(0, 1, w0);
+        got += add;
+        const Yi = Y + sb * below.b.y1 - s * w * b.y0 - ov * sb * (below.b.y1 - below.b.y0) * w;
+        put(sc, motif(Ki, cut), 0, Yi, s * w, 0, false, -1e8 * i); Y = Yi; below = { b }; sb = s;
         if (w0 < 1) break;
-        X0 += sd * P; got += P; prev = r;
       }
     }
-    // the runner: between neighbouring nodes a half sine whose height is amp times its length, up and down in turn,
-    // so it passes through every root at the same slope; its amp wanders a little along the length
-    const lo = Math.min(...nodes.keys()), N = [];
-    for (let j = lo; nodes.has(j); j++) N.push(nodes.get(j));
-    const amp = u => lerp(0.07, 0.2, K.swing) * (1 + 0.4 * Math.tanh(0.8 * K.amount * walk(u, 24, K.seed)));
-    const yA = x => {
-      let k = 0; while (k < N.length - 2 && x > N[k + 1]) k++;   // beyond the end nodes, the end segments carry on
-      const L = N[k + 1] - N[k];
-      return ((lo + k) % 2 ? -1 : 1) * amp(x / P0) * L * Math.sin(Math.PI * (x - N[k]) / L);
-    };
-    for (const r of reps) r[1] = yA(r[0]);
-    const rw = lerp(0.006, 0.015, K.swing) * Math.pow(g, 0.4);   // a swinging runner is a heavier stroke
-    runner(sc, end[-1], end[1], yA, P0, 0.3 * Math.min(P0, W0) * Math.min(1, (A - 1) / K.gap), rw, N);
-    // at each half-wave's crest, as in a painted border: a fan of hairlines springs from the outer side, and a short,
-    // curling sprout grows into the bay on the inner side, ending in a flower where the repeat's flowers have opened
-    // (a leaf where they have not). Both belong to the repeat at the segment's outer end and grow in with it; they lie
-    // behind the plants and in front of the runner.
-    const bay = new Scene();
-    for (let k = 0; k + 1 < N.length; k++) {
-      const ja = lo + k, jb = ja + 1, own = jb > 0 ? jb : ja, Kj = own ? kAt(own) : K, ws = Math.min(grown.get(ja), grown.get(jb));
-      if (!(ws > 0)) continue;
-      // between the two roots where they stand now (a growing repeat moves out to its node), within the runner's reach
-      const xm = clamp((roots.get(ja) + roots.get(jb)) / 2, end[-1], end[1]), ym = yA(xm), sg = (lo + k) % 2 ? -1 : 1, L = N[k + 1] - N[k];
-      const lean = own % 2 ? 1 : -1, hw = ws * (0.35 + 0.65 * Kj.hair) * smooth(0, 0.5, detail);
-      if (hw > 0) hairs(bay, xm, ym + sg * rw, lean > 0 ? 0 : Math.PI, sg * lean, 0.16 * L * hw, 3 + 2 * Kj.hair, { pw: Math.max(MIN, PEN), vw: Math.max(MIN, 1.3 * VEIN), gap: 0 }, bay.next(0), false);
-      const Lb = 0.3 * L * ws * smooth(0, 0.6, detail);
-      if (Lb > cut) grow(bay, Kj, xm, ym - sg * rw, -sg * Math.PI / 2 + 0.5 * lean * sg, Lb, 0.8 * lean, 1, 7.7 + 1.3 * own, cut, false, clamp(1.2 * Kj.bloom), 1);
-    }
-    for (const t of bay.shapes) sc.shapes.push({ ...t, z: t.z - 1e11 });
-    for (const l of bay.lines) sc.lines.push({ ...l, z: l.z - 1e11 });
-  } else if (A < 1) {
-    // tiers 0.84 times the last (and scaled towards the motif's height), each overlapping the one below by a quarter;
-    // up to eight. A growing tier buds from the top of the one below and rises to its place while it grows.
-    const ov = 0.25, need = H0 * (1 / A - 1);
-    let Y = 0, below = rep(0), sb = 1, got = 0;
-    for (let i = 1; i <= 8 && got < need; i++) {
-      const r = rep(i), s = Math.pow(0.84, i) * r.s, add = s * (r.b.y1 - r.b.y0) * (1 - ov), w0 = clamp((need - got) / add), w = smooth(0, 1, w0);
-      got += add;
-      const Yi = Y + sb * below.b.y1 - s * w * r.b.y0 - ov * sb * (below.b.y1 - below.b.y0) * w;
-      reps.push([0, Yi, s * w, r, i]); Y = Yi; below = r; sb = s;
-      if (w0 < 1) break;
-    }
   }
-  const put = (X, Y, s, Mj, dz) => {
-    const sw = Math.sqrt(s);
-    for (const t of Mj.shapes) sc.shapes.push({ poly: t.poly.map((v, j) => (j % 2 ? Y : X) + s * v), halo: t.halo * sw, z: t.z + dz });
-    for (const l of Mj.lines) sc.lines.push({ ...l, pts: l.pts.map((v, j) => (j % 2 ? Y : X) + s * v), w: l.w * sw, z: l.z + dz });
-  };
-  put(0, 0, 1, M, 0);
-  for (const [X, Y, s, r, i] of reps) put(X, Y, s, r.M, -1e8 * i);
-  if (opt.trace) { TRACE = opt.trace; motif(K, cut); TRACE = null; }   // the motif once more, recording its sprouts
+  if (opt.trace || opt.heads) { TRACE = opt.trace || null; HEADS = opt.heads || null; motif(K, cut); TRACE = HEADS = null; }   // the motif once more, recording
   return hide(sc);
 }
 
-// Repeat j of a frieze (or tier j of a tower) on its own, as the motif would stand alone with those settings.
+// Repeat j of a frieze (or tier j of a tower) on its own, as the motif would stand alone with those settings; the
+// repeats to the left (j < 0) are drawn as they face, mirrored.
 export function buildRepeat(point = {}, j = 0) {
   const { x = 5, y = 5, z = 5, detail = 0.5, plump = 0.5, lobes = 0.5, curl = 0.5, variation = 0.4 } = point;
   MIN = 0; GAP = 0; PEN = PEN0; VEIN = VEIN0;
-  return hide(motif(settings(x, y, z, detail, plump, lobes, curl, variation, j), 0.03));
+  const items = hide(motif(settings(x, y, z, detail, plump, lobes, curl, variation, j), 0.03));
+  return j < 0 ? items.map(it => ({ ...it, pts: it.pts.map((v, i) => i % 2 ? v : -v) })) : items;
 }
 
 // One head on its own (a main shoot on a short stalk, without sprouts), for close-ups: the leaf numbers, how far it
@@ -796,7 +987,7 @@ export function buildRepeat(point = {}, j = 0) {
 export function buildLeaf({ plump = 0.5, lobes = 0.5, curl = 0.5, bloom = 0, cup = 0.5 } = {}) {
   MIN = 0; GAP = 0; PEN = PEN0; VEIN = VEIN0;
   const K = settings(0, 0, 0, 0, plump, lobes, curl, 0);
-  Object.assign(K, { stalk: 0.15, ess: 0, sway: 0, depth: 0, hair: 0, cup });
+  Object.assign(K, { stalk: 0.15, ess: 0, sway: 0, depth: 0, hair: 0, cup, vamt: 0 });
   const sc = new Scene();
   grow(sc, K, 0, 0, Math.PI / 2, 1, -0.7, 0, 1, 0.01, false, bloom);
   return hide(sc);

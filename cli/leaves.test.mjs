@@ -157,26 +157,27 @@ test('variation along the length: neighbouring repeats differ for nearly every p
   assert.deepEqual(buildRepeat(P, 0), build({ ...P, aspect: 1 }));
 });
 
-// Where x, y and z give a mirrored design (the setting mirror = 1), the drawing is mirror-symmetric about the root, up
+// Where x, y and z give a mirrored design (the setting mirror = 1) with an exact twin (symmetry = 1, most of the space;
+// below it the twin drifts away by design, tested further down), the drawing is mirror-symmetric about the root, up
 // to which of two crossing leaves lies in front; where they give none (mirror = 0), it is not.
 test('mirror: mirrored points are symmetric, unmirrored points are not', () => {
   const sym = items => { const H = bbox(items).y1 - bbox(items).y0; return distance(items, items.map(it => ({ ...it, pts: it.pts.map((v, i) => i % 2 ? v : -v) })), 0.05).mean / H; };
   let on = 0, off = 0;
   for (let i = 0; i < 400 && (on < 4 || off < 4); i++) {
     const p = { ...P, x: 20 * rng(), y: 20 * rng(), z: 20 * rng() }, m = settingsAt(p).mirror;
-    if (m === 1 && on < 4) { on++; const it = build(p), b = bbox(it); assert.ok(Math.abs(b.x0 + b.x1) < 0.02 * (b.x1 - b.x0), JSON.stringify(p)); assert.ok(sym(it) < 0.004, JSON.stringify(p) + ' ' + sym(it)); }
+    if (m === 1 && settingsAt(p).symmetry === 1 && on < 4) { on++; const it = build(p), b = bbox(it); assert.ok(Math.abs(b.x0 + b.x1) < 0.02 * (b.x1 - b.x0), JSON.stringify(p)); assert.ok(sym(it) < 0.004, JSON.stringify(p) + ' ' + sym(it)); }
     if (m === 0 && off < 4) { off++; assert.ok(sym(build(p)) > 0.01, JSON.stringify(p)); }
   }
   assert.ok(on === 4 && off === 4);
 });
 
-// The mirror does not wander: in a mirrored design every repeat is as symmetric as the motif.
+// The mirror does not wander: in a mirrored design (with an exact twin) every repeat is as symmetric as the motif.
 test('mirror: the repeats of a mirrored design are symmetric too', () => {
   const sym = items => { const H = bbox(items).y1 - bbox(items).y0; return distance(items, items.map(it => ({ ...it, pts: it.pts.map((v, i) => i % 2 ? v : -v) })), 0.05).mean / H; };
   let on = 0;
   for (let i = 0; i < 400 && on < 3; i++) {
     const p = { ...P, x: 20 * rng(), y: 20 * rng(), z: 20 * rng(), variation: rng() };
-    if (settingsAt(p).mirror < 1) continue;
+    if (settingsAt(p).mirror < 1 || settingsAt(p).symmetry < 1) continue;
     on++;
     for (const j of [2, -4, 7]) { assert.equal(settingsAt(p, j).mirror, 1); const s = sym(buildRepeat(p, j)); assert.ok(s < 0.004, JSON.stringify(p) + ' repeat ' + j + ' ' + s); }
   }
@@ -298,4 +299,118 @@ test("the page's Leaves presets are valid points that build distinct designs", (
     seen.add(items.length + ':' + b.x1.toFixed(6));
   }
   assert.equal(seen.size, Object.keys(presets).length);
+});
+
+// Sides. Sprouts alternate along a shoot (or come in pairs at nodes), so over random points as many come out on the
+// convex side of their parent as on the concave side (opt.trace records each sprout's weight on the convex side), and
+// on most shoots with four or more sprouts between 30% and 70% of them do; a bias towards one side exists only in a
+// small part of the space, and some shoots run on one side for a stretch. (The engine before this test put 63% of
+// its sprouts and 57% of its clusters on the convex side, recorded the same way.)
+test('sides: sprouts come out on both sides of their shoots, about equally', () => {
+  let cw = 0, tw = 0; const shares = [];
+  for (let n = 0; n < 80; n++) {
+    const p = { ...randomPoint(), aspect: 1 }; p.detail = 0.4 + 0.6 * p.detail;
+    const trace = []; build(p, { trace });
+    const by = new Map();
+    for (const t of trace) { cw += t.weight * t.convex; tw += t.weight; if (!t.cluster) (by.get(t.shoot) || by.set(t.shoot, []).get(t.shoot)).push(t); }
+    for (const a of by.values()) { const w = a.reduce((s, t) => s + t.weight, 0); if (w >= 3.5) shares.push(a.reduce((s, t) => s + t.weight * t.convex, 0) / w); }
+  }
+  const inside = shares.filter(v => v >= 0.3 && v <= 0.7).length;
+  if (process.env.VERBOSE) console.log('convex share', (cw / tw).toFixed(3), ' shoots within 0.3..0.7:', inside, 'of', shares.length);
+  assert.ok(Math.abs(cw / tw - 0.5) < 0.04, `${(100 * cw / tw).toFixed(1)}% of the sprouts come out on the convex side of their parent`);
+  assert.ok(shares.length >= 30 && inside >= 0.7 * shares.length, `only ${inside} of ${shares.length} shoots with four or more sprouts have 30% to 70% of them on the convex side`);
+});
+
+// Instance variation: every shoot, and every stroke of a head, is an instance of its own (opt.heads records the
+// strokes of each head). Within most heads of three or more strokes the strokes' arch, hook and width differ (the
+// engine before this test drew them all alike), and the heads of one generation differ from each other, for most
+// random points; where both variation and the setting vary are zero, there is no instance variation.
+test('instance variation: no two leaves or heads are alike', () => {
+  // the coefficient of variation of a list, and the mean of those of several (a number that is zero throughout, as a
+  // flower's hook, is left out)
+  const cv = a => { const m = a.reduce((x, y) => x + y, 0) / a.length; return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / a.length) / Math.abs(m); };
+  const spread = (S, ks) => { const c = ks.map(k => S.map(s => s[k])).filter(a => Math.abs(a.reduce((x, y) => x + y, 0)) > 1e-6 * a.length).map(cv); return c.length ? c.reduce((x, y) => x + y, 0) / c.length : 0; };
+  let within = 0, between = 0, N = 30;
+  for (let n = 0; n < N; n++) {
+    const p = { ...randomPoint(), aspect: 1 }; p.detail = 0.4 + 0.6 * p.detail;
+    const heads = []; build(p, { heads });
+    const many = heads.filter(h => h.strokes.length >= 3), d = many.map(h => spread(h.strokes, ['turn', 'hook', 'wid']));
+    if (d.length && d.filter(v => v > 0.03).length >= 0.8 * d.length) within++;
+    const g1 = heads.filter(h => h.gen === 1 && h.strokes.length).map(h => h.strokes[0]);
+    if (g1.length >= 3 && spread(g1, ['turn', 'hook', 'wid']) > 0.05) between++;
+  }
+  if (process.env.VERBOSE) console.log('points whose strokes differ within heads', within, ' whose sibling heads differ', between, 'of', N);
+  assert.ok(within >= 0.8 * N, `in only ${within} of ${N} random points do the strokes of a head differ`);
+  assert.ok(between >= 0.8 * N, `in only ${between} of ${N} random points do the heads of one generation differ`);
+  const flat = []; build({ ...P, variation: 0 }, { heads: flat, set: { vary: 0 } });
+  for (const h of flat) { const t = h.strokes.map(s => s.turn); assert.ok(Math.max(...t) - Math.min(...t) < 1e-9); }
+});
+
+// Symmetry, as in the Machine: in most of the space a long frieze is mirror-symmetric about its centre (repeat -j is
+// the mirror image of repeat j, and the left half of the scroll of the right), up to which of two crossing leaves lies
+// in front; and a longer frieze adds the same at both ends. Below symmetry 1 the left half drifts away from the
+// mirror image: stepping the symmetry down (set) from 1 moves the ink a little at every step, without jumps, and at
+// the lowest symmetry the halves plainly differ.
+test('symmetry: long friezes mirror their halves about the centre, and drift apart smoothly as the symmetry drops', () => {
+  const flip = items => items.map(it => ({ ...it, pts: it.pts.map((v, i) => i % 2 ? v : -v) }));
+  const asym = items => { const b = bbox(items), H = b.y1 - b.y0; return distance(items, flip(items), 0.03 * H).mean / H; };
+  let on = 0;
+  for (let i = 0; i < 400 && on < 4; i++) {
+    const p = { ...randomPoint(), aspect: 24 + 24 * rng() };
+    if (settingsAt(p).symmetry < 1) continue;
+    on++;
+    const A = build(p), b = bbox(A), at = JSON.stringify(p);
+    assert.ok(Math.abs(b.x0 + b.x1) < 1e-6 * (b.x1 - b.x0), at);
+    assert.ok(asym(A) < 0.004, `${at}: the halves differ by ${asym(A).toFixed(5)} of the height`);
+    const c = bbox(build({ ...p, aspect: 1.15 * p.aspect }));
+    assert.ok(c.x1 > b.x1 && c.x0 < b.x0 && Math.abs((c.x1 - b.x1) + (c.x0 - b.x0)) < 1e-6 * (b.x1 - b.x0), `${at}: a longer frieze grows unevenly at its ends`);
+  }
+  assert.equal(on, 4);
+  const STEPS = 10, dk = 0.45 / 400;
+  for (let q = 0; q < 2; q++) {
+    const p = { ...randomPoint(), aspect: 16 + 16 * rng() }, at = JSON.stringify(p);
+    for (const s0 of [1, 0.75]) {
+      let prev = build(p, { set: { symmetry: s0 } }); const bb = bbox(prev), H = Math.max(bb.y1 - bb.y0, bb.x1 - bb.x0), Hh = bb.y1 - bb.y0, d = [], dh = [];
+      for (let i = 1; i <= STEPS; i++) { const cur = build(p, { set: { symmetry: s0 - i * dk } }), r = distance(prev, cur, 0.03 * H); d.push(r.mean / H); dh.push(r.mean / Hh); prev = cur; }
+      const med = [...dh].sort((a, b) => a - b)[STEPS >> 1], max = Math.max(...dh);
+      if (process.env.VERBOSE) console.log('symmetry', s0, Math.max(...d).toExponential(2), med.toExponential(2), max.toExponential(2));
+      assert.ok(Math.max(...d) < 0.008, `${at}: a step of the symmetry from ${s0} moved the ink ${Math.max(...d).toFixed(5)} of the design's size`);
+      assert.ok(max <= 6 * med + 5e-4, `${at}: a jump (${max.toFixed(5)} against a median step of ${med.toFixed(5)}) stepping the symmetry from ${s0}`);
+    }
+    const lo = asym(build(p, { set: { symmetry: 0.55 } }));
+    if (process.env.VERBOSE) console.log('asymmetry at 0.55', lo.toFixed(4));
+    assert.ok(lo > 0.01, `${at}: at symmetry 0.55 the halves differ by only ${lo.toFixed(5)} of the height`);
+  }
+});
+
+// A long frieze is a running composition, not repeats on a line (opt.layout records where its motifs stand, how high
+// they are, and how high the scroll swings in each half-wave). For most random points at aspect 24 or more (numbers
+// over 60 such points; "before" is the engine before this test): the spacing of the motifs varies (coefficient of
+// variation above 0.14; medians before 0.13, now 0.22), so does their size (above 0.1; before 0.05, now 0.27) and the
+// scroll's height (above 0.22; before 0.20, now 0.30); they stand on both sides of the scroll (at least a quarter on
+// each, for every point; before, a fifth of the points did); the ink varies along the length (in windows of two motif
+// spacings, coefficient of variation above 0.105; before 0.09, now 0.15); and no short period dominates (the
+// autocorrelation of the ink along x, at its strongest beyond its first zero and within eight spacings, below 0.45;
+// before 0.31, now 0.26: the repeats before already wandered in width and shape, so this measure separates the two
+// only a little).
+test('long friezes are lively: spacing, size, swing and density vary along the length, with motifs on both sides', () => {
+  const mean = a => a.reduce((x, y) => x + y, 0) / a.length, cv = a => Math.sqrt(mean(a.map(v => (v - mean(a)) ** 2))) / mean(a);
+  const N = 20, ok = { gap: 0, size: 0, amp: 0, both: 0, dens: 0, ac: 0 };
+  for (let n = 0; n < N; n++) {
+    const p = { ...randomPoint(), aspect: 24 + 24 * rng() }, layout = {}, items = build(p, { layout }), b = bbox(items);
+    const M = layout.motifs.filter(m => m.w > 0.99).sort((a, c) => a.x - c.x), gaps = M.slice(1).map((m, i) => m.x - M[i].x);
+    const gap = [...gaps].sort((a, c) => a - c)[gaps.length >> 1], above = M.filter(m => m.cy > m.ry).length / M.length;
+    // the ink along x, in bins of a sixth of the median spacing, over the inner 80%
+    const h = gap / 6, nb = Math.ceil((b.x1 - b.x0) / h) + 1, ink = new Float64Array(nb);
+    for (const it of items) { const q = it.pts; for (let i = 2; i < q.length; i += 2) ink[Math.min(nb - 1, Math.floor(((q[i] + q[i - 2]) / 2 - b.x0) / h))] += it.w * Math.hypot(q[i] - q[i - 2], q[i + 1] - q[i - 1]); }
+    const v = Array.from(ink.slice(Math.floor(0.1 * nb), Math.ceil(0.9 * nb))), m = mean(v), dv = v.map(x => x - m), L = dv.length, s0 = dv.reduce((x, y) => x + y * y, 0);
+    const r = lag => { let s = 0; for (let i = 0; i + lag < L; i++) s += dv[i] * dv[i + lag]; return s / s0 * L / (L - lag); };
+    let z = 1; while (z < L / 3 && r(z) > 0) z++;
+    let ac = -1; for (let lag = z; lag <= Math.min(L / 3, 48); lag++) ac = Math.max(ac, r(lag));
+    const wb = 12, win = []; for (let i = 0; i + wb <= L; i += wb) win.push(v.slice(i, i + wb).reduce((x, y) => x + y, 0));
+    const res = { gap: cv(gaps), size: cv(M.map(m => m.h)), amp: cv(layout.waves.map(w => w.amp)), both: Math.min(above, 1 - above), dens: cv(win), ac };
+    if (process.env.VERBOSE) console.log(Object.entries(res).map(([k, x]) => k + ' ' + x.toFixed(3)).join('  '));
+    if (res.gap > 0.14) ok.gap++; if (res.size > 0.1) ok.size++; if (res.amp > 0.22) ok.amp++; if (res.both >= 0.25) ok.both++; if (res.dens > 0.105) ok.dens++; if (res.ac < 0.45) ok.ac++;
+  }
+  for (const [k, c] of Object.entries(ok)) assert.ok(c >= (k === 'both' ? N : 0.7 * N), `${k}: only ${c} of ${N} long friezes pass`);
 });

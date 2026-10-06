@@ -43,23 +43,33 @@ always give the same design.
 - x, y and z (0 to 20) choose the composition, read off slow waves through the space as in the Machine: how many main
   shoots spring from the root and where they head (up, sideways, down), how far they curl outwards, arch or sway, how
   much of them is stalk; how many sprouts each shoot grows, where along it (each shoot and generation in its own
-  places, all along its length), on which side, in pairs, staggered or in whorls, whether they curl with their parent
-  (stacked in a plume) and how many fan out from behind its head; fans of hairlines on the outer side of bends; how
-  far the heads open into flowers, which of them, and whether the flowers are rosettes or tulips (about a third of
-  the space keeps to leaves); and whether the design is mirrored (most of the space is).
+  places, all along its length), alternating sides or in pairs (a bias towards one side exists only in a small part
+  of the space, so leaves come out on both sides of a stem), staggered or in whorls, whether they curl with their
+  parent (stacked in a plume) and how many fan out from behind its head; fans of hairlines on the outer side of bends;
+  how far the heads open into flowers, which of them, and whether the flowers are rosettes or tulips (about a third of
+  the space keeps to leaves); whether the design is mirrored (most of the space is) and, as in the Machine, how
+  exactly: where the symmetry is 1 (nearly two thirds of the space) the twin is the exact mirror image, below it the
+  twin's numbers drift continuously away.
 - detail (0 to 1) is the depth: each third of it grows one more generation of shoots in from nothing, first as
   hairline tendrils that then fill out into leaves.
-- aspect (0.25 to 48) is relative to the motif's own proportions: wider, repeats bud out along a runner (a frieze,
-  up to dividers typically 30 to 80 times as wide as they are tall), itself a swelling stroke with fans of hairlines
-  on the outer side of its crests and a flower or a leaf in each bay; taller, smaller tiers bud out of the top
-  (telescoping, as in a tall panel). The repeats are not copies: repeat j reads the motif's waves with their phases
-  shifted by a smooth walk along the repeats, zero at the motif, so neighbours are alike and the plants change
-  gradually along the length (their shoots, sprouts, bends and arches, their flowers, and the leaf itself). How far
-  they wander is a setting of x, y and z like any other, times variation, and never zero; a repeat depends only on
-  its own place, so a longer frieze only adds repeats at its ends.
+- aspect (0.25 to 48) is relative to the motif's own proportions: wider, a frieze grows out of it to both sides (up
+  to dividers typically 25 to 55 times as wide as they are tall), laid out as the 1808 border is: the motif in the
+  middle, mirrored, and from behind it a scroll running out to each side that swings up and down in large waves, one
+  brush stroke to each half-wave, each winding into a volute at its end while the next springs from its flank, with
+  hairline fans and curling sprouts at the joins. The plants stand in its troughs and hang from its crests in turn,
+  above and below the scroll, and a rhythm runs along it: feature motifs (flowers ringed with horns, large fans) among
+  medium plants and small sprigs, lush clusters and sparse stretches of open ground, the scroll's swing wandering too.
+  In most of the space the left half is the mirror image of the right, and the rest drifts from it as a twin does.
+  Taller, smaller tiers bud out of the top (telescoping, as in a tall panel). The repeats are not copies: repeat j
+  reads the motif's waves with their phases shifted by a smooth walk outwards from the centre, the same on both sides,
+  so neighbours are alike and the plants change gradually along the length (their shoots, sprouts, bends and arches,
+  their flowers, and the leaf itself). How far they wander is a setting of x, y and z like any other, times
+  variation, and never zero; a repeat depends only on its own place, so a longer frieze only adds at its ends.
 - plump, lobes and curl (0 to 1) shape the leaf: slender to fat strokes; one horn, a cluster of hooked fingers or a
-  fan with round lobes; a gentle arch or a strong hook. variation is how much each leaf, and each repeat, differs
-  from the next.
+  fan with round lobes; a gentle arch or a strong hook. variation is how much each leaf, stroke and repeat differs
+  from the next: as in the Machine, every shoot, every stroke of a head and every repeat is an instance of its own,
+  at its own quasi-periodic point of a plane through the shape numbers, so no two leaves or heads are alike (only
+  where variation and a setting of x, y and z are both near zero are they nearly uniform).
 
 Each stroke grows along a spine given by its curvature (an arch that tightens towards the tip, then a hook that winds
 like a logarithmic spiral, then perhaps a hairline). The band is broad at its base, swells and tapers to a point or
@@ -70,7 +80,8 @@ tulip as cup rises. Everything is a pen line with hidden lines removed (sprouts 
 come out from behind leaves and flowers), so the SVG is ready for a plotter or an engraver. `settingsAt(point, j)`
 reports the continuous settings a point gives (for repeat j of a frieze, or tier j of a tower), `buildRepeat(point,
 j)` draws repeat j on its own, `buildLeaf({plump, lobes, curl, bloom, cup})` draws one head on its own, and
-`build(point, {trace: []})` also records where every sprout comes out. The page's "How it is built" has the formulas.
+`build(point, {trace: [], heads: [], layout: {}})` also records where every sprout comes out (and on which side of
+its parent), the strokes of every head, and where a frieze's motifs stand and how its scroll swings. The page's "How it is built" has the formulas.
 
 Try it in the page's Leaves tab (`index.html#leaves`), which has the Machine's controls for every number, the print
 limits below, fourteen presets (two of them long dividers), a sweep, and Copy or Download SVG. The tab imports
@@ -92,6 +103,10 @@ spaces between stripes at least that gap, and stripes that no longer fit give wa
 `cli/`, including a continuity test: from random points, each number is stepped by 1/400 of its range (aspect by
 1/400 of its range in proportion), and every step must move the drawing's ink only a little, with no step much larger
 than its neighbours, also on friezes up to the longest. Further tests check that a longer frieze keeps the repeats it
-had (only adding new ones at its ends), that neighbouring repeats differ, gradually, for nearly every point of the
-space, that a single head morphs from horn to fan to rosette to tulip, and flowers grow into whole designs, without a
-jump, and that sprouts come out all along their shoots, in different places on different shoots and generations.
+had (only adding new ones at its ends, the same at both), that neighbouring repeats differ, gradually, for nearly
+every point of the space, that a single head morphs from horn to fan to rosette to tulip, and flowers grow into whole
+designs, without a jump, that sprouts come out all along their shoots, in different places on different shoots and
+generations, and on both sides of them about equally, that the strokes of a head and the heads of a generation
+differ, that long friezes are mirror-symmetric about their centre where the symmetry is 1 and drift apart smoothly
+below it, and that they are lively: the spacing, size and swing of their motifs and their density of ink vary along
+the length, motifs stand on both sides of the scroll, and no short period dominates.
