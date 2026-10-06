@@ -5,15 +5,18 @@
 //   leaves json  --at ... [-o FILE]          raw geometry, engine units, y up: {params, bbox, items: [{kind: 'line',
 //                                            width, points: [[x, y], ...]}]}; hidden lines are already removed
 //   leaves sheet --points "X,Y,Z,D,A,...;..." [--cols N] [options] -o FILE
-//   leaves sheet --leaf --points "PLUMP,LOBES,CURL;..." [--cols N] -o FILE    single leaves, for close-ups of the leaf
+//   leaves sheet --leaf --points "PLUMP,LOBES,CURL[,BLOOM[,CUP]];..." [--cols N] -o FILE    single heads, for
+//                                            close-ups of the leaf and of its morph into a flower
 //
-// x, y and z (0 to 20) choose the composition, detail (0 to 1) the depth: how many generations of shoots grow from
-// the main ones. Aspect (0.25 to 48, default 1) is relative to the design's own proportions: wider adds repeats along
-// a runner (a frieze; at 48 typically 30 to 80 times as wide as it is tall), taller stacks smaller tiers. Each repeat
-// wanders from the motif with its place, so the plants change gradually along the length; x, y and z set how far.
-// Plump, lobes and curl (0 to 1, default 0.5) shape the leaf: slender to plump, a smooth to a billowed edge, calm to
-// tightly curled; variation (0 to 1, default 0.4) is how much each leaf, and each repeat, differs from the next.
-// Every number is continuous: any point draws a design.
+// x, y and z (0 to 20) choose the composition, among it where sprouts come out and how far the heads open into
+// flowers; detail (0 to 1) the depth: how many generations of shoots grow from the main ones. Aspect (0.25 to 48,
+// default 1) is relative to the design's own proportions: wider adds repeats along a runner (a frieze; at 48
+// typically 30 to 80 times as wide as it is tall), taller stacks smaller tiers. Each repeat wanders from the motif
+// with its place, so the plants change gradually along the length; x, y and z set how far. Plump, lobes and curl (0
+// to 1, default 0.5) shape the leaf, a brush stroke: slender to fat; a horn, a cluster of hooked fingers or a fan; a
+// gentle arch or a strong hook. Variation (0 to 1, default 0.4) is how much each leaf, and each repeat, differs from
+// the next. For a single head, bloom (0 to 1) opens it from leaf to flower and cup (0 to 1) runs the flower from a
+// rosette to a tulip. Every number is continuous: any point draws a design.
 // Options: --bg COLOUR (default #101012), --col COLOUR (default #d6d9de), --px WIDTH for .png (default 1600),
 // --min M: the narrowest line, --gap G: the narrowest gap between lines, both in engine units (about 1 unit per main
 // shoot), for small physical prints such as an engraving.
@@ -26,7 +29,7 @@ import { build, buildLeaf, bbox } from '../leaves.js';
 const require = createRequire(import.meta.url);
 const f4 = v => (+v).toFixed(4);
 export const KEYS = ['x', 'y', 'z', 'detail', 'aspect', 'plump', 'lobes', 'curl', 'variation'];
-const LEAF = ['plump', 'lobes', 'curl'];
+const LEAF = ['plump', 'lobes', 'curl', 'bloom', 'cup'];
 
 export function toJSON(items, params) {
   const pairs = p => { const o = []; for (let i = 0; i < p.length; i += 2) o.push([p[i], p[i + 1]]); return o; };
@@ -82,7 +85,7 @@ export function parsePoint(s) {
   const [x, y, z, detail = 0.5, aspect = 1, plump = 0.5, lobes = 0.5, curl = 0.5, variation = 0.4] = s.split(',').map(Number);
   return { x, y, z, detail, aspect, plump, lobes, curl, variation };
 }
-const parseLeaf = s => { const [plump = 0.5, lobes = 0.5, curl = 0.5] = s.split(',').map(Number); return { plump, lobes, curl }; };
+const parseLeaf = s => { const [plump = 0.5, lobes = 0.5, curl = 0.5, bloom = 0, cup = 0.5] = s.split(',').map(Number); return { plump, lobes, curl, bloom, cup }; };
 
 if (process.argv[1] && fs.realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   process.stdout.on('error', e => { if (e.code === 'EPIPE') process.exit(0); throw e; });

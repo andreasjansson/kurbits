@@ -183,18 +183,99 @@ test('mirror: the repeats of a mirrored design are symmetric too', () => {
   assert.equal(on, 3);
 });
 
+// Each step of detail grows one more generation of shoots. (The shoots are counted from where sprouts come out,
+// opt.trace: lines are now the pieces of swelling and tapering strokes, merged where they are nearly one width, so their
+// number no longer counts the shoots; and the budget of layer 1 keeps the total number of shoots level, trimming the
+// sprouts per shoot as a generation is added, so neither count need rise. What must rise is the depth.)
 test('detail is the depth: every step of detail adds a generation of shoots', () => {
   for (const p of [P, { ...P, x: 3, y: 15, z: 4 }, { ...P, x: 16, y: 2, z: 10 }]) {
-    const n = [0, 0.34, 0.67, 1].map(d => build({ ...p, detail: d }).length);
-    for (let i = 1; i < n.length; i++) assert.ok(n[i] > n[i - 1], JSON.stringify(p) + ' ' + n);
+    const at = [0, 0.34, 0.67, 1].map(d => { const trace = []; build({ ...p, detail: d }, { trace }); const g = trace.length ? 1 + Math.max(...trace.map(t => t.gen)) : 0; return { gens: g, deepest: trace.filter(t => t.gen === g - 1).length }; });
+    for (let i = 1; i < at.length; i++) assert.ok(at[i].gens === i && at[i].deepest > 0, JSON.stringify(p) + ' ' + JSON.stringify(at));
   }
 });
 
-test('a single leaf builds from pen lines across the leaf numbers', () => {
-  for (const plump of [0, 0.5, 1]) for (const lobes of [0, 0.5, 1]) for (const curl of [0, 0.5, 1]) {
-    const items = buildLeaf({ plump, lobes, curl });
-    assert.ok(items.length >= 3 && items.every(it => it.t === 'l' && it.w > 0 && it.pts.every(Number.isFinite)));
+test('a single leaf or flower builds from pen lines across the leaf numbers', () => {
+  for (const plump of [0, 0.5, 1]) for (const lobes of [0, 0.5, 1]) for (const curl of [0, 0.5, 1]) for (const [bloom, cup] of [[0, 0], [0.5, 0.5], [1, 0], [1, 1]]) {
+    const items = buildLeaf({ plump, lobes, curl, bloom, cup });
+    assert.ok(items.length >= 3 && items.every(it => it.t === 'l' && it.w > 0 && it.pts.length >= 4 && it.pts.every(Number.isFinite)), JSON.stringify({ plump, lobes, curl, bloom, cup }));
   }
+});
+
+// Leaf to flower: a single head stepped along the whole morph, horn to fan (lobes), fan to rosette (bloom), rosette to
+// tulip (cup), each by 1/400 of its range at a time, with the limits of the continuity test above, within every stretch
+// of ten steps.
+test('one continuous morph from a horn to a fan, a rosette and a tulip', () => {
+  const path = [];
+  for (let i = 0; i <= 400; i++) path.push({ plump: 0.55, curl: 0.6, lobes: i / 400, bloom: 0, cup: 0 });
+  for (let i = 1; i <= 400; i++) path.push({ plump: 0.55, curl: 0.6, lobes: 1, bloom: i / 400, cup: 0 });
+  for (let i = 1; i <= 400; i++) path.push({ plump: 0.55, curl: 0.6, lobes: 1, bloom: 1, cup: i / 400 });
+  const d = [], far = [];
+  let prev = buildLeaf(path[0]);
+  for (let i = 1; i < path.length; i++) {
+    const cur = buildLeaf(path[i]), bb = bbox(prev), H = Math.max(bb.x1 - bb.x0, bb.y1 - bb.y0), r = distance(prev, cur, 0.03 * H);
+    d.push(r.mean / H); far.push(r.far); prev = cur;
+  }
+  if (process.env.VERBOSE) console.log('morph', Math.max(...d).toExponential(2), Math.max(...far).toExponential(2));
+  for (let i = 0; i + 10 <= d.length; i += 5) {
+    const w = d.slice(i, i + 10), med = [...w].sort((a, b) => a - b)[5], max = Math.max(...w), at = JSON.stringify(path[i + w.indexOf(max) + 1]);
+    assert.ok(max < 0.008, `a step moved the ink ${max.toFixed(5)} of the head's size, at ${at}`);
+    assert.ok(max <= 6 * med + 5e-4, `a jump (${max.toFixed(5)} against a median of ${med.toFixed(5)}) at ${at}`);
+  }
+  assert.ok(Math.max(...far) < 0.02, `${(100 * Math.max(...far)).toFixed(2)}% of the ink moved further than 3% of the head's size in one step`);
+});
+
+// Flowers in whole designs: the bloom setting (how far the heads open into flowers, read off x, y and z) is stepped
+// directly, by 1/400 of its range, from points of the space, so flowers grow in from leaves; as it rises, the ink
+// changes a little at every step and no step jumps (the limits of the continuity test).
+test('flowers grow in smoothly: stepping the bloom moves the ink a little, without jumps', () => {
+  const [lo, hi] = [0, 1.6], STEPS = 10, dk = (hi - lo) / 400;
+  for (let q = 0; q < 4; q++) {
+    const p = { ...randomPoint(), aspect: q === 3 ? 6 : 1 };
+    for (const b0 of [0, 0.3, 0.75]) {
+      let prev = build(p, { set: { bloom: b0 } }); const bb = bbox(prev), H = Math.max(bb.y1 - bb.y0, bb.x1 - bb.x0), d = [], far = [];
+      for (let i = 1; i <= STEPS; i++) {
+        const cur = build(p, { set: { bloom: b0 + i * dk } }), r = distance(prev, cur, 0.03 * H);
+        d.push(r.mean / H); far.push(r.far); prev = cur;
+      }
+      const med = [...d].sort((a, b) => a - b)[STEPS >> 1], max = Math.max(...d), at = JSON.stringify(p) + ' bloom ' + b0;
+      if (process.env.VERBOSE) console.log('bloom', b0, med.toExponential(2), max.toExponential(2), Math.max(...far).toExponential(2));
+      assert.ok(max < 0.008, `a step moved the ink ${max.toFixed(5)} of the design's size, from ${at}`);
+      assert.ok(max <= 6 * med + 5e-4, `a jump (${max.toFixed(5)} against a median step of ${med.toFixed(5)}) from ${at}`);
+      assert.ok(Math.max(...far) < 0.02, `${(100 * Math.max(...far)).toFixed(2)}% of the ink moved further than 3% of its size, from ${at}`);
+    }
+  }
+  // and a good share of the space has flowers: the bloom setting is above zero for most random points
+  let some = 0; for (let i = 0; i < 200; i++) if (settingsAt(randomPoint()).bloom > 0.05) some++;
+  assert.ok(some > 0.5 * 200, `only ${some} of 200 random points have flowers`);
+});
+
+// Where sprouts come out (opt.trace records each one: its generation, the shoot it grows from and its place u along
+// that shoot, a share of the shoot's length). Over random points they come out all along the shoots, not in a narrow
+// band: every tenth of the length holds at least 2% of them (the old engine left the first tenth and the last two
+// empty). Within a design they spread (a mean standard deviation of u above 0.15, where the old engine had 0.145 and
+// an even spread would have 0.29), different shoots put them in different places (the per-shoot means differ by a
+// standard deviation above 0.08), and so do the generations (their mean places differ by more than 0.06 on average;
+// the old engine's differed by 0.03).
+test('sprouts come out all along the shoots, differently on different shoots and generations', () => {
+  const all = [], within = [], between = [], gens = [];
+  const mean = a => a.reduce((x, y) => x + y, 0) / a.length, std = a => { const m = mean(a); return Math.sqrt(mean(a.map(v => (v - m) ** 2))); };
+  for (let n = 0; n < 50; n++) {
+    const p = { ...randomPoint(), aspect: 1 }; p.detail = 0.4 + 0.6 * p.detail;
+    const trace = []; build(p, { trace });
+    const us = trace.map(t => t.u); all.push(...us);
+    if (us.length >= 3) within.push(std(us));
+    const by = new Map(); for (const t of trace) if (!t.cluster) (by.get(t.shoot) || by.set(t.shoot, []).get(t.shoot)).push(t.u);
+    if (by.size >= 3) between.push(std([...by.values()].map(mean)));
+    const g0 = trace.filter(t => t.gen === 0).map(t => t.u), g1 = trace.filter(t => t.gen === 1).map(t => t.u);
+    if (g0.length && g1.length) gens.push(Math.abs(mean(g0) - mean(g1)));
+  }
+  const bins = Array(10).fill(0); for (const u of all) bins[Math.min(9, Math.floor(10 * u))]++;
+  if (process.env.VERBOSE) console.log('tenths %', bins.map(b => (100 * b / all.length).toFixed(1)).join(' '), ' within', mean(within).toFixed(3), ' between', mean(between).toFixed(3), ' generations', mean(gens).toFixed(3));
+  assert.ok(all.length > 1000);
+  for (let i = 0; i < 10; i++) assert.ok(bins[i] >= 0.02 * all.length, `only ${(100 * bins[i] / all.length).toFixed(1)}% of the sprouts come out between ${i / 10} and ${(i + 1) / 10} of their shoot`);
+  assert.ok(mean(within) > 0.15, `sprouts spread along their shoots by only ${mean(within).toFixed(3)} on average`);
+  assert.ok(mean(between) > 0.08, `different shoots put their sprouts in nearly the same places (${mean(between).toFixed(3)})`);
+  assert.ok(mean(gens) > 0.06, `the generations put their sprouts in nearly the same places (${mean(gens).toFixed(3)})`);
 });
 
 test('small prints: no line is narrower than min, and fine lines give way', () => {
