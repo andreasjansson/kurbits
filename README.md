@@ -77,11 +77,13 @@ closes in a round end; stripes run along it, crowding towards its convex side, a
 brush stroke does. A head is m such strokes fanned from one point; how far it has opened blends every number of the
 head from the leaf's to the flower's, so a fan shortens, rounds off and closes into a rosette, which cups into a
 tulip as cup rises. Everything is a pen line with hidden lines removed (sprouts lie behind their parents, so leaves
-come out from behind leaves and flowers), so the SVG is ready for a plotter or an engraver. `settingsAt(point, j)`
+come out from behind leaves and flowers, and stalks lie behind every leaf and flower, showing only between a shoot's
+parent and its head), so the SVG is ready for a plotter or an engraver. `settingsAt(point, j)`
 reports the continuous settings a point gives (for repeat j of a frieze, or tier j of a tower), `buildRepeat(point,
 j)` draws repeat j on its own, `buildLeaf({plump, lobes, curl, bloom, cup})` draws one head on its own, and
-`build(point, {trace: [], heads: [], layout: {}})` also records where every sprout comes out (and on which side of
-its parent), the strokes of every head, and where a frieze's motifs stand and how its scroll swings. The page's "How it is built" has the formulas.
+`build(point, {trace: [], heads: [], layout: {}, parts: {}})` also records where every sprout comes out (and on which
+side of its parent), the strokes of every head, where a frieze's motifs stand and how its scroll swings, and the
+design's pen, the silhouettes of its heads and the pieces of stalk that are drawn. The page's "How it is built" has the formulas.
 
 Try it in the page's Leaves tab (`index.html#leaves`), which has the Machine's controls for every number, the print
 limits below, fourteen presets (two of them long dividers), a sweep, and Copy or Download SVG. The tab imports

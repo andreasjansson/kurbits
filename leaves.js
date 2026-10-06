@@ -25,7 +25,8 @@
 //                                              where it starts)
 // A line that swells or tapers, like a brush stroke, is drawn as several such lines end to end. Hidden lines are
 // already removed: a line that passes behind a leaf or a stalk stops a small gap short of its outline, as in an
-// engraving.
+// engraving. Stalks lie behind every leaf and flower, as in the paintings, where the stems are hidden behind what they
+// carry: a stalk shows only between its parent and its head, and only where no other leaf lies over it.
 const TAU = Math.PI * 2, GOLD = 2.399963229728653;
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -38,18 +39,35 @@ let MIN = 0;                                       // the narrowest line kept fo
 let GAP = 0;                                       // the narrowest gap between lines for small prints
 let TRACE = null;                                  // where sprouts come out, if build() was asked to record it
 let HEADS = null;                                  // the strokes of every head, likewise
+let SID = 0;                                       // the stalks' ids, counted from 0 in each build
+const BACK = 5e11;                                 // how far back the stalks lie: behind every head of a design, in
+                                                   // front of a frieze's scroll
 
 // ------------------------------------------------------------------ lines and what hides them
 // A scene collects pen lines and silhouettes, each at a depth z (larger is nearer). At the end every line is cut where
 // a nearer silhouette covers it. next(k) hands out depths: a deeper generation lies behind every shallower one, and
-// within a generation each new part lies behind the parts made before it. A line of width w may swell and taper: then
-// its points carry a running parameter U and its width is w f(u) (see ink()).
+// within a generation each new part lies behind the parts made before it; stalks lie BACK further still. A line of
+// width w may swell and taper: then its points carry a running parameter U and its width is w f(u) (see ink()). The
+// parts made while `tag` is set carry it (other parts have st and on null): a stalk's id (st), or, on the head of a
+// sprout that comes out along a stalk, on: that stalk's id, so the stalk lies in front of that head (the sprout comes
+// out from behind it) although it lies behind every other head; on also gives the sprout's root (x, y) and r, about
+// how far its base reaches over the stalk, for describing a design (build's parts). s is the scale the scene will be
+// drawn at (a frieze's repeats are put smaller or larger), so its stalks can be drawn as they will look. A line of no
+// width is not drawn, but counts where the scene is measured (sceneBox). Each line records pen, the outline pen of the
+// shoot it belongs to (p).
 class Scene {
-  constructor() { this.shapes = []; this.lines = []; this.n = 0; }
+  constructor(s = 1) { this.shapes = []; this.lines = []; this.n = 0; this.tag = null; this.s = s; this.pen = 0; }
   next(gen) { return -gen * 1e6 - this.n++; }
-  line(pts, w, z, U = null, f = null, cuts = null) { if (pts.length >= 4 && w > 0) this.lines.push({ pts, w, z, U, f, cuts }); }
+  line(pts, w, z, U = null, f = null, cuts = null) { if (pts.length >= 4 && w >= 0) this.lines.push({ pts, w, z, U, f, cuts, p: this.pen, st: this.tag ? this.tag.st : null, on: this.tag ? this.tag.on : null }); }
   // a silhouette (a closed polygon, not repeated at its end); lines behind it stop `halo` short of its edge
-  shape(poly, halo, z) { if (poly.length >= 6) this.shapes.push({ poly, halo, z }); }
+  shape(poly, halo, z) { if (poly.length >= 6) this.shapes.push({ poly, halo, z, st: this.tag ? this.tag.st : null, on: this.tag ? this.tag.on : null }); }
+}
+// A copy of a part (a line or a silhouette) whose tags are its own: its ids take the suffix sfx (a mirror image or a
+// second copy is a different stalk), and the root of on is moved by tf (a function of x, y) and its radius scaled by s
+function own(o, sfx, tf, s) {
+  if (o.st !== null) o.st += sfx;
+  if (o.on) { const [x, y] = tf(o.on.x, o.on.y); o.on = { id: o.on.id + sfx, x, y, r: o.on.r * s }; }
+  return o;
 }
 
 // A polyline P whose points carry U, cut wherever U passes one of the values `cuts`: [[points, their U], ...]. The cuts
@@ -108,12 +126,16 @@ function inside(sh, x, y) {
 }
 
 // Hidden-line removal: every line is split where it passes under a nearer silhouette; the cut is found by bisection,
-// so it moves smoothly as the shapes move. A piece shorter than five times its width is drawn thinner, in proportion,
-// so that it shrinks away instead of vanishing as a dot (below 0.04 of its width it is too small to see and is left out;
-// for small prints, MIN > 0, a piece shorter than its width is left out). A swelling line is then cut into pieces of
-// one width each, joined end to end by their round ends. Silhouettes are sorted into a grid, so each point of a line
-// meets only the silhouettes in the cell under it.
-function hide(sc) {
+// so it moves smoothly as the shapes move. A stalk lies in front of the sprouts that come out along it, behind every
+// other head (see Scene). A piece of line is faded by its length, in widths of its own or of its shoot's outline
+// pen, whichever is the wider: shorter than five it is drawn thinner, and shorter than one it is left out, smoothly,
+// so that the short dashes a cut leaves, fine stripes and hairlines among them, shrink away instead of lingering as
+// dots or popping (for small prints, MIN > 0, a piece shorter than its width is left out). A swelling line is then
+// cut into pieces of one width each, joined end to end by their round ends. Silhouettes are sorted into a grid, so
+// each point of a line meets only the silhouettes in the cell under it. rec, if given, receives the pieces of stalk
+// that are drawn ({pts, w, id}).
+const FADE = l => smooth(1, 5, l);                 // a piece's width, as a share of its own, by its length in widths
+function hide(sc, rec = null) {
   const S = sc.shapes.filter(s => s.halo >= 0);
   for (const s of S) { s.sil = s.halo > 0 ? offset(s.poly, s.halo) : s.poly; prep(s); }
   let gx0 = 1e9, gy0 = 1e9, gx1 = -1e9, gy1 = -1e9;
@@ -126,10 +148,14 @@ function hide(sc) {
   const out = [], len = r => { let l = 0; for (let i = 2; i < r.length; i += 2) l += Math.hypot(r[i] - r[i - 2], r[i + 1] - r[i - 1]); return l; };
   const keep = (r, ru, L) => {
     const l = len(r);
-    if (!L.U) { if (MIN ? l > L.w : l > 0.04 * L.w) out.push({ t: 'l', pts: r, w: Math.max(MIN, MIN ? L.w : L.w * Math.min(1, l / (5 * L.w))) }); return; }
+    if (!L.U) {
+      const t = MIN ? (l > L.w ? 1 : 0) : FADE(l / Math.max(L.w, L.p));
+      if (t > 0) { const it = { t: 'l', pts: r, w: Math.max(MIN, L.w * t) }; out.push(it); if (rec && L.st !== null) rec.push({ pts: r, w: it.w, id: L.st }); }
+      return;
+    }
     let wm = 0; for (const u of ru) wm = Math.max(wm, L.w * L.f(u));
-    if (!(wm > 0) || (MIN ? l <= wm : l <= 0.04 * wm)) return;
-    const t = MIN ? 1 : Math.min(1, l / (5 * wm));
+    const t = !(wm > 0) ? 0 : MIN ? (l > wm ? 1 : 0) : FADE(l / Math.max(wm, L.p));
+    if (!(t > 0)) return;
     // pieces of no width are left out (for small prints, those under half the narrowest line: a crossfade becomes a
     // switch); neighbouring pieces within 8% of one width are drawn as one line
     let g = null;
@@ -142,12 +168,19 @@ function hide(sc) {
     }
   };
   for (const L of sc.lines) {
+    if (!(L.w > 0)) continue;
     const p = L.pts, n = p.length / 2, z = L.z, U = L.U;
-    // hidden: inside a nearer silhouette among those in the grid cell under the point
+    // hidden: inside a nearer silhouette among those in the grid cell under the point; of a stalk and a sprout that
+    // comes out along it, the stalk is the nearer (most lines are neither, and need only the depths)
+    const st = L.st, on = L.on ? L.on.id : null, plain = st === null && on === null;
     const hid = (x, y) => {
       if (x < gx0 || x > gx1 || y < gy0 || y > gy1) return false;
       const C = grid[cell(x, gx0, cw, GX) * GY + cell(y, gy0, ch, GY)];
-      for (let c = 0; c < C.length; c++) if (C[c].z > z && inside(C[c], x, y)) return true;
+      if (plain) { for (let c = 0; c < C.length; c++) if (C[c].z > z && inside(C[c], x, y)) return true; return false; }
+      for (let c = 0; c < C.length; c++) {
+        const S = C[c];
+        if ((S.z > z ? !(S.on && S.on.id === st) : on !== null && S.st === on) && inside(S, x, y)) return true;
+      }
       return false;
     };
     const f = new Array(n); let any = false;
@@ -289,12 +322,13 @@ function stroke(sc, x0, y0, h0, l, P, c, zb, zt, pen) {
   for (let i = 0; i <= nb; i++) if (G[i].v >= 0.7) tip.push(...pL(G[i]));
   for (let i = nb - 1; i >= 0; i--) if (G[i].v >= 0.7) tip.push(...pR(G[i]));
   sc.shape(tip, Math.min(halo, 0.05 * l), zt);
-  // a band too narrow to read as one is drawn as a single hairline along its spine instead, the two crossfading
+  // a band too narrow to read as one is drawn as a single hairline along its spine instead, the two crossfading (its
+  // base too, which would otherwise be left as a dot)
   const oL = o(1), oR = o(-1), al = smooth(1.2 * pw, 3 * pw, wmax);
   const swell = v => Math.pow(Math.sin(Math.PI * clamp(v / 0.92)), 0.8);
   const edge = (v, oo) => al * pw * lerp(0.8 + 0.2 * swell(v), 0.7 + 0.8 * swell(v), oo) * (1 - 0.45 * smooth(0.72, 1, v));
   const cuts = [...SIXTEENTHS, 0.62, 1, 1.38, 2, ...SIXTEENTHS.map(v => 1 + v)].sort((a, b) => a - b);
-  ink(sc, poly.concat(poly.slice(0, 2)), U.concat(3), u => u <= 1 ? edge(u, oL) : u <= 2 ? edge(2 - u, oR) : 0.7 * pw, u => u < 2 && Math.min(u, 2 - u) > 0.62 ? zt : zb, cuts);
+  ink(sc, poly.concat(poly.slice(0, 2)), U.concat(3), u => u <= 1 ? edge(u, oL) : u <= 2 ? edge(2 - u, oR) : al * 0.7 * pw, u => u < 2 && Math.min(u, 2 - u) > 0.62 ? zt : zb, cuts);
   if (al < 1) {
     const T = [], TU = [];
     for (const g of G) { T.push(g.x, g.y); TU.push(g.v); }
@@ -596,8 +630,8 @@ function form(K, b0, leafy, k, q, half) {
 // under flowers), then its head, then its sprouts. Generation k grows in as the depth passes k - 1: first as tendrils
 // (hair-thin curls) growing from nothing, which then fill out into leaves. Each shoot is an instance of its own: its
 // settings are the design's K0 moved by the instance variation at its own number t (varied(), above), and its sprouts
-// vary from K0 in their own ways.
-function grow(sc, K0, x, y, h, L, c, k, t, cut, half = false, b = 0, e0 = 1, fs = 1) {
+// vary from K0 in their own ways. A sprout that comes out along its parent's stalk is handed that stalk's id (on).
+function grow(sc, K0, x, y, h, L, c, k, t, cut, half = false, b = 0, e0 = 1, fs = 1, on = null) {
   if (L < cut) return;
   L *= smooth(cut, 2 * cut, L);                     // small shoots shrink away instead of vanishing
   const va = K0.vamt * Math.pow(0.85, k), K = varied(K0, t, va);
@@ -612,20 +646,42 @@ function grow(sc, K0, x, y, h, L, c, k, t, cut, half = false, b = 0, e0 = 1, fs 
   const kshoot = u => cc * (root ? 2.2 : 0.8) * (1 - 2 * ess * (1 - u)) + sway(u);
   const g = Math.sqrt(Math.min(1, L / 0.25)), pen = { pw: Math.max(MIN, PEN * g), vw: Math.max(MIN, VEIN * g), gap: Math.max(GAP, 0.9 * PEN * g) };
   const n = (k === 0 ? 96 : k === 1 ? 72 : 48) / (K.quick ? 4 : 1);   // samples along the first stroke (fixed for a shoot)
-  const Ls = sig * L, st = Ls > 1e-5 ? curve(x, y, h, Ls, u => sig * kshoot(sig * u), (root ? 40 : 24) / (K.quick ? 4 : 1)) : null;
+  sc.pen = pen.pw;                                  // the pen this shoot's lines are faded against (hide())
+  // the stalk is sampled finely (about a pen width apart), so the leaves that lie over it cut it where they cross
+  const Ls = sig * L, st = Ls > 1e-5 ? curve(x, y, h, Ls, u => sig * kshoot(sig * u), (root ? 80 : 48) / (K.quick ? 8 : 1)) : null;
   const [hx, hy, hh] = st ? at(st, 1) : [x, y, h], lh = (1 - sig) * L;
+  // on a stalk, the head is tagged with the stalk, which lies in front of it; r: the stalk's and the head's base
+  // widths and two halos
+  if (on) sc.tag = { st: null, on: { id: on, x, y, r: 1.5 * (e0 + lh * H.len * H.wid * H.base) + pen.pw + 2 * pen.gap } };
   const f0 = head(sc, hx, hy, hh, lh, H, c, k, half, pen, n, K.quick, root ? (u => (1 - sig) * sway(sig + (1 - sig) * u)) : null, ess, Math.max(smooth(0, 0.15, sig), 1 - smooth(0.4, 1.2, e0 / Math.max(1e-9, lh * H.len * H.wid * H.base))), 0.61 * t + K.seed, va);
-  // the stalk, behind the head: a band that swells a little in its middle and narrows into the head, as broad as
-  // the pens (so a large design's stalks stay bands), and thinner while it is short, so it grows in from nothing
-  const sgr = smooth(0, 1, Ls / (0.4 * L)), zs = sc.next(k), sw = (root ? 0.0095 : 0.0065) * Math.sqrt(Math.min(1, L)) * Math.pow(PEN / PEN0, 0.8) * sgr, swf = u => sw * (0.85 + 0.35 * Math.sin(Math.PI * u)) * lerp(1, 0.75, u);
-  if (st) { const B = band(st, swf); sc.shape(B, pen.pw / 2 + pen.gap, zs); sc.line(B.concat(B.slice(0, 2)), pen.pw, zs); }
+  sc.tag = null;
+  // the stalk, behind the head and behind every other head it passes (BACK): a band that swells a little in its
+  // middle and narrows into the head, as broad as the pens, and thinner while it is short, so it grows in from
+  // nothing. Where it is broad enough to read as a band as it will be drawn (twice its half-width at least 3 pens; a
+  // scene put at scale s has pens sqrt(s) times as bold as its bands) it is outlined; where it is too narrow (below
+  // 2.4 pens) it is a single line along its spine instead, the two crossfading, never a solid bar. A main shoot's
+  // stalk in a motif on its own is a band; a large design's pens are bolder than its stalks are broad, so in a long
+  // frieze, as in the stalks of sprouts and small sprigs, they are single lines. Sprouts come out at the stalk's own
+  // half-width sw0, which does not grow with the pens, so they stay where they are as the design grows; a broader
+  // band lies over their bases. (For small prints the band and the line switch rather than fade.)
+  const sgr = smooth(0, 1, Ls / (0.4 * L)), zs = sc.next(k) - BACK, sw0 = (root ? 0.011 : 0.0065) * Math.sqrt(Math.min(1, L)) * sgr, sw = sw0 * Math.pow(PEN / PEN0, 0.8);
+  const sh = u => (0.85 + 0.35 * Math.sin(Math.PI * u)) * lerp(1, 0.75, u), swf = u => sw * sh(u);
+  let sid = null;
+  if (st) {
+    const B = band(st, swf), a0 = smooth(2.4, 3, 2 * sw * Math.sqrt(sc.s) / pen.pw), al = MIN ? (a0 < 0.5 ? 0 : 1) : a0;
+    sid = String(SID++); sc.tag = { st: sid, on: null };
+    sc.shape(B, pen.pw / 2 + pen.gap, zs);
+    sc.line(B.concat(B.slice(0, 2)), al * pen.pw, zs);   // (of no width where it is a line: then it only counts in the box)
+    if (al < 1) { const S = []; for (let i = 0; i <= st.n; i++) S.push(st.X[i], st.Y[i]); sc.line(S, (1 - al) * pen.pw, zs); }
+    sc.tag = null;
+  }
   if (!f0) return;
   // the shoot's spine: the stalk (u up to us), then the head's first stroke; and its half-width on each side (along a
   // stalk still growing in, the first stroke's base width gives way to the stalk's)
   const l0 = lh * H.len, us = st ? Ls / (Ls + l0) : 0;
   const spine = u => u < us ? at(st, u / us) : at(f0.sp, (u - us) / (1 - us));
   const halfAt = (s, u) => {
-    if (u < us) return Math.max(swf(u / us), (1 - sgr) * (s > 0 ? f0.wl[0] : f0.wr[0]));
+    if (u < us) return Math.max(sw0 * sh(u / us), (1 - sgr) * (s > 0 ? f0.wl[0] : f0.wr[0]));
     const v = clamp((u - us) / (1 - us)) * f0.sp.n, i = Math.min(f0.sp.n - 1, Math.floor(v)), W = s > 0 ? f0.wl : f0.wr;
     return lerp(W[i], W[i + 1], v - i);
   };
@@ -683,7 +739,7 @@ function grow(sc, K0, x, y, h, L, c, k, t, cut, half = false, b = 0, e0 = 1, fs 
         let hj = ph + s * al * af;
         hj += K.rise * Math.sin(Math.PI / 2 - hj) * 0.8;
         const Lj = L1 * lf * wh;
-        grow(sc, K0, px - s * e * Math.sin(ph), py + s * e * Math.cos(ph), hj, Lj, cj, k + 1, 1.3 * t + 2.9 * (j + 1) + (s > 0 ? 0.7 : 0) + dt, cut, false, clamp(K.bloom * K.buds * pick(j, s) * (root ? 1 : 0.7)), e, (j + k) % 2 ? -s : s);
+        grow(sc, K0, px - s * e * Math.sin(ph), py + s * e * Math.cos(ph), hj, Lj, cj, k + 1, 1.3 * t + 2.9 * (j + 1) + (s > 0 ? 0.7 : 0) + dt, cut, false, clamp(K.bloom * K.buds * pick(j, s) * (root ? 1 : 0.7)), e, (j + k) % 2 ? -s : s, uj < us ? sid : null);
       }
     }
   }
@@ -728,8 +784,8 @@ function mains(sc, K, cut) {
     grow(sc, K, 0, 0, Math.PI / 2 - a, w * (1 - 0.12 * i), c, 0, 3.7 * i + 1, cut, false, clamp(K.bloom * K.tips * (i ? 0.7 : 1)), 1, i % 2 ? -1 : 1);
   }
 }
-function motif(K, cut) {
-  const sc = new Scene();
+function motif(K, cut, s = 1) {
+  const sc = new Scene(s);
   mains(sc, K, cut);
   // on the axis of a mirrored design, an upright crown: a straight, symmetric shoot (c = 0) with its right-hand
   // strokes and sprouts, which the mirror completes; its head opens by bloom
@@ -738,12 +794,13 @@ function motif(K, cut) {
   if (m > 0) {
     let shapes = sc.shapes.slice(), lines = sc.lines.slice();
     if (K.symmetry < 1) {
-      const T = new Scene(), tr = TRACE, hd = HEADS; TRACE = HEADS = null;
+      const T = new Scene(s), tr = TRACE, hd = HEADS; TRACE = HEADS = null;
       mains(T, twinOf(K), cut); TRACE = tr; HEADS = hd;
       shapes = T.shapes.concat(shapes.slice(S0)); lines = T.lines.concat(lines.slice(L0));
     }
-    for (const s of shapes) sc.shapes.push({ poly: s.poly.map((v, j) => (j % 2 ? v : -v) * m), halo: s.halo * m, z: s.z - 0.5 });
-    for (const l of lines) sc.lines.push({ ...l, pts: l.pts.map((v, j) => (j % 2 ? v : -v) * m), w: l.w * m, z: l.z - 0.5 });
+    const mt = (x, y) => [-x * m, y * m];
+    for (const t of shapes) sc.shapes.push(own({ ...t, poly: t.poly.map((v, j) => (j % 2 ? v : -v) * m), halo: t.halo * m, z: t.z - 0.5 }, 'm', mt, m));
+    for (const l of lines) sc.lines.push(own({ ...l, pts: l.pts.map((v, j) => (j % 2 ? v : -v) * m), w: l.w * m, p: l.p * m, z: l.z - 0.5 }, 'm', mt, m));
   }
   return sc;
 }
@@ -764,15 +821,18 @@ function sceneBox(sc) {
   return { x0, x1, y0, y1 };
 }
 // The parts of scene M, turned by rot, scaled by s (its pens by the square root of s), moved to (X, Y), mirrored
-// (x -> -x) if flip, and put dz further back, into the scene sc; returns the largest x of its lines
+// (x -> -x) if flip, and put dz further back, into the scene sc; returns the largest x of its lines. (A scene put
+// twice, as a frieze's right half is when its left half mirrors it exactly, is put once unflipped and once flipped,
+// so the flipped copy's stalks take ids of their own.)
 function put(sc, M, X, Y, s, rot, flip, dz) {
   if (!X && !Y && s === 1 && !rot && !flip && !dz) { sc.shapes.push(...M.shapes); sc.lines.push(...M.lines); return sceneBox(M).x1; }
-  const c = Math.cos(rot) * s, n = Math.sin(rot) * s, sw = Math.sqrt(s), fx = flip ? -1 : 1;
+  const c = Math.cos(rot) * s, n = Math.sin(rot) * s, sw = Math.sqrt(s), fx = flip ? -1 : 1, sfx = flip ? 'f' : '';
   let x1 = -1e9;
+  const pt = (x, y) => [fx * (X + c * x - n * y), Y + n * x + c * y];
   const tf = P => { const o = new Array(P.length); for (let i = 0; i < P.length; i += 2) { const x = P[i], y = P[i + 1]; o[i] = fx * (X + c * x - n * y); o[i + 1] = Y + n * x + c * y; if (o[i] > x1) x1 = o[i]; } return o; };
-  for (const t of M.shapes) sc.shapes.push({ poly: tf(t.poly), halo: t.halo * sw, z: t.z + dz });
+  for (const t of M.shapes) sc.shapes.push(own({ ...t, poly: tf(t.poly), halo: t.halo * sw, z: t.z + dz }, sfx, pt, s));
   x1 = -1e9;
-  for (const l of M.lines) sc.lines.push({ ...l, pts: tf(l.pts), w: l.w * sw, z: l.z + dz });
+  for (const l of M.lines) sc.lines.push(own({ ...l, pts: tf(l.pts), w: l.w * sw, p: l.p * sw, z: l.z + dz }, sfx, pt, s));
   return x1;
 }
 
@@ -834,9 +894,11 @@ function scrollStroke(sc, P, W, sg, ext, k0, z) {
 // of the motif's sprouts comes out ({gen, shoot, u, side, convex, x, y, h, weight}, u its share of the way along its
 // parent, convex its weight on the parent's convex side); heads, an array that receives the strokes of each of the
 // motif's heads; layout, an object that receives where a frieze's motifs stand and how its scroll swings; set,
-// settings to put in place of the ones x, y and z give (for studies and tests, e.g. {bloom: 1}).
+// settings to put in place of the ones x, y and z give (for studies and tests, e.g. {bloom: 1}); parts, an object that
+// receives the design's pen (pen), the silhouettes of all its heads (heads: [{poly, on}], on as in Scene) and the
+// pieces of stalk that are drawn (stalks: [{pts, w, id}]).
 export function build({ x = 5, y = 5, z = 5, detail = 0.5, aspect = 1, plump = 0.5, lobes = 0.5, curl = 0.5, variation = 0.4 } = {}, opt = {}) {
-  MIN = opt.min || 0; GAP = opt.gap || 0; PEN = PEN0; VEIN = VEIN0; TRACE = null; HEADS = null;
+  MIN = opt.min || 0; GAP = opt.gap || 0; PEN = PEN0; VEIN = VEIN0; TRACE = null; HEADS = null; SID = 0;
   const A = clamp(aspect, 0.2, 48), KS = new Map(), kAt = j => KS.get(j) || KS.set(j, settings(x, y, z, detail, plump, lobes, curl, variation, j, opt.set)).get(j), K = kAt(0);
   // the motif's own size, then how large the whole design will be: a design g times larger keeps its smallest shoots
   // g^0.6 times larger, and its pens g^0.4 times bolder, so that a long frieze or a tall tower is not lost in fuzz
@@ -907,7 +969,7 @@ export function build({ x = 5, y = 5, z = 5, detail = 0.5, aspect = 1, plump = 0
         const r = R[i], s = r.s * r.w, [rx, rY, tau] = at(r.w < 1 ? inv(edge + r.w * (r.Nd - edge)) : r.ph);
         // it leans with the scroll, and a little of its own way, by its setting lean
         const rot = r.rot + r.K.lean * (tau + 0.35 * Q(0.93 * i + 1.3 * Ks.seed0 + 0.4));
-        if (s > 0) edge = put(S, motif(r.K, cut), rx, rY, s, rot, false, -1e8 * i);
+        if (s > 0) edge = put(S, motif(r.K, cut, s), rx, rY, s, rot, false, -1e8 * i);
         const cy = 0.5 * (r.b.y0 + r.b.y1) * (r.rot ? -1 : 1);
         motifs.push({ j: sd * i, x: rx, y: rY, ry: rY, s, w: r.w, h: s * (r.b.y1 - r.b.y0), cy: rY + s * cy, rot });
       }
@@ -938,7 +1000,7 @@ export function build({ x = 5, y = 5, z = 5, detail = 0.5, aspect = 1, plump = 0
         const Kj = repK(Math.max(1, n + 1)), s = ((n % 2) + 2) % 2 ? 1 : -1, Lh = X((n + 1) * Math.PI) - X(n * Math.PI);
         const edge = (ph, sd) => { const [px, py, ph_] = at(ph), sn = Math.sin(ph), e = rw * (0.55 + 0.45 * sn * sn); return [px - sd * e * Math.sin(ph_), py + sd * e * Math.cos(ph_), ph_]; };
         const hl = 0.3 * Lh * wJ * (0.45 + 0.55 * Kj.hair);
-        if (hl > 0) { const [hx, hy, hh] = edge(n * Math.PI + 0.22 * Math.PI * wJ, -s); hairs(bay, hx, hy, hh, -s, hl, 3 + 2 * Kj.hair, pen, bay.next(0), false); }
+        if (hl > 0) { const [hx, hy, hh] = edge(n * Math.PI + 0.22 * Math.PI * wJ, -s); bay.pen = pen.pw; hairs(bay, hx, hy, hh, -s, hl, 3 + 2 * Kj.hair, pen, bay.next(0), false); }
         const Lb = 0.4 * Lh * wJ * smooth(0, 0.6, detail);
         if (Lb > cut) { const [ex, ey, eh] = edge(n * Math.PI + 0.1 * Math.PI * wJ, s); grow(bay, Kj, ex, ey, eh + s * 0.85, Lb, 0.8 * s, 1, 7.7 + 1.3 * n, cut, false, clamp(1.2 * Kj.bloom), 1); }
       }
@@ -964,20 +1026,23 @@ export function build({ x = 5, y = 5, z = 5, detail = 0.5, aspect = 1, plump = 0
         const Ki = kAt(i), b = box(Ki), s = Math.pow(0.84, i) * clamp(Math.pow(s0 / Math.max(1e-6, b.h), 0.7), 0.6, 1.6), add = s * (b.y1 - b.y0) * (1 - ov), w0 = clamp((need - got) / add), w = smooth(0, 1, w0);
         got += add;
         const Yi = Y + sb * below.b.y1 - s * w * b.y0 - ov * sb * (below.b.y1 - below.b.y0) * w;
-        put(sc, motif(Ki, cut), 0, Yi, s * w, 0, false, -1e8 * i); Y = Yi; below = { b }; sb = s;
+        put(sc, motif(Ki, cut, s * w), 0, Yi, s * w, 0, false, -1e8 * i); Y = Yi; below = { b }; sb = s;
         if (w0 < 1) break;
       }
     }
   }
   if (opt.trace || opt.heads) { TRACE = opt.trace || null; HEADS = opt.heads || null; motif(K, cut); TRACE = HEADS = null; }   // the motif once more, recording
-  return hide(sc);
+  if (!opt.parts) return hide(sc);
+  const P = opt.parts; P.pen = PEN; P.stalks = [];
+  P.heads = sc.shapes.filter(s => s.st === null && s.z > -BACK).map(s => ({ poly: s.poly, on: s.on }));   // not stalks, not the scroll
+  return hide(sc, P.stalks);
 }
 
 // Repeat j of a frieze (or tier j of a tower) on its own, as the motif would stand alone with those settings; the
 // repeats to the left (j < 0) are drawn as they face, mirrored.
 export function buildRepeat(point = {}, j = 0) {
   const { x = 5, y = 5, z = 5, detail = 0.5, plump = 0.5, lobes = 0.5, curl = 0.5, variation = 0.4 } = point;
-  MIN = 0; GAP = 0; PEN = PEN0; VEIN = VEIN0;
+  MIN = 0; GAP = 0; PEN = PEN0; VEIN = VEIN0; SID = 0;
   const items = hide(motif(settings(x, y, z, detail, plump, lobes, curl, variation, j), 0.03));
   return j < 0 ? items.map(it => ({ ...it, pts: it.pts.map((v, i) => i % 2 ? v : -v) })) : items;
 }
@@ -985,7 +1050,7 @@ export function buildRepeat(point = {}, j = 0) {
 // One head on its own (a main shoot on a short stalk, without sprouts), for close-ups: the leaf numbers, how far it
 // has opened into a flower (bloom, 0 to 1) and the flower's shape (cup: 0 a rosette, 1 a tulip).
 export function buildLeaf({ plump = 0.5, lobes = 0.5, curl = 0.5, bloom = 0, cup = 0.5 } = {}) {
-  MIN = 0; GAP = 0; PEN = PEN0; VEIN = VEIN0;
+  MIN = 0; GAP = 0; PEN = PEN0; VEIN = VEIN0; SID = 0;
   const K = settings(0, 0, 0, 0, plump, lobes, curl, 0);
   Object.assign(K, { stalk: 0.15, ess: 0, sway: 0, depth: 0, hair: 0, cup, vamt: 0 });
   const sc = new Scene();

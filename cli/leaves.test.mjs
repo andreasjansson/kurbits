@@ -9,7 +9,7 @@ const KEYS = ['x', 'y', 'z', 'detail', 'aspect', 'plump', 'lobes', 'curl', 'vari
 const RANGE = { x: [0, 20], y: [0, 20], z: [0, 20], detail: [0, 1], aspect: [0.25, 48], plump: [0, 1], lobes: [0, 1], curl: [0, 1], variation: [0, 1] };
 // a small pseudo-random generator, so that the random points are the same on every run
 const rng = (s => () => (s = (s * 16807) % 2147483647) / 2147483647)(20261005);
-const randomPoint = (aspectMax = 3) => Object.fromEntries(KEYS.map(k => { const [a, b] = k === 'aspect' ? [0.5, aspectMax] : RANGE[k]; return [k, a + (b - a) * rng()]; }));
+const randomPoint = (aspectMax = 3, r = rng) => Object.fromEntries(KEYS.map(k => { const [a, b] = k === 'aspect' ? [0.5, aspectMax] : RANGE[k]; return [k, a + (b - a) * r()]; }));
 
 // ---- a distance between two drawings: every line is sampled every h units, each sample weighted by the ink it
 // stands for (width times length), and each sample is matched to the nearest sample of the other drawing
@@ -413,4 +413,80 @@ test('long friezes are lively: spacing, size, swing and density vary along the l
     if (res.gap > 0.14) ok.gap++; if (res.size > 0.1) ok.size++; if (res.amp > 0.22) ok.amp++; if (res.both >= 0.25) ok.both++; if (res.dens > 0.105) ok.dens++; if (res.ac < 0.45) ok.ac++;
   }
   for (const [k, c] of Object.entries(ok)) assert.ok(c >= (k === 'both' ? N : 0.7 * N), `${k}: only ${c} of ${N} long friezes pass`);
+});
+
+// ---- what a design draws over its stalks, and the short pieces it leaves. Both use points of their own (rng2), so
+// the tests above keep theirs: a third of them long friezes, from 12 times the motif to the longest.
+const rng2 = (s => () => (s = (s * 16807) % 2147483647) / 2147483647)(20261006);
+const randomPoints = N => Array.from({ length: N }, (_, n) => { const p = randomPoint(3, rng2); if (n % 3 === 0) p.aspect = 12 + 36 * rng2(); return p; });
+
+// Stalks lie behind the leaves and flowers they carry and cross, as in the paintings, where the stems are hidden behind
+// what they carry (opt.parts records the pieces of stalk that are drawn, the silhouettes of all heads, and, on the head
+// of a sprout that comes out along a stalk, that stalk, the sprout's root and r, about how far its base reaches over
+// the stalk). Every piece of stalk that is drawn is sampled every half pen width, and each sample is tested against
+// the heads' silhouettes, except where a sprout comes out from behind its stalk, within 2 r of the sprout's root: over
+// random points, the visible stalk that lies inside a head is under 0.1% of all visible stalk, and under two pen widths
+// in every design (what is left are thin tendrils that cross a stalk between two of its samples). (Measured this way,
+// the engine before this test drew 24.6% of its visible stalk over heads, 3113 pen widths, in bands as wide as the
+// pens across flowers and fans; now 0.016%, 1.0 pen widths in all.)
+test('stalks lie behind the leaves and flowers they carry and cross', () => {
+  let all = 0, over = 0, worst = 0;
+  for (const p of randomPoints(24)) {
+    const parts = {}; build(p, { parts }); const pen = parts.pen, c = 0.05, G = new Map(), key = (i, j) => i * 100003 + j;
+    for (const h of parts.heads) {
+      const P = h.poly; let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      for (let i = 0; i < P.length; i += 2) { x0 = Math.min(x0, P[i]); x1 = Math.max(x1, P[i]); y0 = Math.min(y0, P[i + 1]); y1 = Math.max(y1, P[i + 1]); }
+      const o = { P, x0, x1, y0, y1, on: h.on };
+      for (let i = Math.floor(x0 / c); i <= Math.floor(x1 / c); i++) for (let j = Math.floor(y0 / c); j <= Math.floor(y1 / c); j++) (G.get(key(i, j)) || G.set(key(i, j), []).get(key(i, j))).push(o);
+    }
+    const inside = (o, x, y) => {
+      if (x < o.x0 || x > o.x1 || y < o.y0 || y > o.y1) return false;
+      const P = o.P, n = P.length / 2; let k = false;
+      for (let i = 0, j = n - 1; i < n; j = i++) if ((P[2 * i + 1] > y) !== (P[2 * j + 1] > y) && x < (P[2 * j] - P[2 * i]) * (y - P[2 * i + 1]) / (P[2 * j + 1] - P[2 * i + 1]) + P[2 * i]) k = !k;
+      return k;
+    };
+    let a = 0, v = 0;
+    for (const s of parts.stalks) for (let i = 2; i < s.pts.length; i += 2) {
+      const q = s.pts, dx = q[i] - q[i - 2], dy = q[i + 1] - q[i - 1], l = Math.hypot(dx, dy), m = Math.max(1, Math.ceil(l / (0.5 * pen)));
+      for (let k = 0; k < m; k++) {
+        const x = q[i - 2] + dx * (k + 0.5) / m, y = q[i - 1] + dy * (k + 0.5) / m; a += l / m;
+        if ((G.get(key(Math.floor(x / c), Math.floor(y / c))) || []).some(o => inside(o, x, y) && !(o.on && o.on.id === s.id && Math.hypot(x - o.on.x, y - o.on.y) < 2 * o.on.r))) v += l / m;
+      }
+    }
+    all += a / pen; over += v / pen; worst = Math.max(worst, v / pen);
+  }
+  if (process.env.VERBOSE) console.log('visible stalk', all.toFixed(0), 'pens, over heads', over.toFixed(1), 'pens:', (100 * over / all).toFixed(3) + '%, at most', worst.toFixed(2), 'pens in one design');
+  assert.ok(all > 2000, `only ${all.toFixed(0)} pen widths of stalk are drawn`);
+  assert.ok(over < 0.001 * all, `${(100 * over / all).toFixed(3)}% of the visible stalk lies over heads`);
+  assert.ok(worst < 2, `in one design ${worst.toFixed(2)} pen widths of visible stalk lie over heads`);
+});
+
+// Hidden-line cuts leave no short dashes: a piece of line is faded by its length, in widths of its own or of its
+// shoot's pen, whichever is the wider (shorter than five, thinner; shorter than one, left out). The pieces that are
+// drawn end to end (a swelling line's pieces of one width each, or a stroke's band and tip) are one run. Over random
+// points, the runs shorter than three pen widths and at least a quarter of a pen wide (a dash one can see; a closed
+// line, such as a flower's small centre ring, is not a dash) are under 6% of all runs, and under 11% in every design.
+// (The engine before this test, where a short piece was drawn thinner only in proportion to its own width below five
+// of them and kept down to 0.04 of a width: 13.1% of all runs, 17.8% in the worst design; now 3.3% and 8.3%.)
+test('hidden-line cuts leave few short dashes', () => {
+  const len = q => { let l = 0; for (let i = 2; i < q.length; i += 2) l += Math.hypot(q[i] - q[i - 2], q[i + 1] - q[i - 1]); return l; };
+  let runs = 0, dashes = 0, worst = 0;
+  for (const p of randomPoints(24)) {
+    const parts = {}, items = build(p, { parts }), pen = parts.pen, key = (x, y) => x + ',' + y, starts = new Map(), after = new Set(), used = new Set();
+    items.forEach((it, i) => { const k = key(it.pts[0], it.pts[1]); (starts.get(k) || starts.set(k, []).get(k)).push(i); });
+    items.forEach((it, i) => { const q = it.pts; for (const j of starts.get(key(q[q.length - 2], q[q.length - 1])) || []) if (j !== i) after.add(j); });
+    const run = i0 => {                           // the run from item i0: its length, its widest piece and whether it closes
+      let l = 0, w = 0, i = i0, q = null;
+      while (i !== undefined) { used.add(i); q = items[i].pts; l += len(q); w = Math.max(w, items[i].w); i = (starts.get(key(q[q.length - 2], q[q.length - 1])) || []).find(j => !used.has(j)); }
+      const a = items[i0].pts; return { l, w, closed: a[0] === q[q.length - 2] && a[1] === q[q.length - 1] };
+    };
+    const R = [];
+    items.forEach((_, i) => { if (!after.has(i) && !used.has(i)) R.push(run(i)); });
+    items.forEach((_, i) => { if (!used.has(i)) R.push(run(i)); });
+    const d = R.filter(r => r.l < 3 * pen && r.w >= 0.25 * pen && !r.closed).length;
+    runs += R.length; dashes += d; worst = Math.max(worst, d / R.length);
+  }
+  if (process.env.VERBOSE) console.log('short dashes', dashes, 'of', runs, 'runs:', (100 * dashes / runs).toFixed(1) + '%, at most', (100 * worst).toFixed(1) + '% in one design');
+  assert.ok(dashes < 0.06 * runs, `${(100 * dashes / runs).toFixed(1)}% of the runs are short dashes`);
+  assert.ok(worst < 0.11, `in one design ${(100 * worst).toFixed(1)}% of the runs are short dashes`);
 });
