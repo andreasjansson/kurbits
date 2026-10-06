@@ -118,16 +118,7 @@ select{-webkit-appearance:none;appearance:none;padding-right:26px;background-ima
 .tabs [role=tab]+[role=tab]{border-left:0}
 .tabs [role=tab][aria-selected="true"]{background:var(--navy);color:var(--ivory)}
 .tabpanel{display:grid;gap:24px;min-width:0}
-/* Leaves: a wide border above its controls, in three columns (one on phones) */
-.lstage{display:grid;gap:24px}
-.lstage>.canvas-box{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);z-index:5;width:100%;aspect-ratio:4/1;max-height:40vh;min-height:96px;box-shadow:0 0 0 6px var(--panel)}   /* the surround hides rules passing under it */
-.lside{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px 28px;align-items:start}
-.lcol{display:grid;gap:22px;min-width:0}
-.lrows .row{grid-template-columns:78px 1fr 56px}
-.lgal{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
-.lgal .thumb canvas{aspect-ratio:3/1}
-@media (max-width:1040px){.lside{grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))}.lcol{display:contents}}
-@media (max-width:860px){.lstage>.canvas-box{top:env(safe-area-inset-top,0px)}}
+.lrows .row{grid-template-columns:72px 1fr 56px}
 </style>
 
 <div class="wrap">
@@ -240,49 +231,43 @@ select{-webkit-appearance:none;appearance:none;padding-right:26px;background-ima
   </div>
 
   <div class="tabpanel" role="tabpanel" id="panel-leaves" aria-labelledby="tab-leaves" hidden>
-  <div class="lstage">
-    <div class="canvas-box"><canvas id="lmain" aria-label="Generated border"></canvas></div>
-    <p class="hint" id="lnote" hidden>Leaves imports leaves.js, which a page opened as a file cannot do: serve the folder (python3 -m http.server) and open it from there.</p>
-    <div class="lside">
-      <div class="lcol">
-        <div class="box" style="order:1">
-          <div class="label">Motion</div>
-          <div class="seg" id="lmodes">
-            <button type="button" data-mode="still">Still</button>
-            <button type="button" data-mode="sweep">Sweep</button>
-            <select id="lsweepKey" aria-label="Parameter to sweep"></select>
-          </div>
-          <div class="label">Colour</div>
-          <div class="seg" id="lpals">
-            <button type="button" data-pal="panel">Panel</button>
-            <button type="button" data-pal="band">Band</button>
-            <button type="button" data-pal="slate">Slate</button>
-            <button type="button" data-pal="black">Black</button>
-          </div>
+  <div class="stage">
+    <div class="canvas-box"><canvas id="lmain" aria-label="Generated design"></canvas></div>
+    <div class="side">
+      <p class="hint" id="lnote" hidden>Leaves imports leaves.js, which a page opened as a file cannot do: serve the folder (python3 -m http.server) and open it from there.</p>
+      <div class="box">
+        <div class="label">Motion</div>
+        <div class="seg" id="lmodes">
+          <button type="button" data-mode="still">Still</button>
+          <button type="button" data-mode="sweep">Sweep</button>
+          <select id="lsweepKey" aria-label="Parameter to sweep"></select>
         </div>
-        <div class="box" style="order:5">
-          <div class="seg" style="justify-content:space-between"><div class="label">These numbers</div><div class="seg"><button type="button" id="lcopy">Copy numbers</button><button type="button" id="lsvg">Copy SVG</button><button type="button" id="ldownload">Download SVG</button></div></div>
-          <div class="json" id="ljson"></div>
+        <div class="label">Colour</div>
+        <div class="seg" id="lpals">
+          <button type="button" data-pal="panel">Panel</button>
+          <button type="button" data-pal="band">Band</button>
+          <button type="button" data-pal="slate">Slate</button>
+          <button type="button" data-pal="black">Black</button>
         </div>
       </div>
-      <div class="lcol">
-        <div class="box" style="order:2">
-          <div class="seg" style="justify-content:space-between"><div class="label">Point in the space</div><button type="button" id="lrandom">Random</button></div>
-          <div class="rows lrows" id="lpoint"></div>
-          <div class="hint">Every number is continuous: each point draws a border.</div>
-        </div>
+      <div class="box">
+        <div class="seg" style="justify-content:space-between"><div class="label">Point in the space</div><button type="button" id="lrandom">Random</button></div>
+        <div class="rows lrows" id="lpoint"></div>
+        <div class="hint">Every number is continuous: each point draws a design.</div>
       </div>
-      <div class="lcol">
-        <div class="box" style="order:3">
-          <div class="label">Leaves</div>
-          <div class="rows lrows" id="lleaves"></div>
-          <div class="hint" id="lchose" aria-live="polite"></div>
-        </div>
-        <div class="box" style="order:4">
-          <div class="label">Small prints</div>
-          <div class="rows lrows" id="lprint"></div>
-          <div class="hint">At zero, as on screen.</div>
-        </div>
+      <div class="box">
+        <div class="label">The leaf</div>
+        <div class="rows lrows" id="lleaves"></div>
+        <div class="hint" id="lchose" aria-live="polite"></div>
+      </div>
+      <div class="box">
+        <div class="label">Small prints</div>
+        <div class="rows lrows" id="lprint"></div>
+        <div class="hint">At zero, as on screen.</div>
+      </div>
+      <div class="box">
+        <div class="seg" style="justify-content:space-between"><div class="label">These numbers</div><div class="seg"><button type="button" id="lcopy">Copy numbers</button><button type="button" id="lsvg">Copy SVG</button><button type="button" id="ldownload">Download SVG</button></div></div>
+        <div class="json" id="ljson"></div>
       </div>
     </div>
   </div>
@@ -291,57 +276,57 @@ select{-webkit-appearance:none;appearance:none;padding-right:26px;background-ima
 
   <section class="box" style="gap:16px">
     <h2>Presets</h2>
-    <div class="gallery lgal" id="lgallery"></div>
+    <div class="gallery" id="lgallery"></div>
   </section>
 
   <section class="box" style="gap:18px">
     <h2>How it is built</h2>
-    <p class="intro lead">Kurbits Leaves is a second engine, after Dalecarlian kurbits painting (dalmålning, about 1780 to 1850) and acanthus scrollwork: leaves drawn in line, curling, lobed, feathered and toothed, on a winding stem that ends in spirals. Eight numbers go in, and every one is continuous. x, y and z place the border in a space of designs, as in the Machine; detail decides how much grows, variation how much each leaf differs from its neighbours, size how large the leaves are, and mirror whether the border is mirrored about its centre or runs one way. Aspect sets the proportions. Every point draws a border, and a small step in any number changes it only a little: nothing is chosen from a list, and whatever appears, a leaf, a lobe, a vein, a tooth or a scroll, grows from nothing. Nothing is random either: the same numbers always draw the same border.</p>
+    <p class="intro lead">Kurbits Leaves is a second engine, after Dalecarlian kurbits painting (dalmålning, about 1780 to 1870). Like the Machine it is one recursive rule applied over and over: a shoot (a stalk, then a leaf, then a curl) grows smaller shoots out from behind its edges, and they grow smaller ones, down to the depth that detail sets. Nine numbers go in, and every one is continuous. x, y and z choose the composition: how many shoots spring from the root and where they head, how they bend, branch and rise, and whether the design is mirrored. Detail is the depth, plump, lobes and curl shape the leaf, variation is how much each leaf differs from the next, and aspect sets the proportions. Every point draws a design, and a small step in any number changes it only a little: whatever appears, a generation, a shoot, a billow, a stripe or a repeat, grows from nothing. Nothing is random either: the same numbers always draw the same design.</p>
+    <p class="intro lead">What it takes from the paintings: the kurbits leaf is a plump plume rather than a botanical leaf. It swells from a narrow base into a full belly and tapers into a tip that hooks over and winds into a curl; the whole leaf bends in a C, sometimes an S, so one side is a long convex arc that carries a few rounded billows, each notch marked by a little hooked stroke. Inside it is banded, not veined: stripes follow the outline and run together into the base and the tip. Leaves come out from behind leaves, small ones peeking out from behind big ones; the plant rises from its base, usually mirrored about a vertical axis, with a pair of big leaves arching out below and an upright crown above, and small curls fill the gaps. Painted kurbits also have flowers, buds and a vase; this engine keeps to leaves, stalks and curls, in line.</p>
     <div class="layer">
       <h3><b>1</b>Where x, y and z go</h3>
-      <p class="intro">About thirty settings describe a border: how broad the leaves are, how deep their lobes, how far their tips curl, how deeply the stem winds, and so on. As in the Machine, x, y and z do not appear in the drawing. Most settings are read off a slow wave W through the space, each with its own direction, and stretched to the setting’s range. One setting is read mostly off x: the leaf’s edge e, so that sweeping x turns smooth leaves into scalloped, lobed, feathered and finally divided ones. z mostly moves the leaves’ breadth and curl, and y the stem.</p>
-      <div class="math"><div class="eq" data-tex="W(a,b,c,\varphi)=\tfrac12+\tfrac12\sin(a x+b y+c z+\varphi)"></div><div class="eq" data-tex="e=\Big[\frac{x}{20}+0.07\sin(0.29z+0.21y+1.3)\Big]_0^1"></div><div class="eq" data-tex="b=0.11+0.37\,W(0.04,\,0.02,\,0.24,\,-1.75),\qquad A=0.3+0.95\,W(0.05,\,0.16,\,0.04,\,-1.9)"></div><div class="eq" data-tex="D=0.3\operatorname{smooth}(0.04,0.32,e)+0.36\operatorname{smooth}(0.42,0.68,e)+0.3\operatorname{smooth}(0.8,1,e)"></div><div class="eq" data-tex="\operatorname{smooth}(a,b,v)=t^2(3-2t),\quad t=\Big[\frac{v-a}{b-a}\Big]_0^1"></div></div>
-      <dl class="terms"><dt data-tex="W"></dt><dd>A wave between 0 and 1. Its periods are long (about 20 units and more), so neighbouring points have nearly the same settings, and the waves point in different directions, so the settings mix in ever-new combinations.</dd><dt data-tex="e"></dt><dd>The leaf’s edge: 0 smooth, about 0.3 scalloped, 0.55 lobed, 0.8 feathered, 1 divided into leaflets. The lobes’ depth D, their number, shape and lean, the teeth and the kind of veins all follow it.</dd><dt data-tex="b,\ A"></dt><dd>Two of the waves: the leaves’ width over their length (slender to broad), and how far the stem swings, in radians.</dd><dt data-tex="\operatorname{smooth}"></dt><dd>A smooth step from 0 at a to 1 at b. Everything that comes and goes in the space fades in this way, and so does everything that detail adds.</dd><dt data-tex="[\,\cdot\,]_0^1"></dt><dd>Clamped to lie between 0 and 1.</dd></dl>
+      <p class="intro">About twenty settings describe a composition: where the main shoots head and how many there are, how far they bend, how much of them is stalk, how many sprouts each shoot grows and how large, and so on. As in the Machine, x, y and z do not appear in the drawing. Setting k is read off a slow wave W<sub>k</sub> through the space, each wave in its own direction (the golden angle g spreads them), and stretched to the setting’s range. The mirror is read off its wave turned over, steeply, so that most of the space is mirrored and some of it not, with a gentle passage between. A budget then trims the sprouts so that a design never crowds.</p>
+      <div class="math"><div class="eq" data-tex="W_k=\tfrac12+\tfrac12\sin\big(0.28\cos(kg)\,x+0.28\sin(1.31kg+0.4)\,y+0.24\cos(1.77k+1.1)\,z+1.618k\big)"></div><div class="eq" data-tex="\mathrm{setting}_k=\mathrm{lo}+(\mathrm{hi}-\mathrm{lo})\max\Big(0,\frac{W_k-t}{1-t}\Big),\qquad m=\big[4(0.75-W_7)\big]_0^1"></div><div class="eq" data-tex="\mathrm{count}(n)=R\sum_{k=0}^{3}\big(n(1+0.7\pi)\big)^k\,\big[D-k+1\big]_0^1,\qquad \mathrm{count}(n')=\frac{E}{\big(1+(E/100)^4\big)^{1/4}},\quad E=\mathrm{count}(n)"></div></div>
+      <dl class="terms"><dt data-tex="W_k,\ t"></dt><dd>The wave for setting k, between 0 and 1. Its period is about twenty units, so neighbouring points have nearly the same settings, and the waves point in different directions, so they mix in ever-new combinations. Below the threshold t (zero for most settings) a setting rests at its lowest, so an S-bend, a meander or a partner sprout exists only in parts of the space.</dd><dt data-tex="m"></dt><dd>The mirror: 1 mirrored, 0 one-sided.</dd><dt data-tex="n,\ \pi,\ R,\ D"></dt><dd>Sprouts per shoot, the partner sprouts, the main shoots and the depth. The budget estimates how many shoots the design would have and, beyond about a hundred, lowers n to the n′ whose count levels off smoothly.</dd><dt data-tex="[\,\cdot\,]_0^1"></dt><dd>Clamped to lie between 0 and 1.</dd></dl>
     </div>
     <div class="layer">
-      <h3><b>2</b>The spine of a leaf</h3>
-      <p class="intro">A leaf is built along its spine, a curve described by its curvature κ(u), as every stroke of the Machine is described by its direction. u runs from 0 at the stalk to 1 at the tip. The spine bends evenly by β and then curls at the tip n times round, with a radius that shrinks with the length left, as in a logarithmic spiral. c, from −1 to 1, is the leaf’s chirality, the way it turns. At c = 0 the leaf is straight and symmetric, which lets a leaf turn from one way to the other without a jump.</p>
-      <div class="math"><div class="eq" data-tex="\kappa(u)=c\Big(\beta+\frac{2\pi n}{\ln(0.67/r_0)}\cdot\frac{\operatorname{smooth}(0.4,0.65,u)}{1-u+r_0}\Big),\qquad r_0=0.07"></div><div class="eq" data-tex="\theta(u)=\theta_0+\int_0^u\kappa,\qquad x(u)=x_0+L\int_0^u\cos\theta,\qquad y(u)=y_0+L\int_0^u\sin\theta"></div></div>
-      <dl class="terms"><dt data-tex="\beta"></dt><dd>The bend, from −0.45 to 0.95 radians. Below zero the leaf bends one way and curls the other, an S.</dd><dt data-tex="n"></dt><dd>Turns of the tip curl: 0.05 + 0.85 k<sup>1.3</sup>, with k a wave mostly along z and y. A rolled tip loses its lobes and hides the leaf beneath it (layer 8).</dd><dt data-tex="L,\ \theta_0"></dt><dd>The leaf’s length and the direction it grows in.</dd></dl>
+      <h3><b>2</b>The spine of a shoot</h3>
+      <p class="intro">Every shoot, large or small, is built along its spine, a curve described by its curvature κ(u), as every stroke of the Machine is described by its direction. u runs from 0 at the base to 1 at the tip; up to σ the shoot is bare stalk, then comes the blade, and the last share ν is the curl, the tip winding on past the blade. The stalk bends by β<sub>s</sub> and the blade by β<sub>b</sub>; an S reverses the bend near the base; at the tip the spine curls n times round with a radius that shrinks with the length left, like a logarithmic spiral. c, from −1 to 1, is the shoot’s chirality, the way it turns. At c = 0 the shoot is straight and symmetric, which lets it turn from one way to the other without a jump.</p>
+      <div class="math"><div class="eq" data-tex="\kappa(u)=c'\Big(\beta(u)\big(1-2S(1-u)\big)+\frac{2\pi n}{\ln\frac{1-u_c+r_0}{r_0}}\cdot\frac{\operatorname{smooth}(u_c,u_c+0.3,u)}{1-u+r_0}\Big),\qquad c'=\big[1.6c\big]_{-1}^{1}"></div><div class="eq" data-tex="\beta(u)=\operatorname{mix}\big(\beta_s,\beta_b,\operatorname{smooth}(\sigma-0.1,\sigma+0.1,u)\big),\qquad u_c=\operatorname{mix}(\sigma,1-\nu,0.45),\qquad r_0=0.05+\frac{0.004}{L}"></div><div class="eq" data-tex="\theta(u)=\theta_0+\int_0^u\kappa,\qquad x(u)=x_0+L\int_0^u\cos\theta,\qquad y(u)=y_0+L\int_0^u\sin\theta"></div></div>
+      <dl class="terms"><dt data-tex="\beta_b,\ n,\ \nu"></dt><dd>The leaf’s bend, its tip curl and the curl past the blade, all set by curl: β<sub>b</sub> from 0.35 to 1.25 radians, n from 0.15 to 1.2 turns, ν from 0.03 to 0.2.</dd><dt data-tex="\sigma,\ \beta_s,\ S"></dt><dd>Only main shoots have a stalk, σ between 0.25 and 0.72 of their length; it bends by β<sub>s</sub> = 2.2 radians per shoot length, times c′. S is the S-bend, a setting for main shoots and half of it for sprouts.</dd><dt data-tex="\operatorname{smooth}"></dt><dd>A smooth step from 0 at a to 1 at b. Whatever comes and goes fades in this way.</dd><dt data-tex="L,\ \theta_0"></dt><dd>The shoot’s length and the direction it grows in. A meander (a setting) may also sway the main shoots: 2π·1.3·A cos(2π·1.3u + 0.6) is added to κ.</dd></dl>
     </div>
     <div class="layer">
-      <h3><b>3</b>The edge</h3>
-      <p class="intro">On each side the edge lies a distance w(u) from the spine: the leaf’s width b times an envelope E, which is zero at both ends, times the lobes, times the teeth. The lobes are one bump g repeated N times along the leaf. N need not be a whole number: a fraction is a lobe still growing at the tip, so a leaf gains lobes one by one as N rises. When D nears 1 the notches reach the midrib and the leaf divides into leaflets.</p>
-      <div class="math"><div class="eq" data-tex="w(u)=L\,b\,E(u)\,\big(1-D\,(1-g(f))\big)\,\big(1-S\sqrt{g(f)}\,(1-g_{0.4,0.5}(M(f-f^\ast)+f_t^\ast))\big)"></div><div class="eq" data-tex="E(u)=\sqrt{\operatorname{smooth}(0,0.1,u)}\,\Big(\frac{u}{u^\ast}\Big)^{p_1}\Big(\frac{1-u}{1-u^\ast}\Big)^{p_2},\qquad p_1=\frac{p_2\,u^\ast}{1-u^\ast}"></div><div class="eq" data-tex="f(u)=N\Big(1-\Big(1-\frac{u-0.06}{0.94}\Big)^{1.35}\Big),\qquad g_{a,p}(f)=\Big(\tfrac12-\tfrac12\cos\big(2\pi f-a(1-\cos 2\pi f)\big)\Big)^{p}"></div><div class="eq" data-tex="P(u)=X(u)\pm w\,\mathbf n+s_w\big(w-L\,b\,E\,(1-D)\big)\,\mathbf t"></div></div>
-      <dl class="terms"><dt data-tex="u^\ast,\ p_2"></dt><dd>Where the leaf is widest, from near the base (an ovate leaf) to near the tip (a kurbits plume), and its tip: round for p₂ below 1, pointed above. The square root gives a short stalk.</dd><dt data-tex="f,\ g"></dt><dd>The lobes’ phase, which quickens towards the tip so that the lobes there are shorter, and the lobe: a bump from 0 at a notch to 1 at a lobe’s tip. The skew a leans the tips towards the leaf’s tip; p, between 0.42 and 0.54, makes round-topped lobes between sharp notches. f* is where a lobe peaks.</dd><dt data-tex="D,\ S,\ M"></dt><dd>The lobes’ depth, the teeth’s depth and the teeth per lobe. Teeth are deepest at the lobes’ tips and absent in the notches.</dd><dt data-tex="X,\ \mathbf n,\ \mathbf t,\ s_w"></dt><dd>The spine point, its normal and tangent. With the sweep s<sub>w</sub> the lobes’ tips move forwards along the leaf, like the barbs of a feather.</dd><dt>Two sides</dt><dd>The outer side, away from the curl, carries the full lobes and teeth; the inner side is narrower and carries a part of them, none on a kurbits leaf and all on an acanthus. Where the spine turns tighter than the leaf is wide, the inner side narrows by (1 + (κw/0.8)<sup>4</sup>)<sup>−1/4</sup>, so the edge never loops.</dd></dl>
+      <h3><b>3</b>The blade</h3>
+      <p class="intro">On each side s of the spine the edge lies w<sub>s</sub> from it: the blade’s length times its width b, times an envelope E (a narrow neck, a full belly at v*, a pointed tip), times the billows. The convex side, away from the curl (o = 1), swells further by a and carries the billows; the concave side starts a little later, so the base is lopsided, as a kurbits leaf is. The billows are one bump g repeated N times; N need not be a whole number, a fraction is a billow still growing near the tip, and the phase f quickens towards the tip so that the billows there are smaller.</p>
+      <div class="math"><div class="eq" data-tex="w_s(v)=L_b\,b\,\big(1+a(2o_s-1)\big)\,E(v_s)\,\big(1-D_s\varphi(1-g(f))\big)\,(1+0.3D_s\varphi),\qquad v_s=\frac{v-\delta_s}{1-\delta_s},\quad\delta_s=0.16(1-o_s)"></div><div class="eq" data-tex="E(v)=\sqrt{\operatorname{smooth}(0,0.14,v)}\,\Big(\frac{v}{v^\ast}\Big)^{p_1}\Big(\frac{1-v}{1-v^\ast}\Big)^{p_2},\qquad p_1=\frac{p_2v^\ast}{1-v^\ast},\qquad o_s=\tfrac12\big(1-s\,[4c]_{-1}^{1}\big)"></div><div class="eq" data-tex="f(v)=N\Big(1-\Big(1-\Big[\frac{v-0.1}{0.9}\Big]_0^1\Big)^{1.4}\Big),\qquad g(f)=\Big(\tfrac12-\tfrac12\cos\big(2\pi f-a_g(1-\cos2\pi f)\big)\Big)^{0.4}"></div></div>
+      <dl class="terms"><dt data-tex="b,\ v^\ast,\ a,\ p_2"></dt><dd>Set by plump: the half-width over the length from 0.085 (slender) to 0.27 (plump), the belly from 0.32 to 0.44 of the way along, the convex side’s extra swell from 0.1 to 0.4 and the taper to the tip from 1.6 to 1.15.</dd><dt data-tex="N,\ D,\ a_g"></dt><dd>Set by lobes and curl: up to 5.5 billows, their depth up to 0.3 (only a little of it, D<sub>s</sub> = mix(0.12, 1, o<sub>s</sub>) D, on the concave side), and their lean towards the tip. The exponent 0.4 makes round billows between sharp notches; φ smooths them away at the base and the tip.</dd><dt data-tex="v"></dt><dd>The way along the blade, from 0 where it leaves the stalk to 1 at its tip. A stalked blade starts as wide as its stalk, so its outline carries on from the stalk’s two sides. Where the spine turns tighter than the blade is wide, the inner side narrows by (1 + (κw/0.8)<sup>4</sup>)<sup>−1/4</sup>, so the edge never loops.</dd></dl>
     </div>
     <div class="layer">
-      <h3><b>4</b>Veins</h3>
-      <p class="intro">A midrib runs along the spine until the leaf grows too narrow to hold it. On each side a vein runs to the tip of each lobe and ends inside it, at 0.8 of the width there. Its distance from the spine grows as a power of the way along it.</p>
-      <div class="math"><div class="eq" data-tex="o_j(u)=o_j^{\mathrm{end}}\Big(\frac{u-u_0}{u_j-u_0}\Big)^{q},\qquad u_j=f^{-1}(j+f^\ast)"></div><div class="eq" data-tex="u_0=\operatorname{mix}\big(f^{-1}(j),\,0.04,\,\rho\big),\qquad q=\operatorname{mix}(1.15,\,2.6,\,\rho),\qquad \rho=1-\operatorname{smooth}(0.35,0.7,e)"></div></div>
-      <dl class="terms"><dt data-tex="\rho"></dt><dd>Striation. For smooth and scalloped leaves (ρ = 1) the veins start near the stalk and run beside the midrib before they turn out, the outermost first, like the painted strokes on a kurbits leaf. For lobed leaves ρ falls to 0 and each vein leaves the midrib at the notch before its lobe: pinnate venation.</dd><dt>Clearance</dt><dd>A vein is drawn only where it is a line and a gap clear of the edge and of its neighbour, so the fan opens out of the midrib instead of merging into it. Its start is found where that clearance runs out, between samples, so it moves smoothly.</dd><dt data-tex="d"></dt><dd>Detail grows every vein back from its lobe towards the stalk, the inner side’s later than the outer.</dd></dl>
+      <h3><b>4</b>Stripes, hooks and the curl</h3>
+      <p class="intro">The blade is banded. On each side, stripe j lies at the share f<sub>j</sub> = 0.17 j of the blade’s width in from the edge; near the edge it follows the billows, further in it smooths out. Its distance from the spine is a share of the width, so the stripes run together into the base and into the tip, like the painted bands of a kurbits leaf. A stripe is drawn only where it is a line and a gap clear of its neighbours, and its ends are found between samples, so they move smoothly. At each notch a hook turns in from the edge towards the base, so the billows read as overlapping. Past the blade the tip winds on as a single line.</p>
+      <div class="math"><div class="eq" data-tex="d_j(v)=\operatorname{mix}\big(w_s,\bar w_s,\min(1,0.6+2.5f_j)\big)-f_j(\bar w_L+\bar w_R),\qquad \text{drawn where }0.17(\bar w_L+\bar w_R)\ge\text{pen}+\text{gap}"></div><div class="eq" data-tex="j\le\mathrm{stripes}\cdot\operatorname{mix}(0.2,1,o_s),\qquad \mathrm{stripes}=\operatorname{mix}(1.3,3.2,\mathrm{plump}),\qquad r_{\mathrm{hook}}=0.55\,D_s\,\bar w_s-\text{pen}"></div></div>
+      <dl class="terms"><dt data-tex="\bar w"></dt><dd>The width without the billows. The convex side has the most stripes; a fractional count grows the last stripe back from the tip.</dd><dt data-tex="r_{\mathrm{hook}}"></dt><dd>The hook’s radius, which grows from nothing as the billows deepen. On the concave side, where the notches are shallow, there are mostly none.</dd></dl>
     </div>
     <div class="layer">
-      <h3><b>5</b>The stem</h3>
-      <p class="intro">The stem is one curve from the centre outwards on each side, described by its heading θ(s), where s is the length along it. The heading swings to and fro, a meander, about a line that hangs or rises. Near the end the swing calms and the stem winds into a logarithmic spiral of T turns; with T near zero it ends in a last leaf instead.</p>
-      <div class="math"><div class="eq" data-tex="\theta(s)=\frac{\alpha s}{L_s}+A\,\big(1+0.3v\,Q(\tfrac{0.6s}{\lambda}+\zeta+4.1)\big)\sin\phi(s)\,\operatorname{smooth}(0.5\ell,1.4\ell,L_s-s)+\int_0^s\kappa_{\mathrm{end}}"></div><div class="eq" data-tex="\phi(s)=\frac{\pi s}{\lambda}+0.7v\,\big(Q(\tfrac{0.8s}{\lambda}+\zeta)-Q(\zeta)\big),\qquad \kappa_{\mathrm{end}}(s)=-\frac{2\pi T}{\ln((\ell+r_0)/r_0)}\cdot\frac{\operatorname{smooth}(\ell,0.55\ell,L_s-s)}{L_s-s+r_0}"></div><div class="eq" data-tex="L_s=\frac{\mathrm{aspect}/2-0.1}{J_0(A)}+0.3\ell,\qquad J_0(A)\approx1-\frac{A^2}{4}+\frac{A^4}{64}-\frac{A^6}{2304}"></div><div class="eq" data-tex="Q(t)=\tfrac13\big(\sin t+\sin(1.618t+1.3)+\sin(2.618t+2.1)\big)"></div></div>
-      <dl class="terms"><dt data-tex="A,\ \lambda"></dt><dd>How far the stem swings and its half-wavelength. Both come from waves mostly along y, and size scales λ with the leaves.</dd><dt data-tex="\alpha"></dt><dd>The arch: the ends hang, lie level or rise, by at most about half the border’s height whatever its length.</dd><dt data-tex="v,\ \zeta"></dt><dd>Variation, and the point along Q where the variations are read, a smooth function of x, y and z. With variation the depth and rhythm of the swing drift, so no two bends are alike.</dd><dt data-tex="T,\ \ell"></dt><dd>Turns of the end spiral (below zero it curls upwards) and its length, which grows with size.</dd><dt data-tex="L_s"></dt><dd>A winding stem advances only J₀(A) of its length, the mean of cos(A sin φ), so it is made longer to fill the border. A longer border grows a longer stem, never a stretched one.</dd></dl>
+      <h3><b>5</b>The recursive rule, and what detail does</h3>
+      <p class="intro">Each shoot of generation k grows sprouts, generation k + 1, and they grow sprouts of their own. Detail d sets the depth D = 3d: generation k is weighted by [D − k + 1], so each third of the detail slider grows one more generation in from nothing. A new generation first appears as tendrils, hair-thin curls, which fill out into leaves as the depth rises further; deeper generations stay slimmer by the factor λ<sup>k</sup>. So detail goes from the bare main shoots to a lush, many-layered ornament, as in the Machine.</p>
+      <div class="math"><div class="eq" data-tex="G_k=\big[D-k+1\big]_0^1,\qquad \ell_k=\lambda^k\operatorname{smooth}(0.15,1.15,D-k+1),\qquad b_k=b\,\ell_k,\quad n_k=\operatorname{mix}(1.6,n,\ell_k)"></div><div class="eq" data-tex="u_j=\mathrm{span}+0.6\,\frac{j+\frac12}{\max(1,n')},\qquad w_j=[n'-j]_0^1\,G_{k+1},\qquad \alpha_j=\alpha\,(1+0.3vQ_j)\operatorname{mix}(1.1,0.7,f_j)"></div><div class="eq" data-tex="L_j=L\,\mathrm{scale}\,(1-0.35f_j)(1+0.25vQ_j)\,w_j\,w_{\pm},\qquad h_j=h(u_j)\pm\alpha_j+0.8\,\mathrm{rise}\,\sin\big(\tfrac\pi2-h\big),\qquad c_j=\pm\,\mathrm{away}"></div><div class="eq" data-tex="w_{+}=\max\big(\text{even}\,j:[1+\mathrm{side}]_0^1,\ \text{odd}\,j:[\mathrm{side}]_0^1;\ \mathrm{pair}\big),\qquad w_{-}=\max\big(\text{even}\,j:[-\mathrm{side}]_0^1,\ \text{odd}\,j:[1-\mathrm{side}]_0^1;\ \mathrm{pair}\big)"></div></div>
+      <dl class="terms"><dt data-tex="u_j,\ f_j"></dt><dd>Sprout j sits at u<sub>j</sub> along its parent, from span over the next 0.6 of it, so the tip curls free; f<sub>j</sub> = (j + ½)/n′ is its place among the sprouts. A fractional count grows the last sprout in.</dd><dt data-tex="w_{+},\ w_{-}"></dt><dd>Each sprout has a version on the convex side (+) and one on the concave side (−), weighted: alternating at side = 0, all convex at side = 1, all concave at side = −1, and pair adds the other. Blending by weight rather than by angle, no sprout ever lies flat along its parent.</dd><dt>From behind</dt><dd>A sprout starts on its parent’s edge, at the half-width there, leans out by α<sub>j</sub>, curls the way it leans, and lies behind its parent: small leaves peek out from behind big ones. Rise turns sprouts upwards.</dd><dt data-tex="Q_j,\ v"></dt><dd>Q adds three sines whose frequencies never line up; Q<sub>j</sub> is read at a point fixed by the shoot’s place in the tree, so a shoot keeps its variations as the point moves. v is variation.</dd><dt>Small shoots</dt><dd>A shoot shorter than a cutoff is not drawn, and one just above it is shrunk, L smooth(cut, 2 cut, L), so detail fades out instead of turning into fuzz.</dd></dl>
     </div>
     <div class="layer">
-      <h3><b>6</b>Leaves, scrolls and growth</h3>
-      <p class="intro">Leaf k sits where the meander’s phase reaches (k + ψ)π, on the outside of bend k, so the sides alternate. The leaves therefore move along the stem as smoothly as the stem itself, and a longer stem brings new ones in at its ends. Every leaf grows from nothing near the centre and near the end spiral.</p>
-      <div class="math"><div class="eq" data-tex="\phi(s_k)=(k+\psi)\pi,\qquad \sigma_k=(-1)^{k+1}"></div><div class="eq" data-tex="L_k=\ell_0\,G(s_k)\,\big(1+0.3v\sin(\tfrac{2\pi s_k}{3.7\lambda}+\zeta)\big)\big(1+0.4v\,Q_{k,1}\big)\Big(1-\frac{0.2\,s_k}{L_s}\Big)"></div><div class="eq" data-tex="G(s)=\operatorname{smooth}\big(0,\,\operatorname{mix}(0.08,0.45,C)\lambda,\,s\big)\operatorname{smooth}(0.45\ell,\,1.2\ell,\,L_s-s),\qquad Q_{k,j}=Q(1.618k+2.39j+\zeta)"></div></div>
-      <dl class="terms"><dt data-tex="\psi,\ \sigma_k"></dt><dd>Where a leaf sits by its bend, and its side. The leaf leans away from the stem at an angle α and curls towards the stem’s end (c = −σ<sub>k</sub>).</dd><dt data-tex="Q_{k,j}"></dt><dd>The k-th leaf’s j-th variation, which moves its size, breadth, curl, bend, lobes and lean. The same leaf keeps its variations as the point moves, so they too change smoothly.</dd><dt>Scrolls</dt><dd>In the bay inside each bend a scroll curls into a logarithmic spiral, behind the stem, with leaves on its outside; a scroll that hardly curls ends in a closed bud instead, which shrinks away as the curl tightens. Behind each leaf a tendril curls back, and a smaller second leaf may grow opposite. Their sizes are waves in the space times smooth steps in detail, so they grow from nothing as detail rises.</dd><dt data-tex="C"></dt><dd>The crown: in a mirrored border an upright, symmetric leaf (c = 0) rises from the centre between up to two pairs that lean out and curl outwards; a fractional count grows the last pair in. The stem’s first leaves give it room.</dd></dl>
+      <h3><b>6</b>The composition</h3>
+      <p class="intro">Up to 3.4 main shoots spring from the root, the first heading at the angle turn from straight up towards the right and each further one spread further round; a fractional count grows the last one in. A smooth minimum keeps the fan short of straight down, so a mirrored design never crosses its axis. A main shoot curls outwards, away from the axis, by bend times the cosine of its heading, so one heading down curls the other way round and one heading sideways not at all, and by arch times its sine, up into an arch or a wreath, or down into a swag. In a mirrored design an upright crown, a straight symmetric shoot, rises on the axis, and the mirror image (x → −x), m times the size, grows from the same root. Heading up gives plants, bouquets and trees, sideways garlands, arches and lyres, down fountains; without the mirror, sprays, corner pieces and single sweeping stems.</p>
+      <div class="math"><div class="eq" data-tex="a_i=\operatorname{smin}(\mathrm{turn}+i\,\mathrm{spread},\ \pi-0.12),\qquad \operatorname{smin}(a,b)=-0.25\ln\big(e^{-a/0.25}+e^{-b/0.25}\big)"></div><div class="eq" data-tex="c_i=\big[-\mathrm{bend}\cos a_i+\mathrm{arch}\sin a_i\big]_{-1}^{1},\qquad \theta_{0,i}=\tfrac\pi2-a_i,\qquad L_i=(1-0.12i)\,[R-i]_0^1,\qquad L_{\mathrm{crown}}=0.85\,\mathrm{crown}\,m^2"></div></div>
     </div>
     <div class="layer">
-      <h3><b>7</b>Mirror</h3>
-      <p class="intro">The left half is built in its own frame and mirrored. With mirror m below 1, each of its leaves turns about its stalk through the upright, and its chirality fades through zero and reverses. At m = 0 the left half’s leaves point to the right and curl as the right half’s do: one garland running from end to end. In between, each leaf passes through the upright, where it is straight and symmetric. The left half’s variations blend from the right half’s to its own, and the crown fades away.</p>
-      <div class="math"><div class="eq" data-tex="h=\theta+\sigma\alpha+(1-m)\,\sigma\,(\pi-2\alpha),\qquad c=-\sigma\cos\big(\pi(1-m)\big)"></div></div>
+      <h3><b>7</b>Aspect</h3>
+      <p class="intro">Aspect is relative to the motif’s own proportions, as in the Machine: at 1 the motif stands alone. Wider, repeats of it bud out on both sides along a runner, a stem that swings gently through their roots and winds into a curl at each end: a frieze. Taller, smaller tiers bud out of its top, each 0.84 times the one below and overlapping it by a quarter, up to eight: telescoping, as in a tall painted panel. A growing repeat buds from its neighbour’s outer edge and moves to its place as it grows (eased, so it starts and stops gently), so the design lengthens at an even rate. A design g times larger than its motif keeps its smallest shoots g<sup>0.6</sup> times larger and draws with pens g<sup>0.4</sup> times bolder, so a long frieze is not lost in fuzz.</p>
+      <div class="math"><div class="eq" data-tex="c=\frac{A-1}{2\,\mathrm{gap}},\quad P=\mathrm{gap}\,W_0,\quad w_i=\operatorname{smooth}\big(0,1,[c-i+1]_0^1\big),\quad x_i=d_{i-1}+x_1+w_i(P-x_1),\quad y=0.07P\sin\frac{\pi x}{P}"></div></div>
     </div>
     <div class="layer">
       <h3><b>8</b>Lines</h3>
-      <p class="intro">Everything is a pen line: outlines, midribs, veins, the two edges of the stem and of each scroll, and tendrils. The parts are drawn back to front, scrolls and tendrils behind the stem and the leaves in front of it, and each part has a silhouette, its outline moved out by a narrow halo. A line further back is cut where it passes under a nearer silhouette, at a point found by bisection, so the cut moves smoothly; it stops a small gap short of the outline, as in an engraving. A leaf’s tip is a part of its own, nearer than the leaf, so a tip rolled back hides the leaf beneath it. A piece of line shorter than twice its width is drawn thinner in proportion, so it shrinks away instead of vanishing as a dot.</p>
-      <p class="intro">For a print at a small size, such as an engraving, min line and gap, both in border heights, set the narrowest line and the narrowest gap. Lines keep at least that width, halos and the spaces between veins at least that gap, veins that no longer fit give way, and pieces too short to print are left out.</p>
+      <p class="intro">Everything is a pen line: outlines, stripes, hooks, curls, the two sides of each stalk and of the runner. Each shoot has a silhouette, its outline moved out by a narrow halo, at a depth: deeper generations lie behind shallower ones, a stalk behind its blade, and a blade’s tip in front of the blade, so a tip rolled back hides the blade beneath it. A line further back is cut where it passes under a nearer silhouette, at a point found by bisection, so the cut moves smoothly; it stops a small gap short of the outline, as in an engraving. A piece of line shorter than five times its width is drawn thinner in proportion, so it shrinks away instead of vanishing as a dot. Every shoot keeps its number of samples, and every end that lies between samples is interpolated, so nothing snaps from one sample to the next.</p>
+      <p class="intro">For a print at a small size, such as an engraving, min line and gap, in main-shoot lengths, set the narrowest line and the narrowest gap. Lines keep at least that width, halos and the spaces between stripes at least that gap, stripes that no longer fit give way, and pieces too short to print are left out.</p>
     </div>
   </section>
   </div>
@@ -1293,67 +1278,72 @@ const $=id=>document.getElementById(id), panel=$('panel-leaves'), reduce=matchMe
 let E;
 try{E=await import('./leaves.js');}catch(e){$('lnote').hidden=false;throw e;}
 const {build,bbox,settingsAt}=E;
-/* ---- presets: points in the space, [x, y, z, detail, aspect, variation, size, mirror] ---- */
-const BORDERS={"Plume":[6,17,13,0.9,6,0.5,0.4,1],"Willow":[0.3,0.5,3,0.3,6,0.3,0.1,1],"Oak":[12,14,16,0.9,6,0.5,0.4,1],"Acanthus":[15,8,10,0.8,6,0.5,0.4,1],"Fern":[20,8,2,0.6,6,0.5,0.4,1],"Garland":[0,7.9,5.3,0.4,8,0.6,0.66,0],"Scroll":[1.6,10,9.2,0.7,6,0.7,0.2,1],"Curl":[0,8,10,0.6,6,0.5,0.4,1],"Wave":[5.7,15.8,2.9,0.2,6,1,0.9,1],"Lace":[19,19,18,1,6,0.8,0.15,1],"Frieze":[16.5,3,5.7,0.4,8,0.5,0.4,0],"Broad":[2,14.8,19,0.2,6,0.3,1,0.9]};
-const KEYS=['x','y','z','detail','aspect','variation','size','mirror'];
+/* ---- presets: points in the space, [x, y, z, detail, aspect, plump, lobes, curl, variation] ---- */
+const DESIGNS={"Crown":[16,1,2,0.8,1,0.5,0.5,0.6,0.4],"Candelabra":[16.5,16,17,0.8,1,0.5,0.5,0.6,0.4],"Lyre":[2,9.5,13,0.7,1,0.5,0.5,0.6,0.4],"Spray":[19.8,6.2,2.3,0.9,1,0.17,0.1,0.82,0.4],"Sprig":[12.6,8.1,2,0.5,1,0.76,0.75,0.81,0.4],"Lace":[16,12.4,19.8,0.86,1,0.13,0.06,0.32,0.4],"Frame":[13,1.1,7.5,0.79,1,0.08,0.6,0.84,0.4],"Garland":[1.7,4.7,10.3,0.85,1.6,0.28,0.98,0.83,0.4],"Twist":[18.5,19.2,7.3,0.97,1,0.15,0.48,0.84,0.4],"Lush":[8.9,8.6,17.8,0.87,1,0.97,0.87,0.62,0.4],"Tower":[3.2,2.5,3.9,0.7,0.33,0.43,0.65,0.45,0.4],"Frieze":[2,9.5,13,0.6,3.5,0.5,0.5,0.6,0.4]};
+const KEYS=['x','y','z','detail','aspect','plump','lobes','curl','variation'];
 const point=p=>Object.fromEntries(KEYS.map((k,i)=>[k,p[i]]));
-/* ---- the space: eight numbers, plus the narrowest line and gap for small prints (engine units, border heights) ---- */
-const RANGE={x:[0,20],y:[0,20],z:[0,20],detail:[0,1],aspect:[2,24],variation:[0,1],size:[0,1],mirror:[0,1],min:[0,0.05],gap:[0,0.05]};
-const HELP={x:'the leaf edge: smooth, scalloped, lobed, feathered, divided',y:'the stem: a gentle garland to deep scrolls; the ends',z:'slender or broad leaves, calm or curling',
-  detail:'veins, then scrolls, second leaves and tendrils',aspect:'width over height: a longer stem, never stretched',
-  variation:'how much each leaf and bend differs from its neighbours',size:'many small leaves or fewer, larger ones',
-  mirror:'a running garland (0) or mirrored about the centre (1)',min:'the narrowest line, in border heights',gap:'the narrowest gap between lines'};
-const LABEL={min:'min line'}, DIGITS={detail:2,variation:2,size:2,mirror:2,min:3,gap:3};
-const CAPS={x:'#e8505b',y:'#f08a3a',z:'#f2c93a',detail:'#35b27f',aspect:'#3cb6e3',variation:'#8f7bd6',size:'#e47fae',mirror:'#a9dcdb'};   // the Machine's slider handle colours, and three more
-const S=Object.assign(point(Object.values(BORDERS)[0]),{min:0,gap:0});   // this tab's state
-let current=Object.keys(BORDERS)[0], mode='still', sweepKey='x+y+z', pal='panel', dirty=true;
+/* ---- the space: nine numbers, plus the narrowest line and gap for small prints (engine units, main-shoot lengths) ---- */
+const RANGE={x:[0,20],y:[0,20],z:[0,20],detail:[0,1],aspect:[0.25,8],plump:[0,1],lobes:[0,1],curl:[0,1],variation:[0,1],min:[0,0.05],gap:[0,0.05]};
+const LOG={aspect:1};   // a ratio: its slider moves in proportion
+const HELP={x:'',y:'',z:'',detail:'depth: each step grows a generation of shoots',aspect:'wider: a frieze of repeats; taller: telescoping tiers',
+  plump:'slender or plump',lobes:'smooth or billowed edge',curl:'calm or tightly curled',variation:'how much each leaf differs from the next',
+  min:'the narrowest line, in main-shoot lengths',gap:'the narrowest gap between lines'};
+const LABEL={min:'min line'}, DIGITS={detail:2,aspect:2,plump:2,lobes:2,curl:2,variation:2,min:3,gap:3};
+const CAPS={x:'#e8505b',y:'#f08a3a',z:'#f2c93a',detail:'#35b27f',aspect:'#3cb6e3',plump:'#e47fae',lobes:'#8f7bd6',curl:'#a9dcdb',variation:'#c9b48a'};   // the Machine's slider handle colours, and four more
+const fw=k=>LOG[k]?Math.log:v=>v, bw=k=>LOG[k]?Math.exp:v=>v;   // to and from slider units
+const S=Object.assign(point(Object.values(DESIGNS)[0]),{min:0,gap:0});   // this tab's state
+let current=Object.keys(DESIGNS)[0], mode='still', sweepKey='x+y+z', pal='panel', dirty=true;
 const make=(o=S)=>build(o,{min:o.min||0,gap:o.gap||0});
 
 /* ---- sliders ---- */
 const REG=new Map();
 function slider(parent,k){
-  const[lo,hi]=RANGE[k],step=DIGITS[k]===3?0.0005:+((hi-lo)/400).toPrecision(6),row=document.createElement('div');row.className='row';
-  row.innerHTML=`<label for="ls-${k}">${LABEL[k]||k}</label><input type="range" id="ls-${k}" min="${lo}" max="${hi}" step="${step}"><output></output><small>${HELP[k]}</small>`;
+  const[lo,hi]=RANGE[k].map(fw(k)),step=DIGITS[k]===3?0.0005:Math.floor((hi-lo)/400*1e6)/1e6,row=document.createElement('div');row.className='row';   // 400 steps, never past the end
+  row.innerHTML=`<label for="ls-${k}">${LABEL[k]||k}</label><input type="range" id="ls-${k}" min="${lo}" max="${hi}" step="${step}"><output></output>`+(HELP[k]?`<small>${HELP[k]}</small>`:'');
   parent.appendChild(row);const inp=row.querySelector('input'),out=row.querySelector('output');if(CAPS[k])inp.style.setProperty('--cap',CAPS[k]);
-  const r={held:false,sync(){if(!this.held)inp.value=S[k];out.textContent=(+S[k]).toFixed(DIGITS[k]??1);}};REG.set(k,r);r.sync();
+  const r={held:false,sync(){if(!this.held)inp.value=fw(k)(S[k]);out.textContent=(+S[k]).toFixed(DIGITS[k]??1);}};REG.set(k,r);r.sync();
   const hold=on=>{r.held=on;if(!on)rephase=true;};
   inp.addEventListener('pointerdown',()=>hold(true));inp.addEventListener('touchstart',()=>hold(true),{passive:true});
   for(const ev of['pointerup','pointercancel','touchend','touchcancel','change','blur'])inp.addEventListener(ev,()=>hold(false));
-  inp.addEventListener('input',()=>{S[k]=parseFloat(inp.value);changed();r.sync();});
+  inp.addEventListener('input',()=>{S[k]=bw(k)(parseFloat(inp.value));changed();r.sync();});
 }
-['x','y','z','detail','aspect'].forEach(k=>slider($('lpoint'),k));['variation','size','mirror'].forEach(k=>slider($('lleaves'),k));['min','gap'].forEach(k=>slider($('lprint'),k));
+['x','y','z','detail','aspect'].forEach(k=>slider($('lpoint'),k));['plump','lobes','curl','variation'].forEach(k=>slider($('lleaves'),k));['min','gap'].forEach(k=>slider($('lprint'),k));
 function changed(){current=null;markPreset();rephase=true;dirty=true;showNumbers();}
 function setPressed(id,attr,val){document.querySelectorAll(`#${id} button`).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset[attr]===val)));}
 function syncAll(){for(const r of REG.values())r.sync();showNumbers();}
 function choose(id,attr,set){$(id).addEventListener('click',e=>{const b=e.target.closest('button');if(b)set(b.dataset[attr]);});}
 $('lrandom').addEventListener('click',()=>{const R=(a,b)=>a+(b-a)*Math.random();
-  S.x=R(0,20);S.y=R(0,20);S.z=R(0,20);S.detail=R(0.1,0.9);current=null;markPreset();rephase=true;syncAll();dirty=true;view=null;});
+  S.x=R(0,20);S.y=R(0,20);S.z=R(0,20);S.detail=R(0.25,1);S.plump=R(0,1);S.lobes=R(0,1);S.curl=R(0,1);
+  current=null;markPreset();rephase=true;syncAll();dirty=true;view=null;});
 /* what the point gives, in words (the words change at fixed places; the drawing does not) */
 const word=(v,cuts,words)=>{const i=cuts.findIndex(c=>v<c);return words[i<0?words.length-1:i];};
 function showNumbers(){const r3=v=>+(+v).toFixed(3),o=Object.fromEntries(KEYS.map(k=>[k,r3(S[k])]));
   if(S.min||S.gap){o.min=r3(S.min);o.gap=r3(S.gap);}$('ljson').textContent=JSON.stringify(o,null,1);
-  const K=settingsAt(S),shape=word(K.F.b,[0.2,0.36],['slender','','broad']),edge=word(K.edge,[0.12,0.45,0.68,0.88],['smooth','scalloped','lobed','feathered','divided']);
-  const tips=word(K.F.curl,[0.25,0.55],['straight tips','curling tips','rolled tips']),stem=word(K.wind,[0.6,1],['a gentle garland','a winding stem','deep scrolls']);
-  const m=+S.mirror,form=m>0.97?'mirrored about the centre':m<0.03?'running one way':'between running and mirrored';
-  const t=`${shape?shape+', ':''}${edge} leaves with ${tips}, on ${stem}${K.shoots>0.3?' with scrolls in its bends':''}; ${form}.`;
+  const K=settingsAt(S),m=K.mirror,n=Math.round(K.shoots*(m>0.5?2:1)+(K.crown*m*m>0.3?1:0));
+  const head=word(K.turn,[0.4,1.15,1.95],['rising','leaning out','reaching sideways','hanging']);
+  const kind=n===1?'a single shoot':(m>0.97?'a mirrored ':m<0.03?'a one-sided ':'an uneven ')+word(K.turn,[0.4,1.15,1.95],['bouquet','spray','garland','fountain'])+` of ${n} shoots`;
+  const g=Math.round(K.depth),gen=g===0?'without sprouts':g===1?'with one generation of sprouts':`with ${['','one','two','three'][g]} generations of sprouts`;
+  const leaf=[word(S.plump,[0.3,0.7],['slender','','plump']),word(S.lobes,[0.12,0.6],['smooth','billowed','deeply billowed'])].filter(Boolean).join(', ');
+  const tips=word(S.curl,[0.3,0.7],['calm tips','curling tips','rolled tips']),rep=S.aspect>1.15?'; repeated in a frieze':S.aspect<0.87?'; in telescoping tiers':'';
+  const t=`${kind}, ${head}${K.stalk>0.32?' on long stalks':''}, ${gen}; ${leaf} leaves with ${tips}${rep}.`;
   $('lchose').textContent=t[0].toUpperCase()+t.slice(1);}
 $('lcopy').addEventListener('click',async e=>{const b=e.currentTarget;try{await navigator.clipboard.writeText($('ljson').textContent);b.textContent='Copied';}catch(_){b.textContent='Select the text';}setTimeout(()=>b.textContent='Copy numbers',1600);});
 
-/* ---- motion: still, or the Machine's smooth back-and-forth sweep ---- */
+/* ---- motion: still, or the Machine's smooth back-and-forth sweep (in slider units: aspect moves in proportion) ---- */
 const sel_=$('lsweepKey'),GOLD=0.6180339887;
 for(const[v,l] of[['x+y+z','x + y + z'],...KEYS.map(k=>[k,k])]){const o=document.createElement('option');o.value=v;o.textContent=l;sel_.appendChild(o);}
 sel_.value=sweepKey;sel_.addEventListener('change',()=>{sweepKey=sel_.value;rephase=true;setMode('sweep');});
 const keysOf=k=>k==='x+y+z'?['x','y','z']:[k];
 function setMode(m){mode=m;rephase=true;last=null;setPressed('lmodes','mode',m);sel_.hidden=m!=='sweep';dirty=true;}
 choose('lmodes','mode',setMode);
-const SPEED={x:0.075,y:0.075,z:0.075,detail:0.015,aspect:0.2,variation:0.015,size:0.015,mirror:0.015};   // units per second
+const SPEED={x:0.075,y:0.075,z:0.075,detail:0.015,aspect:0.04,plump:0.015,lobes:0.015,curl:0.015,variation:0.015};   // slider units per second
 let PH={},rephase=true,last=null;
-function phaseOf(k,v,prev){const[lo,hi]=RANGE[k],f=Math.max(0,Math.min(1,(v-lo)/(hi-lo)));return prev!==undefined&&(((prev%2)+2)%2)>1?2-f:f;}
+function phaseOf(k,v,prev){const[lo,hi]=RANGE[k].map(fw(k)),f=Math.max(0,Math.min(1,(fw(k)(v)-lo)/(hi-lo)));return prev!==undefined&&(((prev%2)+2)%2)>1?2-f:f;}
 const tri=p=>{const q=((p%2)+2)%2;return q<=1?q:2-q;};
 function sweepStep(dt){const ks=keysOf(sweepKey);
   if(rephase){const P={};for(const k of ks)P[k]=phaseOf(k,S[k],PH[k]);PH=P;rephase=false;}
-  ks.forEach((k,i)=>{if(REG.get(k).held)return;const[lo,hi]=RANGE[k],span=hi-lo,rate=ks.length>1?[1,GOLD,GOLD*GOLD][i]:1;
-    PH[k]+=SPEED[k]/span*rate*dt;S[k]=lo+span*tri(PH[k]);});}
+  ks.forEach((k,i)=>{if(REG.get(k).held)return;const[lo,hi]=RANGE[k].map(fw(k)),span=hi-lo,rate=ks.length>1?[1,GOLD,GOLD*GOLD][i]:1;
+    PH[k]+=SPEED[k]/span*rate*dt;S[k]=bw(k)(lo+span*tri(PH[k]));});}
 
 /* ---- colour and drawing: every item is a pen line of width w, with round ends and joins ---- */
 /* the Machine's palettes, and black with pale grey ink (the command line's default) */
@@ -1371,16 +1361,17 @@ function draw(ctx,items,P,v,Wd,H,pad){
     ctx.lineWidth=it.w*s;ctx.stroke();}
 }
 function padB(b,f){const w=b.x1-b.x0,h=b.y1-b.y0,m=f*Math.max(w,h);return{x0:b.x0-m,x1:b.x1+m,y0:b.y0-m,y1:b.y1+m};}
-const main=$('lmain'),mctx=main.getContext('2d'),box=main.parentNode;
-let view=null,boxAspect=4,shownAspect=0;
+const main=$('lmain'),mctx=main.getContext('2d'),box=main.parentNode,narrow=matchMedia('(max-width:860px)');
+let view=null,boxAspect=1,shownAspect=0;
 function frame(now){
   if(panel.hidden){last=null;requestAnimationFrame(frame);return;}   // the Machine tab is shown: a sweep waits where it is
   if(mode==='sweep'){const dt=last===null?0:Math.min(0.1,Math.max(0,now-last)/1000);last=now;sweepStep(dt);syncAll();dirty=true;}
   if(!dirty){requestAnimationFrame(frame);return;}
   const items=make(),t=padB(bbox(items),0.03);
-  // the box takes the border's proportions, from 1.6 to 8 wide, easing while it sweeps
-  const a=Math.min(8,Math.max(1.6,(t.x1-t.x0)/Math.max(1e-6,t.y1-t.y0)));boxAspect+=(a-boxAspect)*(mode==='sweep'?0.08:1);
-  if(Math.abs(boxAspect-shownAspect)>0.01){shownAspect=boxAspect;box.style.aspectRatio=boxAspect.toFixed(3)+' / 1';}
+  // on wide screens the box takes the design's proportions, from square to 2.6 wide (as the Machine's), easing while it sweeps
+  if(!narrow.matches){const a=Math.min(2.6,Math.max(1,(t.x1-t.x0)/Math.max(1e-6,t.y1-t.y0)));boxAspect+=(a-boxAspect)*(mode==='sweep'?0.08:1);
+    if(Math.abs(boxAspect-shownAspect)>0.01){shownAspect=boxAspect;box.style.aspectRatio=boxAspect.toFixed(3)+' / 1';}}
+  else if(shownAspect){shownAspect=0;box.style.aspectRatio='';}
   if(!view||mode!=='sweep')view=Object.assign({},t);
   else{for(const k of['x0','x1','y0','y1'])view[k]+=(t[k]-view[k])*0.12;
     view.x0=Math.min(view.x0,t.x0);view.y0=Math.min(view.y0,t.y0);view.x1=Math.max(view.x1,t.x1);view.y1=Math.max(view.y1,t.y1);}
@@ -1405,20 +1396,21 @@ $('ldownload').addEventListener('click',()=>{const a=document.createElement('a')
 
 /* ---- presets ---- */
 const gal=$('lgallery'),thumbs=[];
-Object.keys(BORDERS).forEach(name=>{
+Object.keys(DESIGNS).forEach(name=>{
   const b=document.createElement('button');b.type='button';b.className='thumb';b.setAttribute('aria-pressed','false');
   b.innerHTML=`<canvas aria-hidden="true"></canvas><span>${name}</span>`;
-  b.addEventListener('click',()=>{Object.assign(S,point(BORDERS[name]));current=name;rephase=true;
+  b.addEventListener('click',()=>{Object.assign(S,point(DESIGNS[name]));current=name;rephase=true;
     syncAll();markPreset();dirty=true;view=null;main.scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'});});
   gal.appendChild(b);thumbs.push({b,name,items:null});
 });
 function markPreset(){thumbs.forEach(({b,name})=>b.setAttribute('aria-pressed',String(name===current)));}
 function drawThumbs(){if(panel.hidden)return;const P=palette();
-  for(const t of thumbs){const cv=t.b.querySelector('canvas');t.items=t.items||build(point(BORDERS[t.name]));const[Wd,H]=fit(cv);draw(cv.getContext('2d'),t.items,P,bbox(t.items),Wd,H,0.9);}}
-/* the navy band: one running garland, its aspect found in three steps so that it fills the band */
-function decorate(){if(panel.hidden)return;const cv=$('lband'),[Wd,H]=fit(cv),want=Wd/H;let a=0.9*want,it,b;
-  for(let i=0;i<3;i++){it=build({x:7,y:6,z:12,detail:0.3,aspect:Math.max(2,a),variation:0.5,size:0.6,mirror:0});b=bbox(it);a*=0.97*want/((b.x1-b.x0)/(b.y1-b.y0));}
-  draw(cv.getContext('2d'),it,PALS.band,b,Wd,H,0.86);}
+  for(const t of thumbs){const cv=t.b.querySelector('canvas');t.items=t.items||build(point(DESIGNS[t.name]));const bb=bbox(t.items);
+    t.b.classList.toggle('wide',(bb.x1-bb.x0)/Math.max(1e-6,bb.y1-bb.y0)>2.2);const[Wd,H]=fit(cv);draw(cv.getContext('2d'),t.items,P,bb,Wd,H,0.86);}}
+/* the navy band: one frieze, its aspect (relative to the motif's own) found in two steps so that it fills the band */
+function decorate(){if(panel.hidden)return;const cv=$('lband'),[Wd,H]=fit(cv),want=Wd/H,p={x:19,y:5.7,z:3.3,detail:0.6,plump:0.5,lobes:0.4,curl:0.6,variation:0.4};
+  let a=1,it,b;for(let i=0;i<3;i++){it=build({...p,aspect:a});b=bbox(it);a*=0.97*want/((b.x1-b.x0)/(b.y1-b.y0));a=Math.min(16,Math.max(1,a));}
+  it=build({...p,aspect:a});draw(cv.getContext('2d'),it,PALS.band,bbox(it),Wd,H,0.86);}
 /* the formulas below are typeset by the Machine's script; a formula wider than its box is set smaller (phones) */
 function fitEqs(){panel.querySelectorAll('.math .eq').forEach(el=>{el.style.fontSize='';const w=el.scrollWidth,c=el.clientWidth;if(w>c+1)el.style.fontSize=Math.max(55,Math.floor(100*c/w))+'%';});}
 

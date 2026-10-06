@@ -1,27 +1,30 @@
 #!/usr/bin/env node
 // Kurbits Leaves on the command line: the line-drawn, dalmålning-style engine in ../leaves.js.
 //
-//   leaves svg   --at X,Y,Z[,DETAIL[,ASPECT[,VARIATION[,SIZE[,MIRROR]]]]] [options] [-o FILE]
+//   leaves svg   --at X,Y,Z[,DETAIL[,ASPECT[,PLUMP[,LOBES[,CURL[,VARIATION]]]]]] [options] [-o FILE]
 //   leaves json  --at ... [-o FILE]          raw geometry, engine units, y up: {params, bbox, items: [{kind: 'line',
 //                                            width, points: [[x, y], ...]}]}; hidden lines are already removed
-//   leaves sheet --points "X,Y,Z,D,A;..." [--cols N] [options] -o FILE
+//   leaves sheet --points "X,Y,Z,D,A,...;..." [--cols N] [options] -o FILE
+//   leaves sheet --leaf --points "PLUMP,LOBES,CURL;..." [--cols N] -o FILE    single leaves, for close-ups of the leaf
 //
-// x, y and z run from 0 to 20, detail from 0 to 1, aspect from 2 up (a border's width over its height), variation from
-// 0 (every leaf alike) to 1 (each leaf and bend differs from its neighbours; default 0.5), size from 0 (fine, busy
-// leaves) to 1 (fewer, larger ones; default 0.4), mirror from 0 (a running garland, every leaf pointing one way) to
-// 1 (mirrored about the centre, the default). Every number is continuous: any point draws a border.
+// x, y and z (0 to 20) choose the composition, detail (0 to 1) the depth: how many generations of shoots grow from
+// the main ones. Aspect (0.25 to 8, default 1) is relative to the design's own proportions: wider adds repeats along
+// a runner (a frieze), taller stacks smaller tiers. Plump, lobes and curl (0 to 1, default 0.5) shape the leaf:
+// slender to plump, a smooth to a billowed edge, calm to tightly curled; variation (0 to 1, default 0.4) is how much
+// each leaf differs from the next. Every number is continuous: any point draws a design.
 // Options: --bg COLOUR (default #101012), --col COLOUR (default #d6d9de), --px WIDTH for .png (default 1600),
-// --min M: the narrowest line, --gap G: the narrowest gap between lines, both in engine units (roughly 1 unit per
-// border height), for small physical prints such as an engraving.
+// --min M: the narrowest line, --gap G: the narrowest gap between lines, both in engine units (about 1 unit per main
+// shoot), for small physical prints such as an engraving.
 // An -o FILE ending in .png is rendered with resvg; anything else is written as SVG.
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { build, bbox } from '../leaves.js';
+import { build, buildLeaf, bbox } from '../leaves.js';
 
 const require = createRequire(import.meta.url);
 const f4 = v => (+v).toFixed(4);
-export const KEYS = ['x', 'y', 'z', 'detail', 'aspect', 'variation', 'size', 'mirror'];
+export const KEYS = ['x', 'y', 'z', 'detail', 'aspect', 'plump', 'lobes', 'curl', 'variation'];
+const LEAF = ['plump', 'lobes', 'curl'];
 
 export function toJSON(items, params) {
   const pairs = p => { const o = []; for (let i = 0; i < p.length; i += 2) o.push([p[i], p[i + 1]]); return o; };
@@ -47,15 +50,17 @@ export function toSVG(items, P, pad = 0.04, widthPx = 1200) {
     `<rect width="100%" height="100%" fill="${P.bg}"/>${paths(items, P, X, Y, s)}</svg>`;
 }
 
-function sheetSVG(points, P, cols, cell = 600, opt = {}) {
-  const rows = Math.ceil(points.length / cols), lab = 26;
-  let body = '', maxH = 0; const cells = points.map(p => { const items = build(p, opt); const b = bbox(items); return { p, items, b }; });
-  for (const c of cells) maxH = Math.max(maxH, (c.b.y1 - c.b.y0) / (c.b.x1 - c.b.x0));
-  const ch = cell * maxH * 1.08 + lab;
+// a grid of designs (or single leaves), each fitted into a cell of the same height, labelled with its numbers
+function sheetSVG(points, P, cols, cell = 600, opt = {}, leaf = false) {
+  const rows = Math.ceil(points.length / cols), lab = 26, keys = leaf ? LEAF : KEYS;
+  let body = '', maxH = 0; const cells = points.map(p => { const items = leaf ? buildLeaf(p) : build(p, opt); const b = bbox(items); return { p, items, b }; });
+  for (const c of cells) maxH = Math.max(maxH, Math.min(1.6, (c.b.y1 - c.b.y0) / (c.b.x1 - c.b.x0)));
+  const ch = cell * maxH * 1.04 + lab + 12;
   cells.forEach((c, i) => {
-    const gx = (i % cols) * cell, gy = Math.floor(i / cols) * ch, w = c.b.x1 - c.b.x0, s = cell * 0.94 / w;
-    const X = x => gx + cell * 0.03 + (x - c.b.x0) * s, Y = y => gy + lab + (c.b.y1 - y) * s;
-    body += `<text x="${gx + 8}" y="${gy + 20}" fill="#9aa0a8" font-family="Helvetica" font-size="17">${i + 1}  ${KEYS.map(k => +(+c.p[k]).toFixed(3)).join(', ')}</text>`;
+    const gx = (i % cols) * cell, gy = Math.floor(i / cols) * ch, w = c.b.x1 - c.b.x0, h = c.b.y1 - c.b.y0;
+    const s = Math.min(cell * 0.94 / w, (ch - lab - 12) / h), ox = gx + (cell - w * s) / 2, oy = gy + lab + (ch - lab - 6 - h * s) / 2;
+    const X = x => ox + (x - c.b.x0) * s, Y = y => oy + (c.b.y1 - y) * s;
+    body += `<text x="${gx + 8}" y="${gy + 20}" fill="#9aa0a8" font-family="Helvetica" font-size="17">${i + 1}  ${keys.map(k => +(+c.p[k]).toFixed(3)).join(', ')}</text>`;
     body += paths(c.items, P, X, Y, s);
   });
   const W = cols * cell, H = rows * ch;
@@ -70,20 +75,21 @@ function write(file, svg, px) {
 }
 
 export function parsePoint(s) {
-  const [x, y, z, detail = 0.5, aspect = 6, variation = 0.5, size = 0.4, mirror = 1] = s.split(',').map(Number);
-  return { x, y, z, detail, aspect, variation, size, mirror };
+  const [x, y, z, detail = 0.5, aspect = 1, plump = 0.5, lobes = 0.5, curl = 0.5, variation = 0.4] = s.split(',').map(Number);
+  return { x, y, z, detail, aspect, plump, lobes, curl, variation };
 }
+const parseLeaf = s => { const [plump = 0.5, lobes = 0.5, curl = 0.5] = s.split(',').map(Number); return { plump, lobes, curl }; };
 
 if (process.argv[1] && fs.realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   process.stdout.on('error', e => { if (e.code === 'EPIPE') process.exit(0); throw e; });
   const [cmd, ...rest] = process.argv.slice(2), o = {};
-  for (let i = 0; i < rest.length; i++) { const k = rest[i].replace(/^-+/, ''); o[k] = rest[i + 1]; i++; }
+  for (let i = 0; i < rest.length; i++) { const k = rest[i].replace(/^-+/, ''); if (k === 'leaf') { o.leaf = true; continue; } o[k] = rest[i + 1]; i++; }
   const P = { bg: o.bg || '#101012', col: o.col || '#d6d9de' }, px = +(o.px || 1600), out = o.o;
   const opt = { min: +(o.min || 0), gap: +(o.gap || 0) };
   if (cmd === 'svg') write(out, toSVG(build(parsePoint(o.at || '5,5,5'), opt), P), px);
   else if (cmd === 'json') {
     const p = parsePoint(o.at || '5,5,5'), j = JSON.stringify(toJSON(build(p, opt), p));
     if (out) fs.writeFileSync(out, j); else process.stdout.write(j);
-  } else if (cmd === 'sheet') write(out, sheetSVG((o.points || '').split(';').filter(Boolean).map(parsePoint), P, +(o.cols || 2), 600, opt), px);
+  } else if (cmd === 'sheet') write(out, sheetSVG((o.points || '').split(';').filter(Boolean).map(o.leaf ? parseLeaf : parsePoint), P, +(o.cols || 2), 600, opt, o.leaf), px);
   else { console.error('usage: leaves svg|json|sheet ... (see the header of cli/leaves.mjs)'); process.exit(1); }
 }

@@ -2,14 +2,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { build, bbox } from '../leaves.js';
 
-const P = { x: 7, y: 9, z: 12, detail: 0.6, aspect: 4, variation: 0.5, size: 0.4, mirror: 1 };
-const KEYS = ['x', 'y', 'z', 'detail', 'aspect', 'variation', 'size', 'mirror'];
-const RANGE = { x: [0, 20], y: [0, 20], z: [0, 20], detail: [0, 1], aspect: [2, 24], variation: [0, 1], size: [0, 1], mirror: [0, 1] };
+import { build, bbox, settingsAt, buildLeaf } from '../leaves.js';
+const P = { x: 7, y: 9, z: 12, detail: 0.6, aspect: 1, plump: 0.5, lobes: 0.5, curl: 0.5, variation: 0.4 };
+const KEYS = ['x', 'y', 'z', 'detail', 'aspect', 'plump', 'lobes', 'curl', 'variation'];
+const RANGE = { x: [0, 20], y: [0, 20], z: [0, 20], detail: [0, 1], aspect: [0.25, 8], plump: [0, 1], lobes: [0, 1], curl: [0, 1], variation: [0, 1] };
 // a small pseudo-random generator, so that the random points are the same on every run
 const rng = (s => () => (s = (s * 16807) % 2147483647) / 2147483647)(20261005);
-const randomPoint = (aspectMax = 8) => Object.fromEntries(KEYS.map(k => { const [a, b] = k === 'aspect' ? [2, aspectMax] : RANGE[k]; return [k, a + (b - a) * rng()]; }));
+const randomPoint = (aspectMax = 3) => Object.fromEntries(KEYS.map(k => { const [a, b] = k === 'aspect' ? [0.5, aspectMax] : RANGE[k]; return [k, a + (b - a) * rng()]; }));
 
 // ---- a distance between two drawings: every line is sampled every h units, each sample weighted by the ink it
 // stands for (width times length), and each sample is matched to the nearest sample of the other drawing
@@ -49,17 +49,17 @@ function distance(A, B, far) {
   return { mean: (s / sw + t / tw) / 2, far: fa / (sw + tw) };
 }
 
-test('the same numbers always give the same border', () => {
+test('the same numbers always give the same design', () => {
   assert.deepEqual(build(P), build({ ...P }));
 });
 
 test('every point builds, and draws only pen lines: random points and every corner of the space', () => {
-  const points = Array.from({ length: 60 }, () => randomPoint(24));
-  for (let m = 0; m < 256; m++) points.push(Object.fromEntries(KEYS.map((k, i) => [k, RANGE[k][(m >> i) & 1]])));
+  const points = Array.from({ length: 60 }, () => randomPoint(8));
+  for (let m = 0; m < 512; m++) points.push(Object.fromEntries(KEYS.map((k, i) => [k, RANGE[k][(m >> i) & 1]])));
   for (const p of points) {
     const items = build(p), b = bbox(items);
     assert.ok(items.length >= 4, JSON.stringify(p));
-    assert.ok(Number.isFinite(b.x0 + b.x1 + b.y0 + b.y1) && b.x1 - b.x0 > 1, JSON.stringify(p));
+    assert.ok(Number.isFinite(b.x0 + b.x1 + b.y0 + b.y1) && b.x1 - b.x0 > 0.2 && b.y1 - b.y0 > 0.2, JSON.stringify(p));
     for (const it of items) {
       assert.equal(it.t, 'l');
       assert.ok(it.w > 0 && it.pts.length >= 4 && it.pts.every(Number.isFinite), JSON.stringify(p));
@@ -67,54 +67,75 @@ test('every point builds, and draws only pen lines: random points and every corn
   }
 });
 
-// Continuity: along every number, from random points, each small step (1/400 of its range, a slider's step) moves
-// the drawing only a little, and no step moves it much more than the steps around it.
+// Continuity: along every number, from random points, each small step (1/400 of its range, a slider's step; aspect,
+// a ratio, steps by 1/400 of its range in proportion, as its slider does) moves the drawing only a little, and no step
+// moves it much more than the steps around it.
 test('continuity: a small step in any number makes a small change, and no step jumps', () => {
   const STEPS = 10;
   for (let q = 0; q < 5; q++) {
     const p0 = randomPoint();
     for (const k of KEYS) {
-      const [lo, hi] = RANGE[k], dk = (hi - lo) / 400, start = Math.min(p0[k], hi - (STEPS + 1) * dk);
-      let prev = build({ ...p0, [k]: start }); const d = [], far = [];
-      const H = bbox(prev).y1 - bbox(prev).y0;
+      const lg = k === 'aspect', f = lg ? Math.log : v => v, F = lg ? Math.exp : v => v;
+      const [lo, hi] = RANGE[k].map(f), dk = (hi - lo) / 400, start = Math.min(f(p0[k]), hi - (STEPS + 1) * dk);
+      let prev = build({ ...p0, [k]: F(start) }); const d = [], far = [];
+      const H = Math.max(bbox(prev).y1 - bbox(prev).y0, bbox(prev).x1 - bbox(prev).x0);   // the design's size
       for (let i = 1; i <= STEPS; i++) {
-        const cur = build({ ...p0, [k]: start + i * dk }), r = distance(prev, cur, 0.03 * H);
+        const cur = build({ ...p0, [k]: F(start + i * dk) }), r = distance(prev, cur, 0.03 * H);
         d.push(r.mean / H); far.push(r.far); prev = cur;
       }
-      const med = [...d].sort((a, b) => a - b)[STEPS >> 1], max = Math.max(...d), at = JSON.stringify({ ...p0, [k]: start });
+      const med = [...d].sort((a, b) => a - b)[STEPS >> 1], max = Math.max(...d), at = JSON.stringify({ ...p0, [k]: F(start) });
       if (process.env.VERBOSE) console.log(k.padEnd(9), med.toExponential(2), max.toExponential(2), Math.max(...far).toExponential(2));
-      assert.ok(max < 0.006, `${k}: a step moved the ink ${max.toFixed(5)} border heights on average, from ${at}`);
+      assert.ok(max < 0.008, `${k}: a step moved the ink ${max.toFixed(5)} of the design's size on average, from ${at}`);
       assert.ok(max <= 6 * med + 5e-4, `${k}: a jump (${max.toFixed(5)} against a median step of ${med.toFixed(5)}) from ${at}`);
-      assert.ok(Math.max(...far) < 0.02, `${k}: ${(100 * Math.max(...far)).toFixed(2)}% of the ink moved further than 3% of the height, from ${at}`);
+      assert.ok(Math.max(...far) < 0.02, `${k}: ${(100 * Math.max(...far)).toFixed(2)}% of the ink moved further than 3% of its size, from ${at}`);
     }
   }
 });
 
-test('mirror: 1 is mirror-symmetric about the centre, 0 runs one way', () => {
-  const sym = items => distance(items, items.map(it => ({ ...it, pts: it.pts.map((v, i) => i % 2 ? v : -v) })), 0.05).mean;
-  const b = bbox(build(P));
-  assert.ok(Math.abs(b.x0 + b.x1) < 1e-9);
-  assert.ok(sym(build(P)) < 1e-9);
-  assert.ok(sym(build({ ...P, mirror: 0 })) > 0.01);
+// Where x, y and z give a mirrored design (the setting mirror = 1), the drawing is mirror-symmetric about the root, up
+// to which of two crossing leaves lies in front; where they give none (mirror = 0), it is not.
+test('mirror: mirrored points are symmetric, unmirrored points are not', () => {
+  const sym = items => { const H = bbox(items).y1 - bbox(items).y0; return distance(items, items.map(it => ({ ...it, pts: it.pts.map((v, i) => i % 2 ? v : -v) })), 0.05).mean / H; };
+  let on = 0, off = 0;
+  for (let i = 0; i < 400 && (on < 4 || off < 4); i++) {
+    const p = { ...P, x: 20 * rng(), y: 20 * rng(), z: 20 * rng() }, m = settingsAt(p).mirror;
+    if (m === 1 && on < 4) { on++; const it = build(p), b = bbox(it); assert.ok(Math.abs(b.x0 + b.x1) < 0.02 * (b.x1 - b.x0), JSON.stringify(p)); assert.ok(sym(it) < 0.004, JSON.stringify(p) + ' ' + sym(it)); }
+    if (m === 0 && off < 4) { off++; assert.ok(sym(build(p)) > 0.01, JSON.stringify(p)); }
+  }
+  assert.ok(on === 4 && off === 4);
+});
+
+test('detail is the depth: every step of detail adds a generation of shoots', () => {
+  for (const p of [P, { ...P, x: 3, y: 15, z: 4 }, { ...P, x: 16, y: 2, z: 10 }]) {
+    const n = [0, 0.34, 0.67, 1].map(d => build({ ...p, detail: d }).length);
+    for (let i = 1; i < n.length; i++) assert.ok(n[i] > n[i - 1], JSON.stringify(p) + ' ' + n);
+  }
+});
+
+test('a single leaf builds from pen lines across the leaf numbers', () => {
+  for (const plump of [0, 0.5, 1]) for (const lobes of [0, 0.5, 1]) for (const curl of [0, 0.5, 1]) {
+    const items = buildLeaf({ plump, lobes, curl });
+    assert.ok(items.length >= 3 && items.every(it => it.t === 'l' && it.w > 0 && it.pts.every(Number.isFinite)));
+  }
 });
 
 test('small prints: no line is narrower than min, and fine lines give way', () => {
   const screen = build(P), print = build(P, { min: 0.02, gap: 0.02 });
   for (const it of print) assert.ok(it.w >= 0.02 - 1e-12);
-  const veins = items => items.filter(it => it.w < 0.009).length;
+  const veins = items => items.filter(it => it.w < 0.006).length;
   assert.ok(veins(screen) > 0 && print.length < screen.length);
 });
 
-test("the page's Leaves presets are valid points that build distinct borders", () => {
+test("the page's Leaves presets are valid points that build distinct designs", () => {
   const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-  const presets = JSON.parse(html.match(/BORDERS=(\{[^}]*\})/)[1]), seen = new Set();
+  const presets = JSON.parse(html.match(/DESIGNS=(\{[^}]*\})/)[1]), seen = new Set();
   assert.ok(Object.keys(presets).length >= 8);
   for (const [name, v] of Object.entries(presets)) {
     assert.equal(v.length, KEYS.length, name);
     const p = Object.fromEntries(KEYS.map((k, i) => [k, v[i]]));
     for (const k of KEYS) assert.ok(p[k] >= RANGE[k][0] && p[k] <= RANGE[k][1], name + ' ' + k);
     const items = build(p), b = bbox(items);
-    assert.ok(items.length > 20 && Number.isFinite(b.x0 + b.x1 + b.y0 + b.y1), name);
+    assert.ok(items.length > 10 && Number.isFinite(b.x0 + b.x1 + b.y0 + b.y1), name);
     seen.add(items.length + ':' + b.x1.toFixed(6));
   }
   assert.equal(seen.size, Object.keys(presets).length);

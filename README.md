@@ -28,42 +28,46 @@ aspect 0.25 to 6). An output name ending in `.png` is rendered with resvg
 
 ## Kurbits Leaves
 
-`leaves.js` is a second engine of line-drawn leaves after Dalecarlian kurbits painting (dalmålning, about 1780-1850)
-and acanthus scrollwork: curling, lobed, feathered and toothed leaves on a winding stem that ends in spirals, with
-scrolls, buds and tendrils in its bends. Like the Machine it is a point in a continuous space, and every number is
-continuous: x, y and z (0 to 20), detail, variation, size and mirror (0 to 1) and aspect (width over height). Every
-point draws a border, and a small step in any number changes it only a little. Nothing is picked from a list: a leaf,
-a lobe, a vein, a tooth or a scroll grows from nothing, and the same numbers always give the same border.
+`leaves.js` is a second engine of line-drawn leaves after Dalecarlian kurbits painting (dalmålning, about
+1780-1870): plump, banded leaves that bend in a C or an S and wind their tips into curls, coming out from behind one
+another, generation after generation. Like the Machine it is one recursive rule: a shoot (a stalk, then a leaf, then a
+curl) grows smaller shoots out from behind its edges, and they grow smaller ones, down to the depth that detail sets.
+Every number is continuous, every point draws a design, a small step in any number changes it only a little, and the
+same numbers always give the same design.
 
-- x sets the leaf's edge: smooth, scalloped, lobed, feathered, then divided into leaflets (lobes are one bump
-  repeated a fractional number of times along the leaf, so they grow in one by one; deep enough, the notches reach
-  the midrib).
-- z mostly sets slender or broad leaves, calm or curling; y the stem, from a gentle garland to deep scrolls, and
-  whether its ends hang or rise. Both are read off slow waves through the space, as in the Machine.
-- detail grows the veins, then scrolls inside the bends, second leaves and tendrils; variation makes each leaf and
-  bend differ from its neighbours; size trades many small leaves for fewer, larger ones.
-- mirror blends a running garland (0, every leaf pointing one way) into a border mirrored about its centre (1, with
-  a crown of leaves rising there): the left half's leaves turn through the upright and their curl reverses.
+- x, y and z (0 to 20) choose the composition, read off slow waves through the space as in the Machine: how many main
+  shoots spring from the root and where they head (up, sideways, down), how far they curl outwards, arch or sway, how
+  much of them is stalk, how many sprouts each shoot grows, where, how large and on which side, whether they rise,
+  and whether the design is mirrored (most of the space is). The space holds upright plants with a crown, bouquets,
+  candelabra, lyres and arches, garlands, fountains, sprays and single sweeping stems.
+- detail (0 to 1) is the depth: each third of it grows one more generation of shoots in from nothing, first as
+  hair-thin curls that then fill out into leaves.
+- aspect (0.25 to 8) is relative to the motif's own proportions: wider, repeats bud out along a runner (a frieze);
+  taller, smaller tiers bud out of the top (telescoping, as in a tall panel).
+- plump, lobes and curl (0 to 1) shape the leaf: slender to plump; a smooth edge to rounded billows, each notch
+  marked by a hook; a calm tip to one rolled into a spiral. variation is how much each leaf differs from the next.
 
-Each leaf grows along a spine given by its curvature (an even bend and a tip curl that tightens like a logarithmic
-spiral); its edge is a width envelope times lobes times teeth, its veins pinnate or striate like painted strokes.
-The stem is a meander described by its heading, ending in logarithmic spirals. Everything is a pen line with hidden
-lines removed, so the SVG is ready for a plotter or an engraver. `settingsAt(point)` reports the continuous settings
-a point gives. The page's "How it is built" has the formulas.
+Each shoot grows along a spine given by its curvature (a bend that may reverse into an S, then a tip curl that tightens
+like a logarithmic spiral). The blade's edge is a width envelope times the billows, the convex side swelling more; it
+is banded with stripes that follow the outline and run together into the base and the tip. Everything is a pen line
+with hidden lines removed (sprouts lie behind their parents, so small leaves peek out from behind big ones), so the SVG
+is ready for a plotter or an engraver. `settingsAt(point)` reports the continuous settings a point gives, and
+`buildLeaf({plump, lobes, curl})` draws one leaf on its own. The page's "How it is built" has the formulas.
 
 Try it in the page's Leaves tab (`index.html#leaves`), which has the Machine's controls for every number, the print
 limits below, twelve presets, a sweep, and Copy or Download SVG. The tab imports `leaves.js`, so locally serve the
 folder (e.g. `python3 -m http.server`) rather than opening the file. On the command line:
 
 ```
-node cli/leaves.mjs svg --at 6,17,13,0.9,6 -o border.svg               # X,Y,Z,DETAIL,ASPECT[,VARIATION,SIZE,MIRROR]
-node cli/leaves.mjs sheet --points "0.3,0.5,3;12,14,16;20,8,2" --cols 1 -o sheet.png
-node cli/leaves.mjs json --at 15,8,10,0.8,8,0.5,0.4,0 --min 0.015 --gap 0.015 -o print.json
+node cli/leaves.mjs svg --at 16,1,2,0.8 -o crown.svg                    # X,Y,Z,DETAIL[,ASPECT,PLUMP,LOBES,CURL,VARIATION]
+node cli/leaves.mjs sheet --points "16,1,2,0;16,1,2,0.5;16,1,2,1" --cols 3 -o depth.png
+node cli/leaves.mjs sheet --leaf --points "0.2,0,0.3;0.8,1,0.9" --cols 2 -o leaves.png   # PLUMP,LOBES,CURL
+node cli/leaves.mjs json --at 2,9.5,13,0.6,3.5 --min 0.015 --gap 0.015 -o print.json
 ```
 
 Items are pen lines (`{t: 'l', pts, w}`, width w, round ends). For small physical prints such as an engraving,
 `--min` sets the narrowest line and `--gap` the narrowest gap between lines, both in engine units (about one unit
-per border height): lines keep at least that width, halos and the spaces between veins at least that gap, and veins
+per main shoot): lines keep at least that width, halos and the spaces between stripes at least that gap, and stripes
 that no longer fit give way. `npm test` runs the tests in `cli/`, including a continuity test: from random points,
-each number is stepped by 1/400 of its range, and every step must move the drawing's ink only a little, with no
-step much larger than its neighbours.
+each number is stepped by 1/400 of its range (aspect by 1/400 of its range in proportion), and every step must move
+the drawing's ink only a little, with no step much larger than its neighbours.
